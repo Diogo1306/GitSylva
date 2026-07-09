@@ -1,19 +1,77 @@
-:root[data-theme="batman"] {
-  --bg: #14161a;
-  --bg-panel: #1b1e24;
-  --bg-elevated: #22262e;
-  --border: #2c313a;
-  --text: #e7e9ee;
-  --text-muted: #9aa2b1;
-  --accent: #3fd07a;
-  --accent-weak: #1f4d33;
-  --danger: #e5484d;
-  --warning: #f2b84b;
-  --radius: 10px;
-  --radius-sm: 6px;
-  --space: 8px;
-  --font-ui: "Space Grotesk", system-ui, sans-serif;
+/*
+ * Base document styles and the full animation keyframe library, ported from
+ * the GitSylva design handoff. Theme color variables are NOT declared here;
+ * they are written onto :root at runtime by useApplyTheme() from themes.ts.
+ * A neutral fallback set lives in :root so the very first paint is not blank.
+ */
+
+:root {
+  --desk: radial-gradient(120% 90% at 50% 0%, #1b1d1f 0%, #0b0c0d 62%);
+  --win: #141618;
+  --winB: rgba(255, 255, 255, 0.08);
+  --shadow: 0 0 0 1px rgba(0, 0, 0, 0.55), 0 24px 80px rgba(0, 0, 0, 0.55);
+  --panel: #101214;
+  --panel2: #0c0e10;
+  --border: #272b2e;
+  --bsoft: rgba(255, 255, 255, 0.05);
+  --text: #eaecee;
+  --text2: #a5acb2;
+  --muted: #61686e;
+  --sel: rgba(234, 236, 238, 0.08);
+  --hover: rgba(234, 236, 238, 0.05);
+  --btn: #1b1e21;
+  --btnB: #2d3134;
+  --btnT: #c8cdd2;
+  --badge: #262a2e;
+  --badgeT: #aeb5bb;
+  --input: #181b1d;
+  --accent: #eaecee;
+  --accentT: #111315;
+  --leaf: #82c99b;
+  --trunk: #8a5a33;
+  --l0: #82c99b;
+  --l0bg: rgba(130, 201, 155, 0.12);
+  --l0bd: rgba(130, 201, 155, 0.28);
+  --l1: #7fa6d9;
+  --l1bg: rgba(127, 166, 217, 0.12);
+  --l1bd: rgba(127, 166, 217, 0.28);
+  --l2: #d9a96b;
+  --l2bg: rgba(217, 169, 107, 0.13);
+  --l2bd: rgba(217, 169, 107, 0.3);
+  --tagbd: #31363a;
+  --dhB: rgba(127, 166, 217, 0.08);
+  --dhT: #7fa6d9;
+  --dcT: #8c9399;
+  --daB: rgba(130, 201, 155, 0.1);
+  --daT: #a9ddbc;
+  --ddB: rgba(228, 122, 122, 0.1);
+  --ddT: #e4a3a3;
+  --stMB: rgba(217, 169, 107, 0.14);
+  --stMT: #dcbe93;
+  --stAB: rgba(130, 201, 155, 0.14);
+  --stAT: #a9ddbc;
+  --stDB: rgba(228, 122, 122, 0.14);
+  --stDT: #e4a3a3;
+  --font: "Inter", sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --radius: 14px;
+  --radius-sm: 8px;
+
+  /*
+   * Transitional aliases. The MVP screens (OpenRepo, WorkingCopy, History)
+   * still use the old token names. These map them onto the new system so
+   * nothing looks broken between phases. Removed once every screen is
+   * rebuilt against the design tokens.
+   */
+  --bg: var(--win);
+  --bg-panel: var(--panel);
+  --bg-elevated: var(--btn);
+  --text-muted: var(--muted);
+  --danger: var(--ddT);
+  --warning: var(--stMT);
+  --accent-weak: var(--l0bg);
+  --font-ui: var(--font);
+  --space: 8px;
 }
 
 * {
@@ -25,11 +83,92 @@ body,
 #root {
   height: 100%;
   margin: 0;
+  padding: 0;
 }
 
 body {
-  background: var(--bg);
+  background: var(--win);
   color: var(--text);
-  font-family: var(--font-ui);
+  font-family: var(--font);
   font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--btnB, #ddddd5);
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* ── Animation library (from the design) ───────────────────────────────── */
+@keyframes vineDraw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+@keyframes nodePop { from { transform: scale(0); } to { transform: scale(1); } }
+@keyframes leafPop {
+  0% { transform: scale(0) rotate(-50deg); }
+  70% { transform: scale(1.15) rotate(3deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+@keyframes fadeUp { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: none; } }
+@keyframes fadeUp2 { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: none; } }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes popIn { from { opacity: 0; transform: scale(0.94) translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes winIn { from { opacity: 0; transform: scale(0.965) translateY(14px); } to { opacity: 1; transform: none; } }
+@keyframes toastUp { from { opacity: 0; transform: translate(-50%, 12px); } to { opacity: 1; transform: translate(-50%, 0); } }
+@keyframes splashSeq { 0% { opacity: 1; } 72% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes logoIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: none; } }
+@keyframes lineGrow { from { width: 0; } to { width: 120px; } }
+@keyframes recPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
+@keyframes letterHop {
+  0% { opacity: 1; transform: none; }
+  45% { transform: translateY(-14px); opacity: 1; }
+  100% { transform: translateY(10px); opacity: 0; }
+}
+@keyframes obFade { from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(1.05); } }
+@keyframes themeSwapA { 0% { opacity: 0.45; } 100% { opacity: 1; } }
+@keyframes themeSwapB { 0% { opacity: 0.45; } 100% { opacity: 1; } }
+@keyframes fxFall {
+  0% { transform: translateY(0) rotate(0deg); opacity: 0; }
+  12% { opacity: 0.9; }
+  100% { transform: translateY(340px) translateX(-18px) rotate(230deg); opacity: 0; }
+}
+@keyframes toastIn { from { opacity: 0; transform: translateX(-50%) translateY(10px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+@keyframes fileIn { from { opacity: 0; transform: translateX(-8px) scale(0.98); } to { opacity: 1; transform: none; } }
+@keyframes letterL { from { opacity: 0; transform: translateX(16px) scale(0.85); } to { opacity: 1; transform: none; } }
+@keyframes letterR { from { opacity: 0; transform: translateX(-16px) scale(0.85); } to { opacity: 1; transform: none; } }
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+@keyframes notifIn { from { opacity: 0; transform: translateX(28px) scale(0.97); } to { opacity: 1; transform: none; } }
+@keyframes sway { from { transform: rotate(-1.1deg); } to { transform: rotate(1.4deg); } }
+@keyframes leafFall {
+  0% { transform: translate(0, -6vh) rotate(0deg); opacity: 0; }
+  10% { opacity: 0.75; }
+  55% { transform: translate(26px, 48vh) rotate(160deg); }
+  88% { opacity: 0.65; }
+  100% { transform: translate(-14px, 106vh) rotate(330deg); opacity: 0; }
+}
+
+/*
+ * Motion gating. When the user turns off decorative animations, or the OS
+ * asks for reduced motion, suppress the purely decorative keyframes. Essential
+ * feedback (spinners, quick fades) is kept short elsewhere.
+ */
+:root[data-anims="off"] [data-decor-anim] {
+  animation: none !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
 }
