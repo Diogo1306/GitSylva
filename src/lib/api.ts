@@ -38,3 +38,7 @@ export function commit(path: string, message: string): Promise<string> {
 export function getLog(path: string, limit: number): Promise<Commit[]> {
   return invoke<Commit[]>("get_log", { path, limit });
 }
+
+export function getDiff(path: string, file: string, staged: boolean): Promise<string> {
+  return invoke<string>("get_diff", { path, file, staged });
+}
