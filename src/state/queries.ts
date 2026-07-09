@@ -1,11 +1,22 @@
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
-import { getStatus, stageFile, unstageFile, stageAll, discardFile, commit, getLog, getDiff } from "../lib/api";
+import {
+  getStatus,
+  stageFile,
+  unstageFile,
+  stageAll,
+  discardFile,
+  commit,
+  getLog,
+  getDiff,
+  commitDetail,
+} from "../lib/api";
 
 export const queryKeys = {
   status: (path: string) => ["status", path] as const,
   log: (path: string) => ["log", path] as const,
   diff: (path: string, file: string, staged: boolean) =>
     ["diff", path, file, staged] as const,
+  commit: (path: string, hash: string) => ["commit", path, hash] as const,
 };
 
 export function useStatus(path: string) {
@@ -27,6 +38,14 @@ export function useDiff(path: string, file: string | null, staged: boolean) {
     queryKey: queryKeys.diff(path, file ?? "", staged),
     queryFn: () => getDiff(path, file as string, staged),
     enabled: file !== null,
+  });
+}
+
+export function useCommitDetail(path: string, hash: string | null) {
+  return useQuery({
+    queryKey: queryKeys.commit(path, hash ?? ""),
+    queryFn: () => commitDetail(path, hash as string),
+    enabled: hash !== null,
   });
 }
 

@@ -4,6 +4,7 @@ pub mod stage;
 pub mod commit;
 pub mod log;
 pub mod diff;
+pub mod detail;
 
 use crate::error::GitError;
 use std::process::Command;

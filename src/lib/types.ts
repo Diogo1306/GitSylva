@@ -21,3 +21,17 @@ export type Commit = {
   subject: string;
   refs: string;
 };
+
+export type CommitFile = {
+  path: string;
+  status: string;
+  additions: number;
+  deletions: number;
+};
+
+export type CommitDetail = {
+  additions: number;
+  deletions: number;
+  files: CommitFile[];
+  diff: string;
+};
