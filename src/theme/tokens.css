@@ -1,0 +1,35 @@
+:root[data-theme="batman"] {
+  --bg: #14161a;
+  --bg-panel: #1b1e24;
+  --bg-elevated: #22262e;
+  --border: #2c313a;
+  --text: #e7e9ee;
+  --text-muted: #9aa2b1;
+  --accent: #3fd07a;
+  --accent-weak: #1f4d33;
+  --danger: #e5484d;
+  --warning: #f2b84b;
+  --radius: 10px;
+  --radius-sm: 6px;
+  --space: 8px;
+  --font-ui: "Space Grotesk", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-ui);
+  font-size: 14px;
+}
