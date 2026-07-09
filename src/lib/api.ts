@@ -14,3 +14,19 @@ export function openRepo(path: string): Promise<RepoInfo> {
 export function getStatus(path: string): Promise<FileChange[]> {
   return invoke<FileChange[]>("get_status", { path });
 }
+
+export function stageFile(path: string, file: string): Promise<void> {
+  return invoke("stage_file", { path, file });
+}
+
+export function unstageFile(path: string, file: string): Promise<void> {
+  return invoke("unstage_file", { path, file });
+}
+
+export function stageAll(path: string): Promise<void> {
+  return invoke("stage_all", { path });
+}
+
+export function discardFile(path: string, file: string, untracked: boolean): Promise<void> {
+  return invoke("discard_file", { path, file, untracked });
+}
