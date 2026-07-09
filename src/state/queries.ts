@@ -1,5 +1,5 @@
-import { useQuery } from "@tanstack/react-query";
-import { getStatus } from "../lib/api";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
+import { getStatus, stageFile, unstageFile, stageAll, discardFile } from "../lib/api";
 
 export const queryKeys = {
   status: (path: string) => ["status", path] as const,
@@ -13,4 +13,18 @@ export function useStatus(path: string) {
     queryKey: queryKeys.status(path),
     queryFn: () => getStatus(path),
   });
+}
+
+export function useStageActions(path: string) {
+  const qc = useQueryClient();
+  const invalidate = () => qc.invalidateQueries({ queryKey: queryKeys.status(path) });
+  return {
+    stage: useMutation({ mutationFn: (file: string) => stageFile(path, file), onSuccess: invalidate }),
+    unstage: useMutation({ mutationFn: (file: string) => unstageFile(path, file), onSuccess: invalidate }),
+    stageAll: useMutation({ mutationFn: () => stageAll(path), onSuccess: invalidate }),
+    discard: useMutation({
+      mutationFn: (v: { file: string; untracked: boolean }) => discardFile(path, v.file, v.untracked),
+      onSuccess: invalidate,
+    }),
+  };
 }

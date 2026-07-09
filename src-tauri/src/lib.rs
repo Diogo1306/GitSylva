@@ -17,7 +17,11 @@ pub fn run() {
     })
     .invoke_handler(tauri::generate_handler![
       git::repo::open_repo,
-      git::status::get_status
+      git::status::get_status,
+      git::stage::stage_file,
+      git::stage::unstage_file,
+      git::stage::stage_all,
+      git::stage::discard_file
     ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");
