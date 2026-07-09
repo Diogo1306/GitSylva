@@ -4,6 +4,7 @@ import { useStatus, useStageActions } from "../../state/queries";
 import { FileRow } from "../../components/FileRow";
 import { Button } from "../../components/Button";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
+import { CommitBox } from "../commit/CommitBox";
 
 export function WorkingCopy() {
   const repo = useAppStore((s) => s.repo)!;
@@ -34,8 +35,18 @@ export function WorkingCopy() {
   );
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, padding: 12 }}>
-      <section>
+    <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          gap: 12,
+          padding: 12,
+          flex: 1,
+          overflow: "auto",
+        }}
+      >
+        <section>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <h3>Staged</h3>
         </div>
@@ -75,6 +86,9 @@ export function WorkingCopy() {
           />
         ))}
       </section>
+      </div>
+
+      <CommitBox />
 
       {pendingDiscard && (
         <ConfirmDialog

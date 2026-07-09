@@ -30,3 +30,7 @@ export function stageAll(path: string): Promise<void> {
 export function discardFile(path: string, file: string, untracked: boolean): Promise<void> {
   return invoke("discard_file", { path, file, untracked });
 }
+
+export function commit(path: string, message: string): Promise<string> {
+  return invoke<string>("commit", { path, message });
+}
