@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
-import { getStatus, stageFile, unstageFile, stageAll, discardFile } from "../lib/api";
+import { getStatus, stageFile, unstageFile, stageAll, discardFile, commit } from "../lib/api";
 
 export const queryKeys = {
   status: (path: string) => ["status", path] as const,
@@ -27,4 +27,15 @@ export function useStageActions(path: string) {
       onSuccess: invalidate,
     }),
   };
+}
+
+export function useCommit(path: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (message: string) => commit(path, message),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.status(path) });
+      qc.invalidateQueries({ queryKey: queryKeys.log(path) });
+    },
+  });
 }
