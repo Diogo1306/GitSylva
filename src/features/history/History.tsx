@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAppStore } from "../../state/appStore";
 import { useLog, useCommitDetail } from "../../state/queries";
 import { graphRows } from "../../graph/layout";
@@ -164,9 +164,19 @@ function DetailPanel({ repoPath, commit }: { repoPath: string; commit: Commit })
 
 export function History() {
   const repo = useAppStore((s) => s.repo)!;
+  const focusCommit = useAppStore((s) => s.focusCommit);
+  const setFocusCommit = useAppStore((s) => s.setFocusCommit);
   const { data, isLoading, error } = useLog(repo.path);
   const [selectedHash, setSelectedHash] = useState<string | null>(null);
   const [query, setQuery] = useState("");
+
+  // Honor a commit chosen from the command palette, then clear the request.
+  useEffect(() => {
+    if (focusCommit) {
+      setSelectedHash(focusCommit);
+      setFocusCommit(null);
+    }
+  }, [focusCommit, setFocusCommit]);
 
   const commits = data ?? [];
   const rows = useMemo(() => graphRows(commits), [commits]);

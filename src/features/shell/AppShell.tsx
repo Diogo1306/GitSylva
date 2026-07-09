@@ -1,8 +1,11 @@
 import "./shell.css";
+import { useEffect } from "react";
 import { useAppStore } from "../../state/appStore";
 import { Titlebar } from "./Titlebar";
 import { Sidebar } from "./Sidebar";
 import { ActionBar } from "./ActionBar";
+import { CommandPalette } from "./CommandPalette";
+import { Toaster } from "../../components/Toaster";
 import { WorkingCopy } from "../working-copy/WorkingCopy";
 import { History } from "../history/History";
 import { Stashes } from "../stashes/Stashes";
@@ -24,17 +27,21 @@ function Screen() {
 }
 
 export function AppShell() {
+  const setPaletteOpen = useAppStore((s) => s.setPaletteOpen);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setPaletteOpen(true);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [setPaletteOpen]);
+
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        height: "100%",
-        background: "var(--win)",
-        color: "var(--text)",
-        overflow: "hidden",
-      }}
-    >
+    <div style={{ display: "flex", flexDirection: "column", height: "100%", background: "var(--win)", color: "var(--text)", overflow: "hidden" }}>
       <Titlebar />
       <div style={{ flex: 1, display: "flex", minHeight: 0 }}>
         <Sidebar />
@@ -43,6 +50,8 @@ export function AppShell() {
         </div>
       </div>
       <ActionBar />
+      <CommandPalette />
+      <Toaster />
     </div>
   );
 }

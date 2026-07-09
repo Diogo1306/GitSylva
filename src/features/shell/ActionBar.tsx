@@ -1,5 +1,6 @@
 import { useAppStore } from "../../state/appStore";
 import { useStatus } from "../../state/queries";
+import { toast } from "../../state/toastStore";
 
 const mono = "'JetBrains Mono', monospace";
 
@@ -10,21 +11,22 @@ function Divider() {
 function Btn({
   label,
   onClick,
-  stub,
+  soon,
   badge,
   badgeAccent,
 }: {
   label: string;
   onClick?: () => void;
-  stub?: boolean;
+  // Dimmed but still clickable: the feature is planned and shows a toast.
+  soon?: boolean;
   badge?: number | null;
   badgeAccent?: boolean;
 }) {
   return (
     <div
-      onClick={stub ? undefined : onClick}
-      title={stub ? `${label} · em breve` : label}
-      className={stub ? "gs-stub" : "gs-lift"}
+      onClick={onClick}
+      title={soon ? `${label} · em breve` : label}
+      className="gs-lift"
       style={{
         display: "flex",
         alignItems: "center",
@@ -36,8 +38,9 @@ function Btn({
         fontSize: 12.5,
         fontWeight: 600,
         color: "var(--btnT)",
-        cursor: stub ? "default" : "pointer",
+        cursor: "pointer",
         whiteSpace: "nowrap",
+        opacity: soon ? 0.6 : 1,
       }}
     >
       {label}
@@ -83,13 +86,13 @@ export function ActionBar() {
     >
       <Btn label="Commit" onClick={() => setView("working")} badge={staged} badgeAccent />
       <Divider />
-      <Btn label="↓ Pull" stub />
-      <Btn label="↑ Push" stub />
+      <Btn label="↓ Pull" soon onClick={() => toast("Pull chega na fase de sincronização (git pull)")} />
+      <Btn label="↑ Push" soon onClick={() => toast("Push chega na fase de sincronização (git push)")} />
       <Divider />
-      <Btn label="Branch" stub />
-      <Btn label="Merge" stub />
+      <Btn label="Branch" soon onClick={() => toast("Criar e mudar de branch chega numa próxima fase")} />
+      <Btn label="Merge" soon onClick={() => toast("Merge chega numa próxima fase")} />
       <Btn label="Stash" onClick={() => setView("stashes")} />
-      <Btn label="Tag" stub />
+      <Btn label="Tag" soon onClick={() => toast("Tags chegam numa próxima fase")} />
       <div style={{ flex: 1 }} />
       <div style={{ display: "flex", alignItems: "center", gap: 10, fontFamily: mono, fontSize: 11.5, color: "var(--muted)", whiteSpace: "nowrap" }}>
         <span>

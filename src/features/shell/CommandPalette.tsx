@@ -1,0 +1,144 @@
+import { useMemo, useState } from "react";
+import { useAppStore } from "../../state/appStore";
+import { useLog } from "../../state/queries";
+import type { View } from "../../state/appStore";
+
+const mono = "'JetBrains Mono', monospace";
+
+type Item = { label: string; sub: string; dot: string; dotR: string; run: () => void };
+type Group = { title: string; items: Item[] };
+
+export function CommandPalette() {
+  const open = useAppStore((s) => s.paletteOpen);
+  const setOpen = useAppStore((s) => s.setPaletteOpen);
+  const setView = useAppStore((s) => s.setView);
+  const setFocusCommit = useAppStore((s) => s.setFocusCommit);
+  const repo = useAppStore((s) => s.repo);
+  const [q, setQ] = useState("");
+  const { data: commits } = useLog(repo?.path ?? "");
+
+  const groups = useMemo<Group[]>(() => {
+    if (!open) return [];
+    const query = q.trim().toLowerCase();
+    const match = (s: string) => !query || s.toLowerCase().includes(query);
+
+    const go = (view: View) => () => {
+      setView(view);
+      setOpen(false);
+    };
+    const navItems: [string, View][] = [
+      ["Histórico", "history"],
+      ["Cópia de trabalho", "working"],
+      ["Stashes", "stashes"],
+      ["Definições", "settings"],
+    ];
+    const nav: Item[] = navItems
+      .filter(([n]) => match(n))
+      .map(([n, v]) => ({ label: n, sub: "ir para", dot: "var(--muted)", dotR: "50%", run: go(v) }));
+
+    const cm: Item[] = (commits ?? [])
+      .filter((c) => match(c.subject + " " + c.hash + " " + c.author))
+      .slice(0, 6)
+      .map((c) => ({
+        label: c.subject,
+        sub: `${c.hash.slice(0, 7)} · ${c.author}`,
+        dot: "var(--l0)",
+        dotR: "50%",
+        run: () => {
+          setFocusCommit(c.hash);
+          setView("history");
+          setOpen(false);
+        },
+      }));
+
+    const gs: Group[] = [];
+    if (cm.length) gs.push({ title: "COMMITS", items: cm });
+    if (nav.length) gs.push({ title: "IR PARA", items: nav });
+    return gs;
+  }, [open, q, commits, setView, setOpen, setFocusCommit]);
+
+  if (!open) return null;
+
+  const firstHit = groups[0]?.items[0]?.run;
+
+  return (
+    <div
+      onClick={() => setOpen(false)}
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 65,
+        background: "rgba(0,0,0,0.35)",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "flex-start",
+        paddingTop: 110,
+        animation: "fadeIn 0.15s ease both",
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          width: 580,
+          background: "var(--win)",
+          border: "1px solid var(--border)",
+          borderRadius: 14,
+          boxShadow: "0 24px 80px rgba(0,0,0,0.4)",
+          overflow: "hidden",
+          animation: "popIn 0.2s cubic-bezier(0.2, 0.9, 0.3, 1) both",
+          color: "var(--text)",
+        }}
+      >
+        <input
+          autoFocus
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") setOpen(false);
+            if (e.key === "Enter" && firstHit) firstHit();
+          }}
+          placeholder="Pesquisar commits, ir para…"
+          style={{
+            width: "100%",
+            boxSizing: "border-box",
+            background: "transparent",
+            border: "none",
+            borderBottom: "1px solid var(--border)",
+            padding: "15px 18px",
+            fontSize: 15,
+            color: "var(--text)",
+            outline: "none",
+            fontFamily: "var(--font)",
+          }}
+        />
+        <div style={{ maxHeight: 380, overflowY: "auto", padding: 8 }}>
+          {groups.map((g) => (
+            <div key={g.title}>
+              <div style={{ padding: "8px 10px 4px", fontSize: 10.5, fontWeight: 700, letterSpacing: "1.3px", color: "var(--muted)" }}>{g.title}</div>
+              {g.items.map((it, i) => (
+                <div
+                  key={i}
+                  onClick={it.run}
+                  className="gs-row"
+                  style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", borderRadius: 8, cursor: "pointer" }}
+                >
+                  <span style={{ width: 7, height: 7, borderRadius: it.dotR, background: it.dot, flexShrink: 0 }} />
+                  <span style={{ flex: 1, fontSize: 13.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{it.label}</span>
+                  <span style={{ fontFamily: mono, fontSize: 11, color: "var(--muted)", whiteSpace: "nowrap" }}>{it.sub}</span>
+                </div>
+              ))}
+            </div>
+          ))}
+          {groups.length === 0 && (
+            <div style={{ padding: 24, textAlign: "center", color: "var(--muted)", fontSize: 13 }}>Sem resultados para "{q}"</div>
+          )}
+        </div>
+        <div style={{ padding: "8px 14px", borderTop: "1px solid var(--border)", display: "flex", gap: 14, fontSize: 11, color: "var(--muted)" }}>
+          <span>↵ abrir o primeiro</span>
+          <span>esc fechar</span>
+          <span>⌘K / Ctrl+K em qualquer ecrã</span>
+        </div>
+      </div>
+    </div>
+  );
+}
