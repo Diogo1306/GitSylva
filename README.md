@@ -1,44 +1,75 @@
-# GitSylva
+# React + TypeScript + Vite
 
-Desktop Git client where history is shown as a living tree.
+This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
-The goal is a clean and simple app for everyday git work: open a repository, see
-your changes, stage files, commit, and view history as a tree graph.
+Currently, two official plugins are available:
 
-## Status
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
+- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
 
-In development. Starting with the MVP.
+## React Compiler
 
-Phased roadmap:
+The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
 
-- Phase 0. Foundation: project set up, design system and base theme, connection
-  to the system git, open a repository.
-- Phase 1. Commit MVP: view changes, stage per file, discard, write a message,
-  make a real commit, view the history graph and the diff.
-- Phase 2. Sync: pull, push, fetch, switch and create branches.
-- Phase 3. Power: stashes, tags, merge, quick search, multiple repositories.
-- Phase 4. Polish: themes, tree styles, animations, onboarding, settings.
+## Expanding the ESLint configuration
 
-## Tech
+If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
 
-- Tauri 2 for the desktop shell.
-- React, TypeScript and Vite for the interface.
-- Rust backend that talks to the system git through a subprocess.
+```js
+export default defineConfig([
+  globalIgnores(['dist']),
+  {
+    files: ['**/*.{ts,tsx}'],
+    extends: [
+      // Other configs...
 
-The app uses the git already installed on the machine, so commits keep your
-identity and push and pull use your existing credentials.
+      // Remove tseslint.configs.recommended and replace with this
+      tseslint.configs.recommendedTypeChecked,
+      // Alternatively, use this for stricter rules
+      tseslint.configs.strictTypeChecked,
+      // Optionally, add this for stylistic rules
+      tseslint.configs.stylisticTypeChecked,
 
-## Requirements
+      // Other configs...
+    ],
+    languageOptions: {
+      parserOptions: {
+        project: ['./tsconfig.node.json', './tsconfig.app.json'],
+        tsconfigRootDir: import.meta.dirname,
+      },
+      // other options...
+    },
+  },
+])
 
-- Git installed and configured.
-- Node.js and npm.
-- Rust, to build the app.
+```
 
-## Development
+You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
 
-Branching model: master is stable, develop integrates, and each task is a
-feature branch off develop. See `docs/workflow.md` for the flow.
+```js
+// eslint.config.js
+import reactX from 'eslint-plugin-react-x'
+import reactDom from 'eslint-plugin-react-dom'
 
-## License
+export default defineConfig([
+  globalIgnores(['dist']),
+  {
+    files: ['**/*.{ts,tsx}'],
+    extends: [
+      // Other configs...
+      // Enable lint rules for React
+      reactX.configs['recommended-typescript'],
+      // Enable lint rules for React DOM
+      reactDom.configs.recommended,
+    ],
+    languageOptions: {
+      parserOptions: {
+        project: ['./tsconfig.node.json', './tsconfig.app.json'],
+        tsconfigRootDir: import.meta.dirname,
+      },
+      // other options...
+    },
+  },
+])
 
-Personal project.
+```
