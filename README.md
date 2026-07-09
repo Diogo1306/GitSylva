@@ -34,6 +34,11 @@ identity and push and pull use your existing credentials.
 - Node.js and npm.
 - Rust, to build the app.
 
+## Development
+
+Branching model: master is stable, develop integrates, and each task is a
+feature branch off develop. See `docs/workflow.md` for the flow.
+
 ## License
 
 Personal project.
