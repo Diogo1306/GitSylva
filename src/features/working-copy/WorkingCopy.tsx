@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { useAppStore } from "../../state/appStore";
-import { useStatus, useStageActions } from "../../state/queries";
+import { useStatus, useStageActions, useDiff } from "../../state/queries";
 import { FileRow } from "../../components/FileRow";
 import { Button } from "../../components/Button";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
+import { DiffView } from "../../components/DiffView";
 import { CommitBox } from "../commit/CommitBox";
 
 export function WorkingCopy() {
@@ -13,6 +14,9 @@ export function WorkingCopy() {
   const { data, isLoading, error } = useStatus(repo.path);
   const actions = useStageActions(repo.path);
   const [pendingDiscard, setPendingDiscard] = useState<{ file: string; untracked: boolean } | null>(null);
+  // Track which column the selection came from so the diff shows the right side.
+  const [selectedStaged, setSelectedStaged] = useState(false);
+  const diff = useDiff(repo.path, selectedFile, selectedStaged);
 
   if (isLoading) return <div style={{ padding: 16 }}>Loading changes...</div>;
   if (error) return <div style={{ padding: 16, color: "var(--danger)" }}>{String(error)}</div>;
@@ -20,6 +24,11 @@ export function WorkingCopy() {
   const files = data ?? [];
   const staged = files.filter((f) => f.index_status !== "." && f.index_status !== "?");
   const unstaged = files.filter((f) => f.worktree_status !== ".");
+
+  function select(file: string, isStaged: boolean) {
+    setSelectedStaged(isStaged);
+    setSelectedFile(file);
+  }
 
   // Small buttons stop propagation so a click acts without also selecting the row.
   const rowButton = (label: string, onClick: () => void) => (
@@ -36,56 +45,73 @@ export function WorkingCopy() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr",
-          gap: 12,
-          padding: 12,
-          flex: 1,
-          overflow: "auto",
-        }}
-      >
-        <section>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <h3>Staged</h3>
+      <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: 12,
+            padding: 12,
+            flex: 1,
+            overflow: "auto",
+          }}
+        >
+          <section>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <h3>Staged</h3>
+            </div>
+            {staged.map((f) => (
+              <FileRow
+                key={f.path}
+                path={f.path}
+                status={f.index_status}
+                selected={selectedFile === f.path && selectedStaged}
+                onSelect={() => select(f.path, true)}
+                action={rowButton("Unstage", () => actions.unstage.mutate(f.path))}
+              />
+            ))}
+          </section>
+          <section>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <h3>Changes</h3>
+              <Button style={{ padding: "2px 8px", fontSize: 12 }} onClick={() => actions.stageAll.mutate()}>
+                Stage all
+              </Button>
+            </div>
+            {unstaged.map((f) => (
+              <FileRow
+                key={f.path}
+                path={f.path}
+                status={f.worktree_status}
+                selected={selectedFile === f.path && !selectedStaged}
+                onSelect={() => select(f.path, false)}
+                action={
+                  <div style={{ display: "flex", gap: 6 }}>
+                    {rowButton("Stage", () => actions.stage.mutate(f.path))}
+                    {rowButton("Discard", () =>
+                      setPendingDiscard({ file: f.path, untracked: f.worktree_status === "?" })
+                    )}
+                  </div>
+                }
+              />
+            ))}
+          </section>
         </div>
-        {staged.map((f) => (
-          <FileRow
-            key={f.path}
-            path={f.path}
-            status={f.index_status}
-            selected={selectedFile === f.path}
-            onSelect={() => setSelectedFile(f.path)}
-            action={rowButton("Unstage", () => actions.unstage.mutate(f.path))}
-          />
-        ))}
-      </section>
-      <section>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <h3>Changes</h3>
-          <Button style={{ padding: "2px 8px", fontSize: 12 }} onClick={() => actions.stageAll.mutate()}>
-            Stage all
-          </Button>
-        </div>
-        {unstaged.map((f) => (
-          <FileRow
-            key={f.path}
-            path={f.path}
-            status={f.worktree_status}
-            selected={selectedFile === f.path}
-            onSelect={() => setSelectedFile(f.path)}
-            action={
-              <div style={{ display: "flex", gap: 6 }}>
-                {rowButton("Stage", () => actions.stage.mutate(f.path))}
-                {rowButton("Discard", () =>
-                  setPendingDiscard({ file: f.path, untracked: f.worktree_status === "?" })
-                )}
-              </div>
-            }
-          />
-        ))}
-      </section>
+
+        {selectedFile && (
+          <div style={{ width: "45%", borderLeft: "1px solid var(--border)", overflow: "hidden" }}>
+            {diff.isLoading && <div style={{ padding: 12 }}>Loading diff...</div>}
+            {diff.error && (
+              <div style={{ padding: 12, color: "var(--danger)" }}>{String(diff.error)}</div>
+            )}
+            {diff.data !== undefined &&
+              (diff.data.trim() === "" ? (
+                <div style={{ padding: 12, color: "var(--text-muted)" }}>No textual diff.</div>
+              ) : (
+                <DiffView patch={diff.data} />
+              ))}
+          </div>
+        )}
       </div>
 
       <CommitBox />
