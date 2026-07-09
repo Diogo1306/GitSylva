@@ -1,4 +1,5 @@
 import { useAppStore } from "./state/appStore";
+import { useApplyTheme } from "./theme/useApplyTheme";
 import { OpenRepo } from "./features/repo/OpenRepo";
 import { WorkingCopy } from "./features/working-copy/WorkingCopy";
 import { History } from "./features/history/History";
@@ -23,6 +24,7 @@ function Tab({ label, active, onClick }: { label: string; active: boolean; onCli
 }
 
 export default function App() {
+  useApplyTheme();
   const repo = useAppStore((s) => s.repo);
   const view = useAppStore((s) => s.view);
   const setView = useAppStore((s) => s.setView);
