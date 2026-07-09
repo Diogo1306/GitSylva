@@ -15,7 +15,10 @@ pub fn run() {
       }
       Ok(())
     })
-    .invoke_handler(tauri::generate_handler![git::repo::open_repo])
+    .invoke_handler(tauri::generate_handler![
+      git::repo::open_repo,
+      git::status::get_status
+    ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");
 }
