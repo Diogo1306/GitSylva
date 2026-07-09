@@ -9,9 +9,14 @@ type AppState = {
   // The view to return to when leaving settings.
   prevView: View;
   selectedFile: string | null;
+  // Commit selected from the palette; History reads and clears it.
+  focusCommit: string | null;
+  paletteOpen: boolean;
   setRepo: (repo: RepoInfo | null) => void;
   setView: (view: View) => void;
   setSelectedFile: (file: string | null) => void;
+  setFocusCommit: (hash: string | null) => void;
+  setPaletteOpen: (open: boolean) => void;
 };
 
 export const useAppStore = create<AppState>((set) => ({
@@ -19,6 +24,8 @@ export const useAppStore = create<AppState>((set) => ({
   view: "history",
   prevView: "history",
   selectedFile: null,
+  focusCommit: null,
+  paletteOpen: false,
   setRepo: (repo) => set({ repo, selectedFile: null }),
   setView: (view) =>
     set((s) => ({
@@ -26,4 +33,6 @@ export const useAppStore = create<AppState>((set) => ({
       prevView: view !== "settings" ? view : s.prevView,
     })),
   setSelectedFile: (selectedFile) => set({ selectedFile }),
+  setFocusCommit: (focusCommit) => set({ focusCommit }),
+  setPaletteOpen: (paletteOpen) => set({ paletteOpen }),
 }));

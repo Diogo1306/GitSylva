@@ -3,6 +3,7 @@ import { useAppStore } from "../../state/appStore";
 import { useStatus, queryKeys } from "../../state/queries";
 import { pickFolder, openRepo } from "../../lib/api";
 import { winMinimize, winToggleMaximize, winClose } from "../../lib/window";
+import { toast } from "../../state/toastStore";
 import { TreeLogo } from "../../components/TreeLogo";
 
 const mono = "'JetBrains Mono', monospace";
@@ -75,6 +76,7 @@ export function Titlebar() {
   const repo = useAppStore((s) => s.repo)!;
   const setRepo = useAppStore((s) => s.setRepo);
   const setView = useAppStore((s) => s.setView);
+  const setPaletteOpen = useAppStore((s) => s.setPaletteOpen);
   const qc = useQueryClient();
   const { data } = useStatus(repo.path);
 
@@ -188,7 +190,7 @@ export function Titlebar() {
         <Tool onClick={refresh} title="Recarregar estado e histórico">
           <span style={{ fontSize: 14, lineHeight: 1 }}>⟳</span>Recarregar
         </Tool>
-        <Tool title="Descartar alterações não preparadas" stub>
+        <Tool onClick={() => toast("Descartar em massa chega numa próxima fase")} title="Descartar alterações não preparadas">
           ↩ Descartar
           {unstaged > 0 && (
             <span
@@ -206,8 +208,9 @@ export function Titlebar() {
           )}
         </Tool>
         <div
-          className="gs-stub"
-          title="Abrir terminal · em breve"
+          onClick={() => toast("Terminal integrado chega numa próxima fase")}
+          className="gs-lift"
+          title="Abrir terminal"
           style={{
             display: "flex",
             alignItems: "center",
@@ -220,13 +223,15 @@ export function Titlebar() {
             color: "var(--btnT)",
             fontFamily: mono,
             fontSize: 11,
+            cursor: "pointer",
           }}
         >
           &gt;_
         </div>
         <div
-          className="gs-stub"
-          title="Pesquisar (⌘K) · em breve"
+          onClick={() => setPaletteOpen(true)}
+          className="gs-lift"
+          title="Pesquisar (⌘K)"
           style={{
             display: "flex",
             alignItems: "center",
@@ -238,6 +243,7 @@ export function Titlebar() {
             fontSize: 12.5,
             color: "var(--muted)",
             whiteSpace: "nowrap",
+            cursor: "pointer",
           }}
         >
           Pesquisar
