@@ -24,7 +24,8 @@ pub fn run() {
       git::stage::discard_file,
       git::commit::commit,
       git::log::get_log,
-      git::diff::get_diff
+      git::diff::get_diff,
+      git::detail::commit_detail
     ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");

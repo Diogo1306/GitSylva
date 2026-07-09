@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
-import type { RepoInfo, FileChange, Commit } from "./types";
+import type { RepoInfo, FileChange, Commit, CommitDetail } from "./types";
 
 export async function pickFolder(): Promise<string | null> {
   const picked = await openDialog({ directory: true, multiple: false });
@@ -41,4 +41,8 @@ export function getLog(path: string, limit: number): Promise<Commit[]> {
 
 export function getDiff(path: string, file: string, staged: boolean): Promise<string> {
   return invoke<string>("get_diff", { path, file, staged });
+}
+
+export function commitDetail(path: string, hash: string): Promise<CommitDetail> {
+  return invoke<CommitDetail>("commit_detail", { path, hash });
 }
