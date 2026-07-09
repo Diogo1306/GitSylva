@@ -1,0 +1,61 @@
+/* Interaction primitives for the app chrome. Inline styles carry the static
+ * look (to stay pixel-faithful to the design); these classes carry :hover and
+ * :active states, which inline styles cannot express. */
+
+.gs-lift {
+  transition: transform 0.15s ease, background 0.15s ease, filter 0.15s ease;
+}
+.gs-lift:hover {
+  background: var(--hover);
+  transform: translateY(-1.5px);
+}
+
+.gs-row {
+  transition: background 0.15s ease;
+}
+.gs-row:hover {
+  background: var(--hover);
+}
+
+.gs-press {
+  transition: transform 0.12s ease;
+}
+.gs-press:active {
+  transform: scale(0.98);
+}
+
+/* Disabled / not-yet-built controls. Visible but clearly inert. */
+.gs-stub {
+  opacity: 0.42;
+  cursor: default;
+}
+.gs-stub:hover {
+  background: transparent;
+  transform: none;
+}
+
+/* The little "Em breve" badge on stubbed features. */
+.gs-soon {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: var(--badge);
+  color: var(--badgeT);
+  white-space: nowrap;
+}
+
+/* macOS-style traffic light controls. Color shows on window/titlebar hover. */
+.gs-lights:hover .gs-light span {
+  opacity: 1;
+}
+.gs-light span {
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  font-size: 8px;
+  line-height: 1;
+  color: rgba(0, 0, 0, 0.55);
+  font-weight: 700;
+}
