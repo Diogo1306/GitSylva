@@ -1,6 +1,9 @@
+import { useEffect, useState } from "react";
 import { useAppStore } from "../../state/appStore";
 import { useThemeStore } from "../../state/themeStore";
 import { useOnboardStore } from "../../state/onboardStore";
+import { useIdentity, useSetIdentity } from "../../state/queries";
+import { toast } from "../../state/toastStore";
 import {
   PALETTES,
   FONTS,
@@ -115,6 +118,65 @@ function StubSection({ id, title, children }: { id: string; title: string; child
       </div>
       <div style={{ padding: 16, border: "1px dashed var(--btnB)", borderRadius: 12, color: "var(--muted)", fontSize: 13, lineHeight: 1.5 }}>
         {children}
+      </div>
+    </div>
+  );
+}
+
+function GitIdentitySection() {
+  const repo = useAppStore((s) => s.repo)!;
+  const { data } = useIdentity(repo.path);
+  const save = useSetIdentity(repo.path);
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+
+  // Load the current identity once it arrives.
+  useEffect(() => {
+    if (data) {
+      setName(data.name);
+      setEmail(data.email);
+    }
+  }, [data]);
+
+  const input = {
+    background: "var(--input)",
+    border: "1px solid var(--btnB)",
+    borderRadius: 9,
+    padding: "9px 12px",
+    fontSize: 13,
+    color: "var(--text)",
+    outline: "none",
+    fontFamily: "var(--font)",
+    boxSizing: "border-box" as const,
+  };
+  const changed = !!data && (name !== data.name || email !== data.email);
+
+  return (
+    <div id="set-git" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <SectionTitle>GIT</SectionTitle>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <div style={{ fontSize: 12.5, fontWeight: 600, color: "var(--text2)" }}>Nome</div>
+          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="O teu nome" style={input} />
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <div style={{ fontSize: 12.5, fontWeight: 600, color: "var(--text2)" }}>Email</div>
+          <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="tu@exemplo.dev" style={input} />
+        </div>
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <div
+          onClick={() =>
+            changed &&
+            !save.isPending &&
+            save.mutate({ name, email }, { onSuccess: () => toast("Identidade guardada") })
+          }
+          className="gs-press"
+          style={{ alignSelf: "flex-start", padding: "9px 16px", borderRadius: 9, background: changed ? "var(--accent)" : "var(--btn)", color: changed ? "var(--accentT)" : "var(--muted)", border: changed ? "none" : "1px solid var(--btnB)", fontSize: 13, fontWeight: 700, cursor: changed ? "pointer" : "default" }}
+        >
+          {save.isPending ? "A guardar…" : "Guardar identidade"}
+        </div>
+        <Hint>Usada nos commits deste repositório.</Hint>
       </div>
     </div>
   );
@@ -300,8 +362,9 @@ export function Settings() {
           <StubSection id="set-contas" title="CONTAS &amp; ACESSO">
             Ligar GitHub / GitLab / Bitbucket (OAuth) e gerir contas locais chega quando o backend suportar autenticação.
           </StubSection>
-          <StubSection id="set-git" title="GIT">
-            Identidade (nome/email), editor externo e opções de git por repositório chegam numa próxima fase.
+          <GitIdentitySection />
+          <StubSection id="set-git-extra" title="GIT · EDITOR &amp; OPÇÕES">
+            Editor externo e outras opções de git por repositório chegam numa próxima fase.
           </StubSection>
           <StubSection id="set-atalhos" title="ATALHOS DE TECLADO">
             Atalhos regraváveis (clicar numa linha para gravar) chegam com o sistema de comandos.

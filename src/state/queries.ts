@@ -26,6 +26,8 @@ import {
   syncStatus,
   pull,
   push,
+  getIdentity,
+  setIdentity,
 } from "../lib/api";
 
 export const queryKeys = {
@@ -38,6 +40,7 @@ export const queryKeys = {
   stashes: (path: string) => ["stashes", path] as const,
   tags: (path: string) => ["tags", path] as const,
   sync: (path: string) => ["sync", path] as const,
+  identity: (path: string) => ["identity", path] as const,
 };
 
 export function useStatus(path: string) {
@@ -146,6 +149,21 @@ export function useSyncStatus(path: string) {
   return useQuery({
     queryKey: queryKeys.sync(path),
     queryFn: () => syncStatus(path),
+  });
+}
+
+export function useIdentity(path: string) {
+  return useQuery({
+    queryKey: queryKeys.identity(path),
+    queryFn: () => getIdentity(path),
+  });
+}
+
+export function useSetIdentity(path: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (v: { name: string; email: string }) => setIdentity(path, v.name, v.email),
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.identity(path) }),
   });
 }
 

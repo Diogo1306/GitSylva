@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
-import type { RepoInfo, FileChange, Commit, CommitDetail, BranchInfo, StashInfo, TagInfo, SyncStatus } from "./types";
+import type { RepoInfo, FileChange, Commit, CommitDetail, BranchInfo, StashInfo, TagInfo, SyncStatus, GitIdentity } from "./types";
 
 export async function pickFolder(): Promise<string | null> {
   const picked = await openDialog({ directory: true, multiple: false });
@@ -121,4 +121,12 @@ export function pull(path: string): Promise<void> {
 
 export function push(path: string): Promise<void> {
   return invoke("push", { path });
+}
+
+export function getIdentity(path: string): Promise<GitIdentity> {
+  return invoke<GitIdentity>("get_identity", { path });
+}
+
+export function setIdentity(path: string, name: string, email: string): Promise<void> {
+  return invoke("set_identity", { path, name, email });
 }
