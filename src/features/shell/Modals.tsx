@@ -2,27 +2,44 @@ import { useState } from "react";
 import { useAppStore } from "../../state/appStore";
 import { useBranchActions, useBranches, useStashActions, useTagActions } from "../../state/queries";
 import { toast } from "../../state/toastStore";
+import { Modal } from "../../components/ui/Modal";
+import { Input } from "../../components/ui/Input";
+import { Button } from "../../components/ui/Button";
+import { Chip, CheckSquare } from "../../components/ui/misc";
 
 const mono = "'JetBrains Mono', monospace";
 
-function ModalShell({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div
-      onClick={onClose}
-      style={{ position: "fixed", inset: 0, zIndex: 60, background: "rgba(0,0,0,0.45)", display: "grid", placeItems: "center", animation: "fadeIn 0.18s ease both" }}
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        style={{ width: 460, boxSizing: "border-box", background: "var(--win)", border: "1px solid var(--border)", borderRadius: 14, boxShadow: "0 24px 80px rgba(0,0,0,0.35)", padding: 20, display: "flex", flexDirection: "column", gap: 14, color: "var(--text)", animation: "popIn 0.22s cubic-bezier(0.2,0.9,0.3,1) both" }}
-      >
-        <div style={{ display: "flex", alignItems: "center" }}>
-          <div style={{ fontSize: 16, fontWeight: 700, flex: 1 }}>{title}</div>
-          <div onClick={onClose} className="gs-row" style={{ width: 26, height: 26, borderRadius: 7, display: "grid", placeItems: "center", cursor: "pointer", color: "var(--muted)", fontSize: 14 }}>✕</div>
-        </div>
-        {children}
-      </div>
+    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+      <div style={{ fontSize: 12.5, fontWeight: 600, color: "var(--text2)" }}>{label}</div>
+      {children}
     </div>
   );
+}
+
+function Check({ on, onToggle, children }: { on: boolean; onToggle: () => void; children: React.ReactNode }) {
+  return (
+    <div onClick={onToggle} style={{ display: "flex", alignItems: "center", gap: 9, cursor: "pointer", fontSize: 13 }}>
+      <CheckSquare on={on} />
+      <span>{children}</span>
+    </div>
+  );
+}
+
+function Actions({ onClose, onConfirm, label, busy, disabled }: { onClose: () => void; onConfirm: () => void; label: string; busy?: boolean; disabled?: boolean }) {
+  return (
+    <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 2 }}>
+      <Button onClick={onClose}>Cancelar</Button>
+      <Button variant="primary" onClick={disabled ? undefined : onConfirm} style={disabled ? { opacity: 0.5, cursor: "default" } : busy ? { opacity: 0.7 } : undefined}>
+        {label}
+      </Button>
+    </div>
+  );
+}
+
+function Err({ msg }: { msg: string | null }) {
+  return msg ? <div style={{ color: "var(--ddT)", fontSize: 12.5 }}>{msg}</div> : null;
 }
 
 function BranchModal({ onClose }: { onClose: () => void }) {
@@ -38,50 +55,25 @@ function BranchModal({ onClose }: { onClose: () => void }) {
     create.mutate(
       { name: name.trim(), checkout },
       {
-        onSuccess: () => {
-          toast(checkout ? `Criada e em ${name.trim()}` : `Branch ${name.trim()} criada`);
-          onClose();
-        },
+        onSuccess: () => { toast(checkout ? `Em ${name.trim()}` : `Branch ${name.trim()} criada`); onClose(); },
         onError: (e: unknown) => setError((e as { message?: string })?.message ?? "não foi possível criar a branch"),
       },
     );
   }
 
   return (
-    <ModalShell title="Nova branch" onClose={onClose}>
-      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-        <div style={{ fontSize: 12.5, fontWeight: 600, color: "var(--text2)" }}>Nome da branch</div>
-        <input
-          autoFocus
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && submit()}
-          placeholder="feature/…"
-          style={{ background: "var(--input)", border: "1px solid var(--btnB)", borderRadius: 9, padding: "9px 12px", fontSize: 13, color: "var(--text)", outline: "none", fontFamily: mono, boxSizing: "border-box" }}
-        />
-      </div>
+    <Modal title="Nova branch" onClose={onClose}>
+      <Field label="Nome da branch">
+        <Input autoFocus mono value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && submit()} placeholder="feature/…" />
+      </Field>
       <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "var(--text2)" }}>
         <span>A partir de</span>
-        <span style={{ fontFamily: mono, fontSize: 12, color: "var(--l0)", background: "var(--l0bg)", border: "1px solid var(--l0bd)", padding: "2px 9px", borderRadius: 999 }}>{repo.current_branch}</span>
+        <Chip bg="var(--l0bg)" color="var(--l0)" border="var(--l0bd)">{repo.current_branch}</Chip>
       </div>
-      <div onClick={() => setCheckout((v) => !v)} style={{ display: "flex", alignItems: "center", gap: 9, cursor: "pointer", fontSize: 13 }}>
-        <span style={{ width: 17, height: 17, borderRadius: 5, border: "1.5px solid var(--btnB)", boxSizing: "border-box", display: "grid", placeItems: "center", background: checkout ? "var(--accent)" : "transparent", color: "var(--accentT)", fontSize: 11, fontWeight: 800 }}>
-          {checkout ? "✓" : ""}
-        </span>
-        <span>Fazer checkout da nova branch</span>
-      </div>
-      {error && <div style={{ color: "var(--ddT)", fontSize: 12.5 }}>{error}</div>}
-      <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 2 }}>
-        <div onClick={onClose} className="gs-lift" style={{ padding: "9px 16px", borderRadius: 9, border: "1px solid var(--btnB)", background: "var(--btn)", color: "var(--btnT)", fontSize: 13, cursor: "pointer" }}>Cancelar</div>
-        <div
-          onClick={submit}
-          className="gs-press"
-          style={{ padding: "9px 18px", borderRadius: 9, background: name.trim() ? "var(--accent)" : "var(--btn)", color: name.trim() ? "var(--accentT)" : "var(--muted)", border: name.trim() ? "none" : "1px solid var(--btnB)", fontSize: 13, fontWeight: 700, cursor: name.trim() ? "pointer" : "default", opacity: create.isPending ? 0.7 : 1 }}
-        >
-          {create.isPending ? "A criar…" : "Criar branch"}
-        </div>
-      </div>
-    </ModalShell>
+      <Check on={checkout} onToggle={() => setCheckout((v) => !v)}>Fazer checkout da nova branch</Check>
+      <Err msg={error} />
+      <Actions onClose={onClose} onConfirm={submit} disabled={!name.trim()} busy={create.isPending} label={create.isPending ? "A criar…" : "Criar branch"} />
+    </Modal>
   );
 }
 
@@ -90,7 +82,6 @@ function StashModal({ onClose }: { onClose: () => void }) {
   const setView = useAppStore((s) => s.setView);
   const { create } = useStashActions(repo.path);
   const [message, setMessage] = useState("");
-  // "include staged" = normal stash; unchecked keeps staged in the index.
   const [includeStaged, setIncludeStaged] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -99,43 +90,21 @@ function StashModal({ onClose }: { onClose: () => void }) {
     create.mutate(
       { message, keepIndex: !includeStaged },
       {
-        onSuccess: () => {
-          toast("Alterações guardadas no stash");
-          onClose();
-          setView("stashes");
-        },
+        onSuccess: () => { toast("Alterações guardadas no stash"); onClose(); setView("stashes"); },
         onError: (e: unknown) => setError((e as { message?: string })?.message ?? "não foi possível guardar"),
       },
     );
   }
 
   return (
-    <ModalShell title="Guardar stash" onClose={onClose}>
-      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-        <div style={{ fontSize: 12.5, fontWeight: 600, color: "var(--text2)" }}>Mensagem (opcional)</div>
-        <input
-          autoFocus
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && submit()}
-          placeholder={`WIP em ${repo.current_branch}`}
-          style={{ background: "var(--input)", border: "1px solid var(--btnB)", borderRadius: 9, padding: "9px 12px", fontSize: 13, color: "var(--text)", outline: "none", fontFamily: "var(--font)", boxSizing: "border-box" }}
-        />
-      </div>
-      <div onClick={() => setIncludeStaged((v) => !v)} style={{ display: "flex", alignItems: "center", gap: 9, cursor: "pointer", fontSize: 13 }}>
-        <span style={{ width: 17, height: 17, borderRadius: 5, border: "1.5px solid var(--btnB)", boxSizing: "border-box", display: "grid", placeItems: "center", background: includeStaged ? "var(--accent)" : "transparent", color: "var(--accentT)", fontSize: 11, fontWeight: 800 }}>
-          {includeStaged ? "✓" : ""}
-        </span>
-        <span>Incluir alterações preparadas</span>
-      </div>
-      {error && <div style={{ color: "var(--ddT)", fontSize: 12.5 }}>{error}</div>}
-      <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 2 }}>
-        <div onClick={onClose} className="gs-lift" style={{ padding: "9px 16px", borderRadius: 9, border: "1px solid var(--btnB)", background: "var(--btn)", color: "var(--btnT)", fontSize: 13, cursor: "pointer" }}>Cancelar</div>
-        <div onClick={submit} className="gs-press" style={{ padding: "9px 18px", borderRadius: 9, background: "var(--accent)", color: "var(--accentT)", fontSize: 13, fontWeight: 700, cursor: "pointer", opacity: create.isPending ? 0.7 : 1 }}>
-          {create.isPending ? "A guardar…" : "Guardar"}
-        </div>
-      </div>
-    </ModalShell>
+    <Modal title="Guardar stash" onClose={onClose}>
+      <Field label="Mensagem (opcional)">
+        <Input autoFocus value={message} onChange={(e) => setMessage(e.target.value)} onKeyDown={(e) => e.key === "Enter" && submit()} placeholder={`WIP em ${repo.current_branch}`} />
+      </Field>
+      <Check on={includeStaged} onToggle={() => setIncludeStaged((v) => !v)}>Incluir alterações preparadas</Check>
+      <Err msg={error} />
+      <Actions onClose={onClose} onConfirm={submit} busy={create.isPending} label={create.isPending ? "A guardar…" : "Guardar"} />
+    </Modal>
   );
 }
 
@@ -152,37 +121,23 @@ function TagModal({ onClose }: { onClose: () => void }) {
     create.mutate(
       { name: name.trim(), message },
       {
-        onSuccess: () => {
-          toast(`Tag ${name.trim()} criada`);
-          onClose();
-        },
+        onSuccess: () => { toast(`Tag ${name.trim()} criada`); onClose(); },
         onError: (e: unknown) => setError((e as { message?: string })?.message ?? "não foi possível criar a tag"),
       },
     );
   }
 
   return (
-    <ModalShell title="Nova tag" onClose={onClose}>
-      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-        <div style={{ fontSize: 12.5, fontWeight: 600, color: "var(--text2)" }}>Nome</div>
-        <input autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder="v1.0.0" style={{ background: "var(--input)", border: "1px solid var(--btnB)", borderRadius: 9, padding: "9px 12px", fontSize: 13, color: "var(--text)", outline: "none", fontFamily: mono, boxSizing: "border-box" }} />
-      </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-        <div style={{ fontSize: 12.5, fontWeight: 600, color: "var(--text2)" }}>Mensagem (opcional · cria uma tag anotada)</div>
-        <input value={message} onChange={(e) => setMessage(e.target.value)} onKeyDown={(e) => e.key === "Enter" && submit()} placeholder="Release…" style={{ background: "var(--input)", border: "1px solid var(--btnB)", borderRadius: 9, padding: "9px 12px", fontSize: 13, color: "var(--text)", outline: "none", fontFamily: "var(--font)", boxSizing: "border-box" }} />
-      </div>
+    <Modal title="Nova tag" onClose={onClose}>
+      <Field label="Nome"><Input autoFocus mono value={name} onChange={(e) => setName(e.target.value)} placeholder="v1.0.0" /></Field>
+      <Field label="Mensagem (opcional · cria uma tag anotada)"><Input value={message} onChange={(e) => setMessage(e.target.value)} onKeyDown={(e) => e.key === "Enter" && submit()} placeholder="Release…" /></Field>
       <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "var(--text2)" }}>
         <span>Em</span>
-        <span style={{ fontFamily: mono, fontSize: 12, color: "var(--l0)", background: "var(--l0bg)", border: "1px solid var(--l0bd)", padding: "2px 9px", borderRadius: 999 }}>{repo.current_branch}</span>
+        <Chip bg="var(--l0bg)" color="var(--l0)" border="var(--l0bd)">{repo.current_branch}</Chip>
       </div>
-      {error && <div style={{ color: "var(--ddT)", fontSize: 12.5 }}>{error}</div>}
-      <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 2 }}>
-        <div onClick={onClose} className="gs-lift" style={{ padding: "9px 16px", borderRadius: 9, border: "1px solid var(--btnB)", background: "var(--btn)", color: "var(--btnT)", fontSize: 13, cursor: "pointer" }}>Cancelar</div>
-        <div onClick={submit} className="gs-press" style={{ padding: "9px 18px", borderRadius: 9, background: name.trim() ? "var(--accent)" : "var(--btn)", color: name.trim() ? "var(--accentT)" : "var(--muted)", border: name.trim() ? "none" : "1px solid var(--btnB)", fontSize: 13, fontWeight: 700, cursor: name.trim() ? "pointer" : "default", opacity: create.isPending ? 0.7 : 1 }}>
-          {create.isPending ? "A criar…" : "Criar tag"}
-        </div>
-      </div>
-    </ModalShell>
+      <Err msg={error} />
+      <Actions onClose={onClose} onConfirm={submit} disabled={!name.trim()} busy={create.isPending} label={create.isPending ? "A criar…" : "Criar tag"} />
+    </Modal>
   );
 }
 
@@ -191,22 +146,18 @@ function MergeModal({ onClose }: { onClose: () => void }) {
   const { data } = useBranches(repo.path);
   const { merge } = useBranchActions(repo.path);
   const [error, setError] = useState<string | null>(null);
-  // Other local branches are candidates to merge into the current one.
   const candidates = (data ?? []).filter((b) => !b.is_remote && !b.is_current);
 
   function run(name: string) {
     setError(null);
     merge.mutate(name, {
-      onSuccess: () => {
-        toast(`${name} integrada em ${repo.current_branch}`);
-        onClose();
-      },
+      onSuccess: () => { toast(`${name} integrada em ${repo.current_branch}`); onClose(); },
       onError: (e: unknown) => setError((e as { message?: string })?.message ?? "conflito ou erro no merge"),
     });
   }
 
   return (
-    <ModalShell title={`Merge para ${repo.current_branch}`} onClose={onClose}>
+    <Modal title={`Merge para ${repo.current_branch}`} onClose={onClose}>
       <div style={{ fontSize: 13, color: "var(--text2)" }}>Escolhe a branch a integrar na atual.</div>
       {candidates.length === 0 ? (
         <div style={{ padding: 16, border: "1px dashed var(--btnB)", borderRadius: 10, color: "var(--muted)", fontSize: 13, textAlign: "center" }}>Não há outras branches locais.</div>
@@ -221,11 +172,11 @@ function MergeModal({ onClose }: { onClose: () => void }) {
           ))}
         </div>
       )}
-      {error && <div style={{ color: "var(--ddT)", fontSize: 12.5 }}>{error}</div>}
+      <Err msg={error} />
       <div style={{ display: "flex", justifyContent: "flex-end" }}>
-        <div onClick={onClose} className="gs-lift" style={{ padding: "9px 16px", borderRadius: 9, border: "1px solid var(--btnB)", background: "var(--btn)", color: "var(--btnT)", fontSize: 13, cursor: "pointer" }}>Fechar</div>
+        <Button onClick={onClose}>Fechar</Button>
       </div>
-    </ModalShell>
+    </Modal>
   );
 }
 
