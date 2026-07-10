@@ -13,6 +13,10 @@ import {
   listBranches,
   checkoutBranch,
   createBranch,
+  listStashes,
+  createStash,
+  applyStash,
+  dropStash,
 } from "../lib/api";
 
 export const queryKeys = {
@@ -22,6 +26,7 @@ export const queryKeys = {
     ["diff", path, file, staged] as const,
   commit: (path: string, hash: string) => ["commit", path, hash] as const,
   branches: (path: string) => ["branches", path] as const,
+  stashes: (path: string) => ["stashes", path] as const,
 };
 
 export function useStatus(path: string) {
@@ -88,6 +93,29 @@ export function useBranchActions(path: string) {
         refresh();
       },
     }),
+  };
+}
+
+export function useStashes(path: string) {
+  return useQuery({
+    queryKey: queryKeys.stashes(path),
+    queryFn: () => listStashes(path),
+  });
+}
+
+export function useStashActions(path: string) {
+  const qc = useQueryClient();
+  const refresh = () => {
+    qc.invalidateQueries({ queryKey: queryKeys.stashes(path) });
+    qc.invalidateQueries({ queryKey: queryKeys.status(path) });
+  };
+  return {
+    create: useMutation({
+      mutationFn: (v: { message: string; keepIndex: boolean }) => createStash(path, v.message, v.keepIndex),
+      onSuccess: refresh,
+    }),
+    apply: useMutation({ mutationFn: (index: number) => applyStash(path, index), onSuccess: refresh }),
+    drop: useMutation({ mutationFn: (index: number) => dropStash(path, index), onSuccess: refresh }),
   };
 }
 

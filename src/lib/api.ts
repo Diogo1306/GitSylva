@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
-import type { RepoInfo, FileChange, Commit, CommitDetail, BranchInfo } from "./types";
+import type { RepoInfo, FileChange, Commit, CommitDetail, BranchInfo, StashInfo } from "./types";
 
 export async function pickFolder(): Promise<string | null> {
   const picked = await openDialog({ directory: true, multiple: false });
@@ -57,4 +57,20 @@ export function checkoutBranch(path: string, name: string): Promise<void> {
 
 export function createBranch(path: string, name: string, checkout: boolean): Promise<void> {
   return invoke("create_branch", { path, name, checkout });
+}
+
+export function listStashes(path: string): Promise<StashInfo[]> {
+  return invoke<StashInfo[]>("list_stashes", { path });
+}
+
+export function createStash(path: string, message: string, keepIndex: boolean): Promise<void> {
+  return invoke("create_stash", { path, message, keepIndex });
+}
+
+export function applyStash(path: string, index: number): Promise<void> {
+  return invoke("apply_stash", { path, index });
+}
+
+export function dropStash(path: string, index: number): Promise<void> {
+  return invoke("drop_stash", { path, index });
 }

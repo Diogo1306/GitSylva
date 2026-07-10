@@ -1,5 +1,5 @@
 import { useAppStore } from "../../state/appStore";
-import { useStatus, useBranches, useBranchActions } from "../../state/queries";
+import { useStatus, useBranches, useBranchActions, useStashes } from "../../state/queries";
 import { toast } from "../../state/toastStore";
 import type { View } from "../../state/appStore";
 
@@ -22,8 +22,10 @@ export function Sidebar() {
   const wcCount = (data ?? []).length;
   const { data: branchData } = useBranches(repo.path);
   const { checkout } = useBranchActions(repo.path);
+  const { data: stashData } = useStashes(repo.path);
   // Local branches only in the sidebar list.
   const localBranches = (branchData ?? []).filter((b) => !b.is_remote);
+  const stashCount = (stashData ?? []).length;
 
   const navRow = (
     key: View,
@@ -88,7 +90,7 @@ export function Sidebar() {
           "stashes",
           "Stashes",
           <span style={{ width: 7, height: 7, borderRadius: 2, background: "var(--l1)", transform: "rotate(45deg)", flexShrink: 0 }} />,
-          0,
+          stashCount,
         )}
       </div>
 
