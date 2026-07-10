@@ -92,7 +92,7 @@ export function ActionBar() {
       <Divider />
       <Btn label="Branch" onClick={() => setModal("branch")} />
       <Btn label="Merge" soon onClick={() => toast("Merge chega numa próxima fase")} />
-      <Btn label="Stash" onClick={() => setView("stashes")} />
+      <Btn label="Stash" onClick={() => setModal("stash")} />
       <Btn label="Tag" soon onClick={() => toast("Tags chegam numa próxima fase")} />
       <div style={{ flex: 1 }} />
       <div style={{ display: "flex", alignItems: "center", gap: 10, fontFamily: mono, fontSize: 11.5, color: "var(--muted)", whiteSpace: "nowrap" }}>

@@ -42,3 +42,9 @@ export type BranchInfo = {
   is_remote: boolean;
   upstream: string | null;
 };
+
+export type StashInfo = {
+  index: number;
+  message: string;
+  relative_date: string;
+};
