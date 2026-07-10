@@ -60,3 +60,8 @@ export type SyncStatus = {
   behind: number;
   upstream: string | null;
 };
+
+export type GitIdentity = {
+  name: string;
+  email: string;
+};

@@ -44,7 +44,9 @@ pub fn run() {
       git::sync::fetch,
       git::sync::sync_status,
       git::sync::pull,
-      git::sync::push
+      git::sync::push,
+      git::config::get_identity,
+      git::config::set_identity
     ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");
