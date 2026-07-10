@@ -226,3 +226,60 @@ export function TreeLogo({ size, animated = false, crop = false, xScale, treeSty
     treeSKids(styl, animated, "ls"),
   );
 }
+
+// The onboarding tree: the logo mark grows in stages (0 = login sapling,
+// 1 = setup, 2 = planted) by adding branches, tufts, nodes and leaves.
+function onboardKids(stage: number, styl: TreeStyleKey): ReactElement[] {
+  const tc = styl === "normal" || styl === "grafo" ? "var(--l0)" : "var(--trunk, var(--l0))";
+  const T = (segs: Seg[], w0: number, w1: number, d: number, k: string) =>
+    taper(segs, w0, w1, tc, true, d, k + styl);
+  const kids: ReactElement[] = [
+    createElement("g", { key: "base", transform: "translate(19, 48)" }, treeSKids(styl, true, "ob")),
+  ];
+  if (stage >= 1) {
+    kids.push(
+      createElement(
+        "g",
+        { key: "ext" },
+        T([[[53, 60], [56, 50], [52, 40], [47, 32]]], 3, 1.3, 0.1, "e1"),
+        T([[[51, 44], [46, 40], [41, 37], [35, 34]]], 2.2, 1, 0.3, "e2"),
+        tuft(styl, 35, 34, -150, 0.8, 0.5, true),
+        node(47, 32, 3.4, 0.6, false, true),
+        leaf(styl, 54, 51, 15, 0.6, 0.7, true),
+      ),
+    );
+  }
+  if (stage >= 2) {
+    kids.push(
+      createElement(
+        "g",
+        { key: "cr" },
+        T([[[49, 42], [55, 39], [61, 36], [66, 32]]], 2, 0.9, 0.05, "f1"),
+        T([[[47, 31], [49, 27], [51, 25], [53, 22]]], 1.8, 0.8, 0.3, "f2"),
+        tuft(styl, 66, 32, -35, 0.85, 0.3, true),
+        tuft(styl, 53, 22, -80, 0.95, 0.5, true),
+        tuft(styl, 47, 30, -120, 0.8, 0.4, true),
+        node(66, 32, 2.6, 0.55, true, true),
+        leaf(styl, 58, 37.5, -60, 0.6, 0.6, true),
+        leaf(styl, 43, 34, 150, 0.55, 0.68, true),
+      ),
+    );
+  }
+  return kids;
+}
+
+export function OnboardTree({ stage }: { stage: number }) {
+  const styl = useThemeStore((s) => s.treeStyle);
+  return createElement(
+    "svg",
+    {
+      viewBox: "0 0 84 112",
+      width: "100%",
+      height: "100%",
+      style: { display: "block", overflow: "visible" },
+      // key on style+stage so switching either replays the growth animation
+      key: `${styl}-${stage}`,
+    },
+    onboardKids(stage, styl),
+  );
+}
