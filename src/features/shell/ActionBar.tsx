@@ -91,7 +91,7 @@ export function ActionBar() {
       <Btn label="↑ Push" soon onClick={() => toast("Push chega na fase de sincronização (git push)")} />
       <Divider />
       <Btn label="Branch" onClick={() => setModal("branch")} />
-      <Btn label="Merge" soon onClick={() => toast("Merge chega numa próxima fase")} />
+      <Btn label="Merge" onClick={() => setModal("merge")} />
       <Btn label="Stash" onClick={() => setModal("stash")} />
       <Btn label="Tag" onClick={() => setModal("tag")} />
       <div style={{ flex: 1 }} />

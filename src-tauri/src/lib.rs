@@ -29,6 +29,8 @@ pub fn run() {
       git::branches::list_branches,
       git::branches::checkout_branch,
       git::branches::create_branch,
+      git::branches::merge_branch,
+      git::branches::delete_branch,
       git::stashes::list_stashes,
       git::stashes::create_stash,
       git::stashes::apply_stash,
