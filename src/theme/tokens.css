@@ -69,22 +69,6 @@
   /* Elevation. */
   --shadow-1: 0 6px 18px rgba(0, 0, 0, 0.12);
   --shadow-2: 0 24px 80px rgba(0, 0, 0, 0.35);
-
-  /*
-   * Transitional aliases. The MVP screens (OpenRepo, WorkingCopy, History)
-   * still use the old token names. These map them onto the new system so
-   * nothing looks broken between phases. Removed once every screen is
-   * rebuilt against the design tokens.
-   */
-  --bg: var(--win);
-  --bg-panel: var(--panel);
-  --bg-elevated: var(--btn);
-  --text-muted: var(--muted);
-  --danger: var(--ddT);
-  --warning: var(--stMT);
-  --accent-weak: var(--l0bg);
-  --font-ui: var(--font);
-  --space: 8px;
 }
 
 * {
