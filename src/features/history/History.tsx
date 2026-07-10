@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 import { useAppStore } from "../../state/appStore";
 import { useLog, useCommitDetail } from "../../state/queries";
 import { graphRows } from "../../graph/layout";
@@ -162,6 +162,52 @@ function DetailPanel({ repoPath, commit }: { repoPath: string; commit: Commit })
   );
 }
 
+// Memoized so selecting a commit only re-renders the two affected rows, not the
+// whole (potentially hundreds long) list.
+const CommitRow = memo(function CommitRow({
+  commit,
+  selected,
+  filtering,
+  onSelect,
+}: {
+  commit: Commit;
+  selected: boolean;
+  filtering: boolean;
+  onSelect: (hash: string) => void;
+}) {
+  return (
+    <div
+      onClick={() => onSelect(commit.hash)}
+      className="gs-row"
+      style={{
+        height: ROW_H,
+        display: "flex",
+        alignItems: "center",
+        gap: 12,
+        padding: filtering ? "0 16px" : "0 16px 0 96px",
+        cursor: "pointer",
+        boxSizing: "border-box",
+        background: selected ? "var(--sel)" : "transparent",
+        borderBottom: "1px solid var(--bsoft)",
+        // Skip painting rows scrolled out of view; the box keeps its height so
+        // the graph overlay stays aligned.
+        contentVisibility: "auto",
+        containIntrinsicSize: `${ROW_H}px`,
+      }}
+    >
+      <div style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 8 }}>
+        <span style={{ fontSize: 13.5, color: "var(--text)", fontWeight: selected ? 600 : 400, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          {commit.subject}
+        </span>
+        <Chips refs={commit.refs} />
+      </div>
+      <Avatar name={commit.author} />
+      <div style={{ width: 66, fontFamily: mono, fontSize: 12, color: "var(--text2)", flexShrink: 0 }}>{commit.hash.slice(0, 7)}</div>
+      <div style={{ width: 96, fontSize: 12, color: "var(--muted)", textAlign: "right", flexShrink: 0 }}>{relativeTime(commit.date)}</div>
+    </div>
+  );
+});
+
 export function History() {
   const repo = useAppStore((s) => s.repo)!;
   const focusCommit = useAppStore((s) => s.focusCommit);
@@ -192,8 +238,6 @@ export function History() {
   if (commits.length === 0) return <div style={{ padding: 16, color: "var(--muted)" }}>Sem commits ainda.</div>;
 
   const selected = commits.find((c) => c.hash === selectedHash) ?? commits[0];
-
-  const selectRow = (hash: string) => setSelectedHash(hash);
 
   return (
     <div style={{ flex: 1, display: "flex", minWidth: 0, animation: "fadeIn 0.25s ease both" }}>
@@ -228,50 +272,15 @@ export function History() {
                 <CommitGraphSvg rows={rows} rowH={ROW_H} />
               </div>
             )}
-            {filtered.map((c) => {
-              const isSel = selected.hash === c.hash;
-              return (
-                <div
-                  key={c.hash}
-                  onClick={() => selectRow(c.hash)}
-                  className="gs-row"
-                  style={{
-                    height: ROW_H,
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 12,
-                    padding: filtering ? "0 16px" : "0 16px 0 96px",
-                    cursor: "pointer",
-                    boxSizing: "border-box",
-                    background: isSel ? "var(--sel)" : "transparent",
-                    borderBottom: "1px solid var(--bsoft)",
-                  }}
-                >
-                  <div style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 8 }}>
-                    <span
-                      style={{
-                        fontSize: 13.5,
-                        color: "var(--text)",
-                        fontWeight: isSel ? 600 : 400,
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {c.subject}
-                    </span>
-                    <Chips refs={c.refs} />
-                  </div>
-                  <Avatar name={c.author} />
-                  <div style={{ width: 66, fontFamily: mono, fontSize: 12, color: "var(--text2)", flexShrink: 0 }}>
-                    {c.hash.slice(0, 7)}
-                  </div>
-                  <div style={{ width: 96, fontSize: 12, color: "var(--muted)", textAlign: "right", flexShrink: 0 }}>
-                    {relativeTime(c.date)}
-                  </div>
-                </div>
-              );
-            })}
+            {filtered.map((c) => (
+              <CommitRow
+                key={c.hash}
+                commit={c}
+                selected={selected.hash === c.hash}
+                filtering={filtering}
+                onSelect={setSelectedHash}
+              />
+            ))}
           </div>
         </div>
       </div>
