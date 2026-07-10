@@ -74,7 +74,7 @@ function Tool({
   );
 }
 
-export function Titlebar() {
+export function Titlebar({ rail = false }: { rail?: boolean }) {
   const repo = useAppStore((s) => s.repo)!;
   const repos = useAppStore((s) => s.repos);
   const switchRepo = useAppStore((s) => s.switchRepo);
@@ -154,7 +154,17 @@ export function Titlebar() {
         <span>ylva</span>
       </div>
 
-      {/* Repo tabs: one per open repository, switch on click, ✕ to close. */}
+      {/* Rail mode: the tabs live in the left rail, so show repo/branch inline. */}
+      {rail ? (
+        <div style={{ display: "flex", alignItems: "baseline", gap: 7, minWidth: 0, flex: 1 }}>
+          <span style={{ fontFamily: mono, fontSize: 12, color: "var(--text2)" }}>
+            {repo.path.replace(/[/\\]$/, "").split(/[/\\]/).pop()}
+          </span>
+          <span style={{ fontFamily: mono, fontSize: 12, color: "var(--muted)" }}>/</span>
+          <span style={{ fontFamily: mono, fontSize: 12, color: "var(--l0)", fontWeight: 600 }}>{repo.current_branch}</span>
+        </div>
+      ) : (
+      /* Repo tabs: one per open repository, switch on click, ✕ to close. */
       <div style={{ display: "flex", alignItems: "center", gap: 5, minWidth: 0, flex: 1, overflow: "hidden" }}>
         {repos.map((r, i) => {
           const active = r.path === repo.path;
@@ -206,6 +216,7 @@ export function Titlebar() {
           +
         </div>
       </div>
+      )}
 
       <div style={{ display: "flex", gap: 6, alignItems: "center", flexShrink: 0 }}>
         <Tool onClick={refresh} title="Fetch de origin">

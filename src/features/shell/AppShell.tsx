@@ -1,8 +1,10 @@
 import "./shell.css";
 import { useEffect } from "react";
 import { useAppStore } from "../../state/appStore";
+import { useThemeStore } from "../../state/themeStore";
 import { Titlebar } from "./Titlebar";
 import { Sidebar } from "./Sidebar";
+import { RepoRail } from "./RepoRail";
 import { ActionBar } from "./ActionBar";
 import { CommandPalette } from "./CommandPalette";
 import { Modals } from "./Modals";
@@ -32,6 +34,7 @@ function Screen() {
 
 export function AppShell() {
   const setPaletteOpen = useAppStore((s) => s.setPaletteOpen);
+  const rail = useThemeStore((s) => s.repoLayout) === "rail";
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -46,8 +49,9 @@ export function AppShell() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", background: "var(--win)", color: "var(--text)", overflow: "hidden" }}>
-      <Titlebar />
+      <Titlebar rail={rail} />
       <div style={{ flex: 1, display: "flex", minHeight: 0 }}>
+        {rail && <RepoRail />}
         <Sidebar />
         <div style={{ flex: 1, display: "flex", minWidth: 0, overflow: "hidden" }}>
           <Screen />
