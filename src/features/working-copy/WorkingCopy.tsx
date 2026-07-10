@@ -109,7 +109,7 @@ export function WorkingCopy() {
   const diff = useDiff(repo.path, sel?.path ?? null, sel?.staged ?? false);
 
   if (isLoading) return <div style={{ padding: 16, color: "var(--muted)" }}>A carregar alterações…</div>;
-  if (error) return <div style={{ padding: 16, color: "var(--danger)" }}>{String(error)}</div>;
+  if (error) return <div style={{ padding: 16, color: "var(--ddT)" }}>{String(error)}</div>;
 
   const files = data ?? [];
   const unstaged = files.filter((f) => f.worktree_status !== ".");

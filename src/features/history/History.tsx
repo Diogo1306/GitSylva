@@ -234,7 +234,7 @@ export function History() {
     : commits;
 
   if (isLoading) return <div style={{ padding: 16, color: "var(--muted)" }}>A carregar histórico…</div>;
-  if (error) return <div style={{ padding: 16, color: "var(--danger)" }}>{String(error)}</div>;
+  if (error) return <div style={{ padding: 16, color: "var(--ddT)" }}>{String(error)}</div>;
   if (commits.length === 0) return <div style={{ padding: 16, color: "var(--muted)" }}>Sem commits ainda.</div>;
 
   const selected = commits.find((c) => c.hash === selectedHash) ?? commits[0];
