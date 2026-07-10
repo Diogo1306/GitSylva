@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useAppStore } from "../../state/appStore";
 import { useStatus, useStageActions, useCommit, useDiff } from "../../state/queries";
-import { DiffLines } from "../../components/DiffLines";
+import { DiffView } from "../../components/DiffView";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
 import { statusStyle } from "../../lib/status";
 import type { FileChange } from "../../lib/types";
@@ -282,7 +282,7 @@ export function WorkingCopy() {
           {!sel ? null : diff.isLoading ? (
             <div style={{ padding: 20, color: "var(--muted)" }}>A carregar diff…</div>
           ) : diff.data && diff.data.trim() ? (
-            <DiffLines patch={diff.data} fontSize={12.5} />
+            <DiffView patch={diff.data} fontSize={12.5} />
           ) : (
             <div style={{ padding: 20, color: "var(--muted)" }}>Sem alterações textuais.</div>
           )}
