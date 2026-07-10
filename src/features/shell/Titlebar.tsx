@@ -1,9 +1,12 @@
+import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAppStore } from "../../state/appStore";
 import { useStatus, queryKeys } from "../../state/queries";
+import { discardAll } from "../../lib/api";
 import { winMinimize, winToggleMaximize, winClose } from "../../lib/window";
 import { toast } from "../../state/toastStore";
 import { TreeLogo } from "../../components/TreeLogo";
+import { ConfirmDialog } from "../../components/ConfirmDialog";
 
 const mono = "'JetBrains Mono', monospace";
 
@@ -77,6 +80,7 @@ export function Titlebar() {
   const setPaletteOpen = useAppStore((s) => s.setPaletteOpen);
   const qc = useQueryClient();
   const { data } = useStatus(repo.path);
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
 
   const files = data ?? [];
   const unstaged = files.filter((f) => f.worktree_status !== ".").length;
@@ -85,6 +89,25 @@ export function Titlebar() {
   function refresh() {
     qc.invalidateQueries({ queryKey: queryKeys.status(repo.path) });
     qc.invalidateQueries({ queryKey: queryKeys.log(repo.path) });
+  }
+
+  function onDiscardClick() {
+    if (unstaged === 0) {
+      toast("Sem alterações para descartar");
+      return;
+    }
+    setConfirmDiscard(true);
+  }
+
+  async function doDiscardAll() {
+    setConfirmDiscard(false);
+    try {
+      await discardAll(repo.path);
+      qc.invalidateQueries({ queryKey: queryKeys.status(repo.path) });
+      toast("Alterações não preparadas descartadas");
+    } catch (e: unknown) {
+      toast((e as { message?: string })?.message ?? "não foi possível descartar");
+    }
   }
 
   return (
@@ -177,7 +200,7 @@ export function Titlebar() {
         <Tool onClick={refresh} title="Recarregar estado e histórico">
           <span style={{ fontSize: 14, lineHeight: 1 }}>⟳</span>Recarregar
         </Tool>
-        <Tool onClick={() => toast("Descartar em massa chega numa próxima fase")} title="Descartar alterações não preparadas">
+        <Tool onClick={onDiscardClick} title="Descartar alterações não preparadas">
           ↩ Descartar
           {unstaged > 0 && (
             <span
@@ -258,6 +281,14 @@ export function Titlebar() {
           <span style={{ width: 11, height: 11, borderRadius: "50%", border: "2.5px dotted currentColor", boxSizing: "border-box" }} />
         </div>
       </div>
+
+      {confirmDiscard && (
+        <ConfirmDialog
+          message={`Descartar ${unstaged} alteração(ões) não preparada(s)? Esta ação não pode ser desfeita.`}
+          onCancel={() => setConfirmDiscard(false)}
+          onConfirm={doDiscardAll}
+        />
+      )}
     </div>
   );
 }

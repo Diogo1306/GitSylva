@@ -31,6 +31,10 @@ export function discardFile(path: string, file: string, untracked: boolean): Pro
   return invoke("discard_file", { path, file, untracked });
 }
 
+export function discardAll(path: string): Promise<void> {
+  return invoke("discard_all", { path });
+}
+
 export function commit(path: string, message: string): Promise<string> {
   return invoke<string>("commit", { path, message });
 }

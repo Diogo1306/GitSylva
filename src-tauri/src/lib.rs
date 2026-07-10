@@ -22,6 +22,7 @@ pub fn run() {
       git::stage::unstage_file,
       git::stage::stage_all,
       git::stage::discard_file,
+      git::stage::discard_all,
       git::commit::commit,
       git::log::get_log,
       git::diff::get_diff,
