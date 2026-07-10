@@ -43,8 +43,20 @@ export function discardAll(path: string): Promise<void> {
   return invoke("discard_all", { path });
 }
 
-export function commit(path: string, message: string): Promise<string> {
-  return invoke<string>("commit", { path, message });
+export function commit(path: string, message: string, amend = false): Promise<string> {
+  return invoke<string>("commit", { path, message, amend });
+}
+
+export function resetTo(path: string, target: string, mode: "soft" | "mixed" | "hard"): Promise<void> {
+  return invoke("reset_to", { path, target, mode });
+}
+
+export function cherryPick(path: string, hash: string): Promise<void> {
+  return invoke("cherry_pick", { path, hash });
+}
+
+export function renameBranch(path: string, old: string, name: string): Promise<void> {
+  return invoke("rename_branch", { path, old, new: name });
 }
 
 export function getLog(path: string, limit: number): Promise<Commit[]> {

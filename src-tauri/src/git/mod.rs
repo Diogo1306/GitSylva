@@ -10,6 +10,7 @@ pub mod stashes;
 pub mod tags;
 pub mod sync;
 pub mod config;
+pub mod rewrite;
 
 use crate::error::GitError;
 use std::process::Command;
