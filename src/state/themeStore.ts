@@ -24,6 +24,20 @@ type ThemeState = {
   language: Language;
   pullMode: PullMode;
   savePrefs: (patch: Partial<ThemePrefsSlice>) => void;
+  resetPrefs: () => void;
+};
+
+const DEFAULTS: ThemePrefsSlice = {
+  theme: "escuro",
+  treeStyle: "normal",
+  branchColor: "auto",
+  accentIdx: 0,
+  fontKey: "inter",
+  anims: true,
+  density: "normal",
+  repoLayout: "tabs",
+  language: "pt",
+  pullMode: "ff",
 };
 
 type ThemePrefsSlice = Pick<
@@ -43,16 +57,7 @@ type ThemePrefsSlice = Pick<
 export const useThemeStore = create<ThemeState>()(
   persist(
     (set) => ({
-      theme: "escuro",
-      treeStyle: "normal",
-      branchColor: "auto",
-      accentIdx: 0,
-      fontKey: "inter",
-      anims: true,
-      density: "normal",
-      repoLayout: "tabs",
-      language: "pt",
-      pullMode: "ff",
+      ...DEFAULTS,
       // Resetting the accent when the theme changes keeps it in range, since
       // each theme has its own accent list.
       savePrefs: (patch) =>
@@ -63,6 +68,7 @@ export const useThemeStore = create<ThemeState>()(
           }
           return next;
         }),
+      resetPrefs: () => set({ ...DEFAULTS }),
     }),
     { name: "gitsylva-prefs" },
   ),
