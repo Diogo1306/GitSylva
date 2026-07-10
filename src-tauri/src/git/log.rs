@@ -24,6 +24,16 @@ pub fn get_log(path: String, limit: u32) -> Result<Vec<Commit>, GitError> {
     Ok(parse_log(&out))
 }
 
+/// Commits in a revision range (e.g. "@{u}..HEAD"), newest first. Used by the
+/// pull/push preview modals. Returns empty if the range cannot be resolved.
+pub fn log_range(path: &str, range: &str) -> Vec<Commit> {
+    let arg = format!("--pretty=format:{FMT}");
+    match run_git(path, &["log", "-200", &arg, range]) {
+        Ok(out) => parse_log(&out),
+        Err(_) => Vec::new(),
+    }
+}
+
 fn parse_log(out: &str) -> Vec<Commit> {
     out.split('\u{1e}')
         .map(|r| r.trim_matches('\n'))

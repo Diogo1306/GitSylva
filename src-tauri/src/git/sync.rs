@@ -1,4 +1,5 @@
 use crate::error::GitError;
+use crate::git::log::{log_range, Commit};
 use crate::git::run_git;
 use serde::Serialize;
 
@@ -13,6 +14,29 @@ pub struct SyncStatus {
 #[tauri::command]
 pub fn fetch(path: String) -> Result<(), GitError> {
     run_git(&path, &["fetch", "--all", "--prune"]).map(|_| ())
+}
+
+fn has_upstream(path: &str) -> bool {
+    run_git(path, &["rev-parse", "--abbrev-ref", "@{u}"]).is_ok()
+}
+
+/// Local commits not yet on the upstream (what a push would send).
+#[tauri::command]
+pub fn outgoing(path: String) -> Result<Vec<Commit>, GitError> {
+    if !has_upstream(&path) {
+        return Ok(Vec::new());
+    }
+    Ok(log_range(&path, "@{u}..HEAD"))
+}
+
+/// Upstream commits not yet local (what a pull would bring). Reflects the last
+/// fetch; the pull modal fetches first.
+#[tauri::command]
+pub fn incoming(path: String) -> Result<Vec<Commit>, GitError> {
+    if !has_upstream(&path) {
+        return Ok(Vec::new());
+    }
+    Ok(log_range(&path, "HEAD..@{u}"))
 }
 
 /// Pull with fast-forward only, so a diverged branch fails cleanly instead of
@@ -111,6 +135,10 @@ mod tests {
         assert_eq!(st.ahead, 0);
         assert!(st.upstream.is_some());
 
+        // Preview: one incoming commit ("two"), nothing outgoing yet.
+        assert_eq!(incoming(down_s.clone()).unwrap().len(), 1);
+        assert_eq!(outgoing(down_s.clone()).unwrap().len(), 0);
+
         // Fast-forward pull brings the downloader up to date.
         pull(down_s.clone()).unwrap();
         let synced = sync_status(down_s.clone()).unwrap();
@@ -121,6 +149,7 @@ mod tests {
         // A new local commit can be pushed back to the shared remote.
         fs::write(down.join("a.txt"), "one\ntwo\nthree\n").unwrap();
         run_git(&down_s, &["commit", "-am", "three"]).unwrap();
+        assert_eq!(outgoing(down_s.clone()).unwrap().len(), 1);
         push(down_s.clone()).unwrap();
         assert_eq!(run_git(&bare_s, &["rev-list", "--count", "main"]).unwrap().trim(), "3");
     }

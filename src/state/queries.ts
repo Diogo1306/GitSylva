@@ -29,6 +29,8 @@ import {
   syncStatus,
   pull,
   push,
+  outgoing,
+  incoming,
   getIdentity,
   setIdentity,
 } from "../lib/api";
@@ -191,11 +193,19 @@ export function useSetIdentity(path: string) {
   });
 }
 
+export function useOutgoing(path: string, enabled: boolean) {
+  return useQuery({ queryKey: ["outgoing", path], queryFn: () => outgoing(path), enabled });
+}
+
+export function useIncoming(path: string, enabled: boolean) {
+  return useQuery({ queryKey: ["incoming", path], queryFn: () => incoming(path), enabled });
+}
+
 export function useSyncActions(path: string) {
   const qc = useQueryClient();
   // After a network op, everything local may have moved.
   const refresh = () => {
-    for (const key of ["status", "log", "branches", "sync", "tags"]) {
+    for (const key of ["status", "log", "branches", "sync", "tags", "outgoing", "incoming"]) {
       qc.invalidateQueries({ queryKey: [key, path] });
     }
   };

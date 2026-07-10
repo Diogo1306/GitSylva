@@ -135,6 +135,14 @@ export function push(path: string): Promise<void> {
   return invoke("push", { path });
 }
 
+export function outgoing(path: string): Promise<Commit[]> {
+  return invoke<Commit[]>("outgoing", { path });
+}
+
+export function incoming(path: string): Promise<Commit[]> {
+  return invoke<Commit[]>("incoming", { path });
+}
+
 export function getIdentity(path: string): Promise<GitIdentity> {
   return invoke<GitIdentity>("get_identity", { path });
 }

@@ -1,6 +1,5 @@
 import { useAppStore } from "../../state/appStore";
-import { useStatus, useSyncStatus, useSyncActions } from "../../state/queries";
-import { toast } from "../../state/toastStore";
+import { useStatus, useSyncStatus } from "../../state/queries";
 
 const mono = "'JetBrains Mono', monospace";
 
@@ -68,26 +67,12 @@ export function ActionBar() {
   const setModal = useAppStore((s) => s.setModal);
   const { data } = useStatus(repo.path);
   const { data: syncData } = useSyncStatus(repo.path);
-  const sync = useSyncActions(repo.path);
 
   const files = data ?? [];
   const staged = files.filter((f) => f.index_status !== "." && f.index_status !== "?").length;
   const repoName = repo.path.replace(/[/\\]$/, "").split(/[/\\]/).pop() ?? repo.path;
   const ahead = syncData?.ahead ?? 0;
   const behind = syncData?.behind ?? 0;
-
-  function doPull() {
-    sync.pull.mutate(undefined, {
-      onSuccess: () => toast("Pull concluído"),
-      onError: (e: unknown) => toast((e as { message?: string })?.message ?? "não foi possível fazer pull"),
-    });
-  }
-  function doPush() {
-    sync.push.mutate(undefined, {
-      onSuccess: () => toast("Push concluído"),
-      onError: (e: unknown) => toast((e as { message?: string })?.message ?? "não foi possível fazer push"),
-    });
-  }
 
   return (
     <div
@@ -104,8 +89,8 @@ export function ActionBar() {
     >
       <Btn label="Commit" onClick={() => setView("working")} badge={staged} badgeAccent />
       <Divider />
-      <Btn label={sync.pull.isPending ? "↓ …" : "↓ Pull"} onClick={doPull} badge={behind} />
-      <Btn label={sync.push.isPending ? "↑ …" : "↑ Push"} onClick={doPush} badge={ahead} badgeAccent />
+      <Btn label="↓ Pull" onClick={() => setModal("pull")} badge={behind} />
+      <Btn label="↑ Push" onClick={() => setModal("push")} badge={ahead} badgeAccent />
       <Divider />
       <Btn label="Branch" onClick={() => setModal("branch")} />
       <Btn label="Merge" onClick={() => setModal("merge")} />
