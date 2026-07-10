@@ -1,6 +1,9 @@
+import { useState } from "react";
 import { useAppStore } from "../../state/appStore";
 import { useStatus, useBranches, useBranchActions, useStashes, useTags } from "../../state/queries";
 import { toast } from "../../state/toastStore";
+import { ContextMenu, type MenuItem } from "../../components/ui/ContextMenu";
+import { Input } from "../../components/ui/Input";
 import type { View } from "../../state/appStore";
 
 const mono = "'JetBrains Mono', monospace";
@@ -21,7 +24,10 @@ export function Sidebar() {
   const { data } = useStatus(repo.path);
   const wcCount = (data ?? []).length;
   const { data: branchData } = useBranches(repo.path);
-  const { checkout, remove } = useBranchActions(repo.path);
+  const { checkout, remove, rename } = useBranchActions(repo.path);
+  const [menu, setMenu] = useState<{ x: number; y: number; name: string } | null>(null);
+  const [renaming, setRenaming] = useState<string | null>(null);
+  const [renameVal, setRenameVal] = useState("");
   const { data: stashData } = useStashes(repo.path);
   const { data: tagData } = useTags(repo.path);
   // Local branches only in the sidebar list.
@@ -115,14 +121,18 @@ export function Sidebar() {
           <div
             key={b.name}
             onClick={() => {
-              if (b.is_current) return;
+              if (b.is_current || renaming === b.name) return;
               checkout.mutate(b.name, {
                 onSuccess: () => toast(`Em ${b.name}`),
                 onError: (e: unknown) => toast((e as { message?: string })?.message ?? "não foi possível mudar de branch"),
               });
             }}
+            onContextMenu={(e) => {
+              e.preventDefault();
+              setMenu({ x: e.clientX, y: e.clientY, name: b.name });
+            }}
             className="gs-row"
-            title={b.is_current ? "Branch atual" : `Mudar para ${b.name}`}
+            title={b.is_current ? "Branch atual" : `Mudar para ${b.name} · botão direito para opções`}
             style={{
               display: "flex",
               alignItems: "center",
@@ -147,8 +157,29 @@ export function Sidebar() {
                 flexShrink: 0,
               }}
             />
-            <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{b.name}</span>
-            {!b.is_current && (
+            {renaming === b.name ? (
+              <Input
+                autoFocus
+                mono
+                value={renameVal}
+                onClick={(e) => e.stopPropagation()}
+                onChange={(e) => setRenameVal(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") setRenaming(null);
+                  if (e.key === "Enter" && renameVal.trim()) {
+                    rename.mutate(
+                      { old: b.name, name: renameVal.trim() },
+                      { onSuccess: () => { toast(`Renomeada para ${renameVal.trim()}`); setRenaming(null); }, onError: (err: unknown) => toast((err as { message?: string })?.message ?? "não foi possível renomear") },
+                    );
+                  }
+                }}
+                onBlur={() => setRenaming(null)}
+                style={{ flex: 1, minWidth: 0, padding: "3px 7px", fontSize: 12.5 }}
+              />
+            ) : (
+              <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{b.name}</span>
+            )}
+            {!b.is_current && renaming !== b.name && (
               <span
                 onClick={(e) => {
                   e.stopPropagation();
@@ -246,6 +277,19 @@ export function Sidebar() {
         <span style={{ width: 9, height: 9, borderRadius: "50%", border: "2px solid var(--muted)", boxSizing: "border-box", flexShrink: 0 }} />
         <span style={{ flex: 1 }}>Definições</span>
       </div>
+
+      {menu &&
+        (() => {
+          const name = menu.name;
+          const isCurrent = localBranches.find((b) => b.name === name)?.is_current;
+          const items: MenuItem[] = [
+            { label: "Renomear", onClick: () => { setRenaming(name); setRenameVal(name); } },
+          ];
+          if (!isCurrent) {
+            items.push({ label: "Apagar branch", danger: true, onClick: () => remove.mutate({ name, force: false }, { onSuccess: () => toast(`Branch ${name} apagada`), onError: (e: unknown) => toast((e as { message?: string })?.message ?? "não foi possível apagar") }) });
+          }
+          return <ContextMenu x={menu.x} y={menu.y} items={items} onClose={() => setMenu(null)} />;
+        })()}
     </div>
   );
 }
