@@ -19,6 +19,7 @@ import {
   renameBranch,
   resetTo,
   cherryPick,
+  rebase,
   listStashes,
   createStash,
   applyStash,
@@ -140,6 +141,7 @@ export function useRewriteActions(path: string) {
       onSuccess: refresh,
     }),
     cherryPick: useMutation({ mutationFn: (hash: string) => cherryPick(path, hash), onSuccess: refresh }),
+    rebase: useMutation({ mutationFn: (onto: string) => rebase(path, onto), onSuccess: refresh }),
   };
 }
 

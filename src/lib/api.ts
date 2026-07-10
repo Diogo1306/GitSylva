@@ -55,6 +55,10 @@ export function cherryPick(path: string, hash: string): Promise<void> {
   return invoke("cherry_pick", { path, hash });
 }
 
+export function rebase(path: string, onto: string): Promise<void> {
+  return invoke("rebase", { path, onto });
+}
+
 export function renameBranch(path: string, old: string, name: string): Promise<void> {
   return invoke("rename_branch", { path, old, new: name });
 }

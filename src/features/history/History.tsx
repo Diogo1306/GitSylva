@@ -312,6 +312,7 @@ export function History() {
             { label: `Reset forçado (hard) para ${short}`, onClick: reset("hard"), danger: true },
             { label: "", onClick: () => {}, divider: true },
             { label: "Cherry-pick para a branch atual", onClick: () => rewrite.cherryPick.mutate(h, { onSuccess: () => toast("Cherry-pick aplicado"), onError: (e: unknown) => toast((e as { message?: string })?.message ?? "conflito no cherry-pick") }) },
+            { label: "Rebase da atual sobre este commit", onClick: () => rewrite.rebase.mutate(h, { onSuccess: () => toast("Rebase concluído"), onError: (e: unknown) => toast((e as { message?: string })?.message ?? "conflito no rebase") }) },
             { label: "Copiar hash", onClick: () => navigator.clipboard?.writeText(h).then(() => toast("Hash copiado")) },
           ];
           return <ContextMenu x={menu.x} y={menu.y} items={items} onClose={() => setMenu(null)} />;
