@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAppStore } from "../../state/appStore";
 import { useStatus, useStageActions, useCommit, useDiff, useBlame } from "../../state/queries";
 import { DiffView } from "../../components/DiffView";
@@ -111,6 +111,16 @@ export function WorkingCopy() {
 
   const diff = useDiff(repo.path, sel?.path ?? null, sel?.staged ?? false);
   const blameQ = useBlame(repo.path, sel?.path ?? null, blameOn);
+
+  // Honor a file chosen from the command palette, then clear the request.
+  const paletteFile = useAppStore((s) => s.selectedFile);
+  const clearPaletteFile = useAppStore((s) => s.setSelectedFile);
+  useEffect(() => {
+    if (!paletteFile) return;
+    const f = (data ?? []).find((x) => x.path === paletteFile);
+    if (f) setSel({ path: paletteFile, staged: f.index_status !== "." && f.index_status !== "?" });
+    clearPaletteFile(null);
+  }, [paletteFile, data, clearPaletteFile]);
 
   if (isLoading) return <div style={{ padding: 16, color: "var(--muted)" }}>A carregar alterações…</div>;
   if (error) return <div style={{ padding: 16, color: "var(--ddT)" }}>{String(error)}</div>;
