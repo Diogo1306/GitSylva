@@ -19,6 +19,13 @@ pub fn cherry_pick(path: String, hash: String) -> Result<(), GitError> {
     run_git(&path, &["cherry-pick", &hash]).map(|_| ())
 }
 
+/// Rebase the current branch onto `onto` (a branch or commit). On conflict git
+/// leaves the rebase in progress and this returns the error message.
+#[tauri::command]
+pub fn rebase(path: String, onto: String) -> Result<(), GitError> {
+    run_git(&path, &["rebase", &onto]).map(|_| ())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -48,6 +55,29 @@ mod tests {
         assert_eq!(run_git(&p, &["rev-list", "--count", "HEAD"]).unwrap().trim(), "1");
         let staged = run_git(&p, &["diff", "--cached", "--name-only"]).unwrap();
         assert!(staged.contains("a.txt"));
+    }
+
+    #[test]
+    fn rebase_replays_onto_base() {
+        let p = repo("rebase");
+        fs::write(format!("{p}/a.txt"), "base\n").unwrap();
+        run_git(&p, &["add", "-A"]).unwrap();
+        run_git(&p, &["commit", "-m", "base"]).unwrap();
+        // feature adds b.txt
+        run_git(&p, &["checkout", "-b", "feature"]).unwrap();
+        fs::write(format!("{p}/b.txt"), "feat\n").unwrap();
+        run_git(&p, &["add", "-A"]).unwrap();
+        run_git(&p, &["commit", "-m", "feat"]).unwrap();
+        // main advances with c.txt
+        run_git(&p, &["checkout", "main"]).unwrap();
+        fs::write(format!("{p}/c.txt"), "main\n").unwrap();
+        run_git(&p, &["add", "-A"]).unwrap();
+        run_git(&p, &["commit", "-m", "main2"]).unwrap();
+        // rebase feature onto main -> feature has base, main2, feat (linear)
+        run_git(&p, &["checkout", "feature"]).unwrap();
+        rebase(p.clone(), "main".into()).unwrap();
+        assert!(std::path::Path::new(&format!("{p}/c.txt")).exists());
+        assert_eq!(run_git(&p, &["rev-list", "--count", "HEAD"]).unwrap().trim(), "3");
     }
 
     #[test]

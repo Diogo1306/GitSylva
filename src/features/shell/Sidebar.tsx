@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useAppStore } from "../../state/appStore";
-import { useStatus, useBranches, useBranchActions, useStashes, useTags } from "../../state/queries";
+import { useStatus, useBranches, useBranchActions, useStashes, useTags, useRewriteActions } from "../../state/queries";
 import { toast } from "../../state/toastStore";
 import { ContextMenu, type MenuItem } from "../../components/ui/ContextMenu";
 import { Input } from "../../components/ui/Input";
@@ -25,6 +25,7 @@ export function Sidebar() {
   const wcCount = (data ?? []).length;
   const { data: branchData } = useBranches(repo.path);
   const { checkout, remove, rename } = useBranchActions(repo.path);
+  const { rebase } = useRewriteActions(repo.path);
   const [menu, setMenu] = useState<{ x: number; y: number; name: string } | null>(null);
   const [renaming, setRenaming] = useState<string | null>(null);
   const [renameVal, setRenameVal] = useState("");
@@ -286,6 +287,7 @@ export function Sidebar() {
             { label: "Renomear", onClick: () => { setRenaming(name); setRenameVal(name); } },
           ];
           if (!isCurrent) {
+            items.push({ label: `Rebase da atual sobre ${name}`, onClick: () => rebase.mutate(name, { onSuccess: () => toast("Rebase concluído"), onError: (e: unknown) => toast((e as { message?: string })?.message ?? "conflito no rebase") }) });
             items.push({ label: "Apagar branch", danger: true, onClick: () => remove.mutate({ name, force: false }, { onSuccess: () => toast(`Branch ${name} apagada`), onError: (e: unknown) => toast((e as { message?: string })?.message ?? "não foi possível apagar") }) });
           }
           return <ContextMenu x={menu.x} y={menu.y} items={items} onClose={() => setMenu(null)} />;
