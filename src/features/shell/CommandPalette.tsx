@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useAppStore } from "../../state/appStore";
-import { useLog, useBranches, useBranchActions } from "../../state/queries";
+import { useLog, useBranches, useBranchActions, useStatus } from "../../state/queries";
 import { toast } from "../../state/toastStore";
 import type { View } from "../../state/appStore";
 
@@ -14,12 +14,14 @@ export function CommandPalette() {
   const setOpen = useAppStore((s) => s.setPaletteOpen);
   const setView = useAppStore((s) => s.setView);
   const setFocusCommit = useAppStore((s) => s.setFocusCommit);
+  const setSelectedFile = useAppStore((s) => s.setSelectedFile);
   const repo = useAppStore((s) => s.repo);
   const repos = useAppStore((s) => s.repos);
   const switchRepo = useAppStore((s) => s.switchRepo);
   const [q, setQ] = useState("");
   const { data: commits } = useLog(repo?.path ?? "");
   const { data: branches } = useBranches(repo?.path ?? "");
+  const { data: files } = useStatus(repo?.path ?? "");
   const { checkout } = useBranchActions(repo?.path ?? "");
 
   const groups = useMemo<Group[]>(() => {
@@ -67,6 +69,21 @@ export function CommandPalette() {
       .filter(([n]) => match(n))
       .map(([n, v]) => ({ label: n, sub: "ir para", dot: "var(--muted)", dotR: "50%", run: go(v) }));
 
+    const fl: Item[] = (files ?? [])
+      .filter((f) => match(f.path))
+      .slice(0, 6)
+      .map((f) => ({
+        label: f.path.split("/").pop() ?? f.path,
+        sub: f.path,
+        dot: "var(--l2)",
+        dotR: "2px",
+        run: () => {
+          setSelectedFile(f.path);
+          setView("working");
+          setOpen(false);
+        },
+      }));
+
     const cm: Item[] = (commits ?? [])
       .filter((c) => match(c.subject + " " + c.hash + " " + c.author))
       .slice(0, 6)
@@ -85,10 +102,11 @@ export function CommandPalette() {
     const gs: Group[] = [];
     if (rp.length) gs.push({ title: "REPOSITÓRIOS", items: rp });
     if (br.length) gs.push({ title: "BRANCHES", items: br });
+    if (fl.length) gs.push({ title: "FICHEIROS", items: fl });
     if (cm.length) gs.push({ title: "COMMITS", items: cm });
     if (nav.length) gs.push({ title: "IR PARA", items: nav });
     return gs;
-  }, [open, q, commits, branches, repos, repo, switchRepo, checkout, setView, setOpen, setFocusCommit]);
+  }, [open, q, commits, branches, files, repos, repo, switchRepo, checkout, setView, setOpen, setFocusCommit, setSelectedFile]);
 
   if (!open) return null;
 
