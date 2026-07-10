@@ -48,3 +48,9 @@ export type StashInfo = {
   message: string;
   relative_date: string;
 };
+
+export type TagInfo = {
+  name: string;
+  target: string;
+  subject: string;
+};

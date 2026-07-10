@@ -17,6 +17,9 @@ import {
   createStash,
   applyStash,
   dropStash,
+  listTags,
+  createTag,
+  deleteTag,
 } from "../lib/api";
 
 export const queryKeys = {
@@ -27,6 +30,7 @@ export const queryKeys = {
   commit: (path: string, hash: string) => ["commit", path, hash] as const,
   branches: (path: string) => ["branches", path] as const,
   stashes: (path: string) => ["stashes", path] as const,
+  tags: (path: string) => ["tags", path] as const,
 };
 
 export function useStatus(path: string) {
@@ -116,6 +120,28 @@ export function useStashActions(path: string) {
     }),
     apply: useMutation({ mutationFn: (index: number) => applyStash(path, index), onSuccess: refresh }),
     drop: useMutation({ mutationFn: (index: number) => dropStash(path, index), onSuccess: refresh }),
+  };
+}
+
+export function useTags(path: string) {
+  return useQuery({
+    queryKey: queryKeys.tags(path),
+    queryFn: () => listTags(path),
+  });
+}
+
+export function useTagActions(path: string) {
+  const qc = useQueryClient();
+  const refresh = () => {
+    qc.invalidateQueries({ queryKey: queryKeys.tags(path) });
+    qc.invalidateQueries({ queryKey: queryKeys.log(path) });
+  };
+  return {
+    create: useMutation({
+      mutationFn: (v: { name: string; message: string }) => createTag(path, v.name, v.message),
+      onSuccess: refresh,
+    }),
+    remove: useMutation({ mutationFn: (name: string) => deleteTag(path, name), onSuccess: refresh }),
   };
 }
 

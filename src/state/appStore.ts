@@ -2,7 +2,7 @@ import { create } from "zustand";
 import type { RepoInfo } from "../lib/types";
 
 export type View = "working" | "history" | "stashes" | "settings" | "picker";
-export type Modal = "branch" | "stash" | null;
+export type Modal = "branch" | "stash" | "tag" | null;
 
 type AppState = {
   repo: RepoInfo | null;
