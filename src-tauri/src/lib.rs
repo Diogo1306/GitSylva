@@ -17,6 +17,8 @@ pub fn run() {
     })
     .invoke_handler(tauri::generate_handler![
       git::repo::open_repo,
+      git::repo::init_repo,
+      git::repo::clone_repo,
       git::status::get_status,
       git::stage::stage_file,
       git::stage::unstage_file,
