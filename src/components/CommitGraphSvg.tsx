@@ -1,18 +1,25 @@
-import { createElement as h, type ReactElement } from "react";
+import { createElement as h, memo, useMemo, type ReactElement } from "react";
 import { useThemeStore } from "../state/themeStore";
 import type { GraphCommit } from "../graph/layout";
+import type { TreeStyleKey } from "../theme/themes";
 
 // The living history graph, ported from the design's buildGraph. Lanes are
 // drawn as gently waving "vines"; branches and merges curl in with cubic
 // beziers; commit nodes are buttons on the vine; and leaves (or blossoms, or
 // palm fronds, or bare nodes) sprout at branch tips according to the tree style.
+//
+// Performance: the whole element tree is built inside useMemo and the component
+// is memo()'d, so the graph is computed and its entrance animations play exactly
+// once — selecting a commit or scrolling never rebuilds or re-animates it. When
+// decorative animations are off, every element renders static.
 
 const LANE_W = 18;
 const laneX = (l: number) => 10 + l * LANE_W;
 
-export function CommitGraphSvg({ rows, rowH }: { rows: GraphCommit[]; rowH: number }) {
-  const styleKey = useThemeStore((s) => s.treeStyle);
+function buildGraph(rows: GraphCommit[], rowH: number, styleKey: TreeStyleKey, anims: boolean): ReactElement[] {
   const els: ReactElement[] = [];
+  // Static base style for a lane path when animations are off (no dash reveal).
+  const anim = (s: string) => (anims ? s : "none");
 
   const vine = (x: number, y1: number, y2: number, seed: number) => {
     let d = `M${x},${y1}`;
@@ -31,7 +38,7 @@ export function CommitGraphSvg({ rows, rowH }: { rows: GraphCommit[]; rowH: numb
       key,
       d,
       fill: "none",
-      pathLength: 1,
+      ...(anims ? { pathLength: 1 } : {}),
       style: {
         stroke:
           (styleKey === "tropical" || styleKey === "sakura") && lane === 0
@@ -52,8 +59,8 @@ export function CommitGraphSvg({ rows, rowH }: { rows: GraphCommit[]; rowH: numb
                 : 2.2),
         strokeLinecap: "round" as const,
         opacity: 0.9,
-        strokeDasharray: 1,
-        animation: `vineDraw 0.8s ease-out ${delay}s both`,
+        // The dash-reveal only exists while animating; static paths skip it.
+        ...(anims ? { strokeDasharray: 1, animation: `vineDraw 0.8s ease-out ${delay}s both` } : {}),
       },
     });
 
@@ -111,7 +118,7 @@ export function CommitGraphSvg({ rows, rowH }: { rows: GraphCommit[]; rowH: numb
           strokeWidth: 2,
           transformBox: "fill-box" as const,
           transformOrigin: "center",
-          animation: `nodePop 0.35s cubic-bezier(0.2, 0.9, 0.3, 1) ${delay}s both`,
+          animation: anim(`nodePop 0.35s cubic-bezier(0.2, 0.9, 0.3, 1) ${delay}s both`),
         },
       }),
     );
@@ -140,7 +147,7 @@ export function CommitGraphSvg({ rows, rowH }: { rows: GraphCommit[]; rowH: numb
             strokeWidth: 1.1,
             fill: "none",
             opacity: 0.65,
-            animation: `fadeIn 0.4s ease ${delay}s both`,
+            animation: anim(`fadeIn 0.4s ease ${delay}s both`),
           },
         }),
       );
@@ -169,7 +176,7 @@ export function CommitGraphSvg({ rows, rowH }: { rows: GraphCommit[]; rowH: numb
             "g",
             {
               style: {
-                animation: `nodePop 0.4s cubic-bezier(0.2, 0.9, 0.3, 1) ${delay}s both`,
+                animation: anim(`nodePop 0.4s cubic-bezier(0.2, 0.9, 0.3, 1) ${delay}s both`),
                 transformBox: "fill-box" as const,
                 transformOrigin: "center",
               },
@@ -190,7 +197,7 @@ export function CommitGraphSvg({ rows, rowH }: { rows: GraphCommit[]; rowH: numb
               opacity: 0.92,
               transformBox: "fill-box" as const,
               transformOrigin: "left center",
-              animation: `leafPop 0.5s cubic-bezier(0.2, 0.9, 0.3, 1) ${d2}s both`,
+              animation: anim(`leafPop 0.5s cubic-bezier(0.2, 0.9, 0.3, 1) ${d2}s both`),
             },
           }),
           h("path", {
@@ -200,7 +207,7 @@ export function CommitGraphSvg({ rows, rowH }: { rows: GraphCommit[]; rowH: numb
               strokeWidth: 0.7,
               fill: "none",
               opacity: 0.45,
-              animation: `fadeIn 0.4s ease ${d2 + 0.15}s both`,
+              animation: anim(`fadeIn 0.4s ease ${d2 + 0.15}s both`),
             },
           }),
         );
@@ -222,7 +229,7 @@ export function CommitGraphSvg({ rows, rowH }: { rows: GraphCommit[]; rowH: numb
               fill: "var(--trunk)",
               stroke: "var(--win)",
               strokeWidth: 0.7,
-              animation: `nodePop 0.4s ease ${delay + 0.3}s both`,
+              animation: anim(`nodePop 0.4s ease ${delay + 0.3}s both`),
               transformBox: "fill-box" as const,
               transformOrigin: "center",
             },
@@ -238,7 +245,7 @@ export function CommitGraphSvg({ rows, rowH }: { rows: GraphCommit[]; rowH: numb
               fill: "var(--trunk)",
               stroke: "var(--win)",
               strokeWidth: 0.7,
-              animation: `nodePop 0.4s ease ${delay + 0.38}s both`,
+              animation: anim(`nodePop 0.4s ease ${delay + 0.38}s both`),
               transformBox: "fill-box" as const,
               transformOrigin: "center",
             },
@@ -271,7 +278,7 @@ export function CommitGraphSvg({ rows, rowH }: { rows: GraphCommit[]; rowH: numb
               opacity: 0.92,
               transformBox: "fill-box" as const,
               transformOrigin: "left center",
-              animation: `leafPop 0.5s cubic-bezier(0.2, 0.9, 0.3, 1) ${delay}s both`,
+              animation: anim(`leafPop 0.5s cubic-bezier(0.2, 0.9, 0.3, 1) ${delay}s both`),
             },
           }),
           h("path", {
@@ -281,7 +288,7 @@ export function CommitGraphSvg({ rows, rowH }: { rows: GraphCommit[]; rowH: numb
               strokeWidth: 0.8,
               fill: "none",
               opacity: 0.5,
-              animation: `fadeIn 0.4s ease ${delay + 0.2}s both`,
+              animation: anim(`fadeIn 0.4s ease ${delay + 0.2}s both`),
             },
           }),
         ),
@@ -289,9 +296,14 @@ export function CommitGraphSvg({ rows, rowH }: { rows: GraphCommit[]; rowH: numb
     }
   });
 
-  return h(
-    "svg",
-    { width: 72, height: rows.length * rowH, style: { display: "block", overflow: "visible" } },
-    els,
-  );
+  return els;
 }
+
+export const CommitGraphSvg = memo(function CommitGraphSvg({ rows, rowH }: { rows: GraphCommit[]; rowH: number }) {
+  const styleKey = useThemeStore((s) => s.treeStyle);
+  const anims = useThemeStore((s) => s.anims);
+  // Built once per (rows, rowH, treeStyle, anims); stable across selection and
+  // scroll so the entrance animation plays a single time.
+  const els = useMemo(() => buildGraph(rows, rowH, styleKey, anims), [rows, rowH, styleKey, anims]);
+  return h("svg", { width: 72, height: rows.length * rowH, style: { display: "block", overflow: "visible" } }, els);
+});
