@@ -15,6 +15,8 @@ export function CommandPalette() {
   const setView = useAppStore((s) => s.setView);
   const setFocusCommit = useAppStore((s) => s.setFocusCommit);
   const repo = useAppStore((s) => s.repo);
+  const repos = useAppStore((s) => s.repos);
+  const switchRepo = useAppStore((s) => s.switchRepo);
   const [q, setQ] = useState("");
   const { data: commits } = useLog(repo?.path ?? "");
   const { data: branches } = useBranches(repo?.path ?? "");
@@ -29,6 +31,17 @@ export function CommandPalette() {
       setView(view);
       setOpen(false);
     };
+
+    const rp: Item[] = repos
+      .filter((r) => r.path !== repo?.path)
+      .filter((r) => match(r.path))
+      .map((r, i) => ({
+        label: r.path.replace(/[/\\]$/, "").split(/[/\\]/).pop() ?? r.path,
+        sub: r.current_branch,
+        dot: `var(--l${i % 3})`,
+        dotR: "50%",
+        run: () => { switchRepo(r.path); setOpen(false); },
+      }));
 
     const br: Item[] = (branches ?? [])
       .filter((b) => !b.is_remote && !b.is_current)
@@ -70,11 +83,12 @@ export function CommandPalette() {
       }));
 
     const gs: Group[] = [];
+    if (rp.length) gs.push({ title: "REPOSITÓRIOS", items: rp });
     if (br.length) gs.push({ title: "BRANCHES", items: br });
     if (cm.length) gs.push({ title: "COMMITS", items: cm });
     if (nav.length) gs.push({ title: "IR PARA", items: nav });
     return gs;
-  }, [open, q, commits, branches, checkout, setView, setOpen, setFocusCommit]);
+  }, [open, q, commits, branches, repos, repo, switchRepo, checkout, setView, setOpen, setFocusCommit]);
 
   if (!open) return null;
 
