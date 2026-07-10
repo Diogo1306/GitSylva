@@ -2,6 +2,7 @@ import { pickFolder } from "../../lib/api";
 import { useRecentsStore } from "../../state/recentsStore";
 import { useOpenRepo } from "./useOpenRepo";
 import { TreeLogo } from "../../components/TreeLogo";
+import { FallingLeaves } from "../../components/FallingLeaves";
 import { initials } from "../../lib/format";
 import "../shell/shell.css";
 
@@ -28,9 +29,12 @@ export function OpenRepo() {
         padding: 32,
         boxSizing: "border-box",
         animation: "fadeIn 0.4s ease both",
+        position: "relative",
+        overflow: "hidden",
       }}
     >
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 20, textAlign: "center" }}>
+      <FallingLeaves />
+      <div style={{ position: "relative", zIndex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 20, textAlign: "center" }}>
         <TreeLogo size={112} animated crop />
         <div style={{ display: "flex", alignItems: "baseline", fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: 30, letterSpacing: "0.4px" }}>
           <span>git</span>
