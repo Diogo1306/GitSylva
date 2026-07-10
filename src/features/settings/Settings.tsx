@@ -4,6 +4,7 @@ import { useOnboardStore } from "../../state/onboardStore";
 import { Appearance } from "./sections/Appearance";
 import { GitIdentity } from "./sections/GitIdentity";
 import { PushPull } from "./sections/PushPull";
+import { Cleanup } from "./sections/Cleanup";
 import { StubSection } from "./sections/_shared";
 
 // Settings nav. Each entry is a section id rendered in the scroll area below;
@@ -16,6 +17,7 @@ const NAV: [string, string][] = [
   ["Atalhos", "set-atalhos"],
   ["SSH", "set-ssh"],
   ["Avançado", "set-avancado"],
+  ["Limpeza", "set-limpeza"],
 ];
 
 export function Settings() {
@@ -97,8 +99,10 @@ export function Settings() {
             Gerar chaves, testar ligação e assinar commits chegam quando o backend suportar SSH.
           </StubSection>
           <StubSection id="set-avancado" title="AVANÇADO">
-            Git LFS, hooks e limpeza de cache chegam numa próxima fase.
+            Git LFS, hooks e editor externo chegam numa próxima fase.
           </StubSection>
+
+          <Cleanup />
         </div>
       </div>
     </div>

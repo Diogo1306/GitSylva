@@ -12,6 +12,7 @@ type RecentsState = {
   recents: RecentRepo[];
   record: (repo: RepoInfo) => void;
   remove: (path: string) => void;
+  clear: () => void;
 };
 
 function repoName(path: string): string {
@@ -34,6 +35,7 @@ export const useRecentsStore = create<RecentsState>()(
           return { recents: [entry, ...rest].slice(0, 12) };
         }),
       remove: (path) => set((s) => ({ recents: s.recents.filter((r) => r.path !== path) })),
+      clear: () => set({ recents: [] }),
     }),
     { name: "gitsylva-recents" },
   ),
