@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
 import type { RepoInfo } from "../lib/types";
 
 export type View = "working" | "history" | "stashes" | "settings" | "picker";
@@ -29,7 +30,9 @@ type AppState = {
   setModal: (modal: Modal) => void;
 };
 
-export const useAppStore = create<AppState>((set) => ({
+export const useAppStore = create<AppState>()(
+  persist(
+    (set) => ({
   repos: [],
   repo: null,
   view: "history",
@@ -69,4 +72,12 @@ export const useAppStore = create<AppState>((set) => ({
   setFocusCommit: (focusCommit) => set({ focusCommit }),
   setPaletteOpen: (paletteOpen) => set({ paletteOpen }),
   setModal: (modal) => set({ modal }),
-}));
+    }),
+    {
+      name: "gitsylva-open-repos",
+      // Only the open repos and the active one survive a restart; transient UI
+      // state (view, selection, palette, modal) resets.
+      partialize: (s) => ({ repos: s.repos, repo: s.repo }),
+    },
+  ),
+);
