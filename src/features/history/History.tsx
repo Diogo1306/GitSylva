@@ -5,7 +5,7 @@ import { ContextMenu, type MenuItem } from "../../components/ui/ContextMenu";
 import { toast } from "../../state/toastStore";
 import { graphRows } from "../../graph/layout";
 import { CommitGraphSvg } from "../../components/CommitGraphSvg";
-import { DiffLines } from "../../components/DiffLines";
+import { DiffView } from "../../components/DiffView";
 import { statusStyle } from "../../lib/status";
 import {
   relativeTime,
@@ -155,7 +155,7 @@ function DetailPanel({ repoPath, commit }: { repoPath: string; commit: Commit })
         {isLoading ? (
           <div style={{ padding: 12, color: "var(--muted)", fontSize: 12 }}>A carregar diff…</div>
         ) : data && data.diff.trim() ? (
-          <DiffLines patch={data.diff} />
+          <DiffView patch={data.diff} />
         ) : (
           <div style={{ padding: 12, color: "var(--muted)", fontSize: 12 }}>Sem alterações textuais.</div>
         )}
