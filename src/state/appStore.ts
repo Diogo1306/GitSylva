@@ -2,6 +2,7 @@ import { create } from "zustand";
 import type { RepoInfo } from "../lib/types";
 
 export type View = "working" | "history" | "stashes" | "settings" | "picker";
+export type Modal = "branch" | null;
 
 type AppState = {
   repo: RepoInfo | null;
@@ -12,11 +13,13 @@ type AppState = {
   // Commit selected from the palette; History reads and clears it.
   focusCommit: string | null;
   paletteOpen: boolean;
+  modal: Modal;
   setRepo: (repo: RepoInfo | null) => void;
   setView: (view: View) => void;
   setSelectedFile: (file: string | null) => void;
   setFocusCommit: (hash: string | null) => void;
   setPaletteOpen: (open: boolean) => void;
+  setModal: (modal: Modal) => void;
 };
 
 export const useAppStore = create<AppState>((set) => ({
@@ -26,6 +29,7 @@ export const useAppStore = create<AppState>((set) => ({
   selectedFile: null,
   focusCommit: null,
   paletteOpen: false,
+  modal: null,
   setRepo: (repo) => set({ repo, selectedFile: null }),
   setView: (view) =>
     set((s) => ({
@@ -36,4 +40,5 @@ export const useAppStore = create<AppState>((set) => ({
   setSelectedFile: (selectedFile) => set({ selectedFile }),
   setFocusCommit: (focusCommit) => set({ focusCommit }),
   setPaletteOpen: (paletteOpen) => set({ paletteOpen }),
+  setModal: (modal) => set({ modal }),
 }));

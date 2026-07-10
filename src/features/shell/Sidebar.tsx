@@ -1,5 +1,6 @@
 import { useAppStore } from "../../state/appStore";
-import { useStatus } from "../../state/queries";
+import { useStatus, useBranches, useBranchActions } from "../../state/queries";
+import { toast } from "../../state/toastStore";
 import type { View } from "../../state/appStore";
 
 const mono = "'JetBrains Mono', monospace";
@@ -15,9 +16,14 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 export function Sidebar() {
   const view = useAppStore((s) => s.view);
   const setView = useAppStore((s) => s.setView);
+  const setModal = useAppStore((s) => s.setModal);
   const repo = useAppStore((s) => s.repo)!;
   const { data } = useStatus(repo.path);
   const wcCount = (data ?? []).length;
+  const { data: branchData } = useBranches(repo.path);
+  const { checkout } = useBranchActions(repo.path);
+  // Local branches only in the sidebar list.
+  const localBranches = (branchData ?? []).filter((b) => !b.is_remote);
 
   const navRow = (
     key: View,
@@ -87,41 +93,59 @@ export function Sidebar() {
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-        <SectionLabel>BRANCHES</SectionLabel>
-        <div
-          className="gs-row"
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 9,
-            padding: "6px 10px",
-            borderRadius: 8,
-            fontSize: 13,
-            fontFamily: mono,
-            color: "var(--l0)",
-            fontWeight: 600,
-            cursor: "default",
-          }}
-        >
+        <div style={{ display: "flex", alignItems: "center", padding: "0 10px 6px" }}>
+          <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: "1.2px", color: "var(--muted)", flex: 1 }}>BRANCHES</div>
           <span
-            style={{
-              width: 6,
-              height: 6,
-              borderRadius: "50%",
-              background: "var(--l0bg)",
-              border: "1.5px solid var(--l0)",
-              boxSizing: "border-box",
-              flexShrink: 0,
-            }}
-          />
-          <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-            {repo.current_branch}
+            onClick={() => setModal("branch")}
+            className="gs-row"
+            title="Nova branch"
+            style={{ width: 18, height: 18, borderRadius: 5, display: "grid", placeItems: "center", color: "var(--muted)", fontSize: 14, cursor: "pointer" }}
+          >
+            +
           </span>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", opacity: 0.5 }}>
-          <span style={{ fontSize: 12, color: "var(--muted)" }}>Lista de branches</span>
-          <span className="gs-soon">Em breve</span>
-        </div>
+        {localBranches.map((b) => (
+          <div
+            key={b.name}
+            onClick={() => {
+              if (b.is_current) return;
+              checkout.mutate(b.name, {
+                onSuccess: () => toast(`Em ${b.name}`),
+                onError: (e: unknown) => toast((e as { message?: string })?.message ?? "não foi possível mudar de branch"),
+              });
+            }}
+            className="gs-row"
+            title={b.is_current ? "Branch atual" : `Mudar para ${b.name}`}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 9,
+              padding: "6px 10px",
+              borderRadius: 8,
+              fontSize: 13,
+              fontFamily: mono,
+              color: b.is_current ? "var(--l0)" : "var(--text2)",
+              fontWeight: b.is_current ? 600 : 400,
+              cursor: b.is_current ? "default" : "pointer",
+            }}
+          >
+            <span
+              style={{
+                width: 6,
+                height: 6,
+                borderRadius: "50%",
+                background: b.is_current ? "var(--l0bg)" : "transparent",
+                border: `1.5px solid ${b.is_current ? "var(--l0)" : "var(--muted)"}`,
+                boxSizing: "border-box",
+                flexShrink: 0,
+              }}
+            />
+            <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{b.name}</span>
+          </div>
+        ))}
+        {localBranches.length === 0 && (
+          <div style={{ padding: "6px 10px", fontSize: 12, color: "var(--muted)", fontFamily: mono }}>{repo.current_branch}</div>
+        )}
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>

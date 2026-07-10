@@ -5,6 +5,7 @@ import { Titlebar } from "./Titlebar";
 import { Sidebar } from "./Sidebar";
 import { ActionBar } from "./ActionBar";
 import { CommandPalette } from "./CommandPalette";
+import { Modals } from "./Modals";
 import { Toaster } from "../../components/Toaster";
 import { WorkingCopy } from "../working-copy/WorkingCopy";
 import { History } from "../history/History";
@@ -54,6 +55,7 @@ export function AppShell() {
       </div>
       <ActionBar />
       <CommandPalette />
+      <Modals />
       <Toaster />
     </div>
   );

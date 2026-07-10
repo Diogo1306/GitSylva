@@ -65,6 +65,7 @@ function Btn({
 export function ActionBar() {
   const repo = useAppStore((s) => s.repo)!;
   const setView = useAppStore((s) => s.setView);
+  const setModal = useAppStore((s) => s.setModal);
   const { data } = useStatus(repo.path);
 
   const files = data ?? [];
@@ -89,7 +90,7 @@ export function ActionBar() {
       <Btn label="↓ Pull" soon onClick={() => toast("Pull chega na fase de sincronização (git pull)")} />
       <Btn label="↑ Push" soon onClick={() => toast("Push chega na fase de sincronização (git push)")} />
       <Divider />
-      <Btn label="Branch" soon onClick={() => toast("Criar e mudar de branch chega numa próxima fase")} />
+      <Btn label="Branch" onClick={() => setModal("branch")} />
       <Btn label="Merge" soon onClick={() => toast("Merge chega numa próxima fase")} />
       <Btn label="Stash" onClick={() => setView("stashes")} />
       <Btn label="Tag" soon onClick={() => toast("Tags chegam numa próxima fase")} />

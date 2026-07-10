@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
-import type { RepoInfo, FileChange, Commit, CommitDetail } from "./types";
+import type { RepoInfo, FileChange, Commit, CommitDetail, BranchInfo } from "./types";
 
 export async function pickFolder(): Promise<string | null> {
   const picked = await openDialog({ directory: true, multiple: false });
@@ -45,4 +45,16 @@ export function getDiff(path: string, file: string, staged: boolean): Promise<st
 
 export function commitDetail(path: string, hash: string): Promise<CommitDetail> {
   return invoke<CommitDetail>("commit_detail", { path, hash });
+}
+
+export function listBranches(path: string): Promise<BranchInfo[]> {
+  return invoke<BranchInfo[]>("list_branches", { path });
+}
+
+export function checkoutBranch(path: string, name: string): Promise<void> {
+  return invoke("checkout_branch", { path, name });
+}
+
+export function createBranch(path: string, name: string, checkout: boolean): Promise<void> {
+  return invoke("create_branch", { path, name, checkout });
 }

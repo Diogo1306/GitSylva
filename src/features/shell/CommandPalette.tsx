@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useAppStore } from "../../state/appStore";
-import { useLog } from "../../state/queries";
+import { useLog, useBranches, useBranchActions } from "../../state/queries";
+import { toast } from "../../state/toastStore";
 import type { View } from "../../state/appStore";
 
 const mono = "'JetBrains Mono', monospace";
@@ -16,6 +17,8 @@ export function CommandPalette() {
   const repo = useAppStore((s) => s.repo);
   const [q, setQ] = useState("");
   const { data: commits } = useLog(repo?.path ?? "");
+  const { data: branches } = useBranches(repo?.path ?? "");
+  const { checkout } = useBranchActions(repo?.path ?? "");
 
   const groups = useMemo<Group[]>(() => {
     if (!open) return [];
@@ -26,6 +29,21 @@ export function CommandPalette() {
       setView(view);
       setOpen(false);
     };
+
+    const br: Item[] = (branches ?? [])
+      .filter((b) => !b.is_remote && !b.is_current)
+      .filter((b) => match(b.name))
+      .slice(0, 6)
+      .map((b) => ({
+        label: b.name,
+        sub: "checkout",
+        dot: "var(--leaf)",
+        dotR: "2px",
+        run: () => {
+          checkout.mutate(b.name, { onSuccess: () => toast(`Em ${b.name}`) });
+          setOpen(false);
+        },
+      }));
     const navItems: [string, View][] = [
       ["Histórico", "history"],
       ["Cópia de trabalho", "working"],
@@ -52,10 +70,11 @@ export function CommandPalette() {
       }));
 
     const gs: Group[] = [];
+    if (br.length) gs.push({ title: "BRANCHES", items: br });
     if (cm.length) gs.push({ title: "COMMITS", items: cm });
     if (nav.length) gs.push({ title: "IR PARA", items: nav });
     return gs;
-  }, [open, q, commits, setView, setOpen, setFocusCommit]);
+  }, [open, q, commits, branches, checkout, setView, setOpen, setFocusCommit]);
 
   if (!open) return null;
 
