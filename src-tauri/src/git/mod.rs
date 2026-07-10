@@ -7,6 +7,7 @@ pub mod diff;
 pub mod detail;
 pub mod branches;
 pub mod stashes;
+pub mod tags;
 
 use crate::error::GitError;
 use std::process::Command;

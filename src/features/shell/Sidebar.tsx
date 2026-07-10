@@ -1,5 +1,5 @@
 import { useAppStore } from "../../state/appStore";
-import { useStatus, useBranches, useBranchActions, useStashes } from "../../state/queries";
+import { useStatus, useBranches, useBranchActions, useStashes, useTags } from "../../state/queries";
 import { toast } from "../../state/toastStore";
 import type { View } from "../../state/appStore";
 
@@ -23,9 +23,11 @@ export function Sidebar() {
   const { data: branchData } = useBranches(repo.path);
   const { checkout } = useBranchActions(repo.path);
   const { data: stashData } = useStashes(repo.path);
+  const { data: tagData } = useTags(repo.path);
   // Local branches only in the sidebar list.
   const localBranches = (branchData ?? []).filter((b) => !b.is_remote);
   const stashCount = (stashData ?? []).length;
+  const tags = (tagData ?? []).slice(0, 8);
 
   const navRow = (
     key: View,
@@ -170,6 +172,21 @@ export function Sidebar() {
           <span className="gs-soon">Em breve</span>
         </div>
       </div>
+
+      {tags.length > 0 && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+          <div style={{ display: "flex", alignItems: "center", padding: "0 10px 6px" }}>
+            <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: "1.2px", color: "var(--muted)", flex: 1 }}>TAGS</div>
+            <span onClick={() => setModal("tag")} className="gs-row" title="Nova tag" style={{ width: 18, height: 18, borderRadius: 5, display: "grid", placeItems: "center", color: "var(--muted)", fontSize: 14, cursor: "pointer" }}>+</span>
+          </div>
+          {tags.map((t) => (
+            <div key={t.name} title={t.subject || t.name} className="gs-row" style={{ display: "flex", alignItems: "center", gap: 9, padding: "6px 10px", borderRadius: 8, fontSize: 13, fontFamily: mono, color: "var(--text2)" }}>
+              <span style={{ width: 6, height: 6, background: "var(--muted)", transform: "rotate(45deg)", flexShrink: 0 }} />
+              <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name}</span>
+            </div>
+          ))}
+        </div>
+      )}
 
       <div style={{ flex: 1 }} />
       <div
