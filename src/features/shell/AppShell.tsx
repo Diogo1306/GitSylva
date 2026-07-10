@@ -10,6 +10,7 @@ import { WorkingCopy } from "../working-copy/WorkingCopy";
 import { History } from "../history/History";
 import { Stashes } from "../stashes/Stashes";
 import { Settings } from "../settings/Settings";
+import { RepoPicker } from "../repo/RepoPicker";
 
 function Screen() {
   const view = useAppStore((s) => s.view);
@@ -20,6 +21,8 @@ function Screen() {
       return <Stashes />;
     case "settings":
       return <Settings />;
+    case "picker":
+      return <RepoPicker />;
     case "history":
     default:
       return <History />;

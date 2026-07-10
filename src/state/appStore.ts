@@ -30,7 +30,8 @@ export const useAppStore = create<AppState>((set) => ({
   setView: (view) =>
     set((s) => ({
       view,
-      prevView: view !== "settings" ? view : s.prevView,
+      // Settings and the picker are overlays; remember the screen behind them.
+      prevView: view !== "settings" && view !== "picker" ? view : s.prevView,
     })),
   setSelectedFile: (selectedFile) => set({ selectedFile }),
   setFocusCommit: (focusCommit) => set({ focusCommit }),

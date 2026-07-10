@@ -1,7 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useAppStore } from "../../state/appStore";
 import { useStatus, queryKeys } from "../../state/queries";
-import { pickFolder, openRepo } from "../../lib/api";
 import { winMinimize, winToggleMaximize, winClose } from "../../lib/window";
 import { toast } from "../../state/toastStore";
 import { TreeLogo } from "../../components/TreeLogo";
@@ -74,7 +73,6 @@ function Tool({
 
 export function Titlebar() {
   const repo = useAppStore((s) => s.repo)!;
-  const setRepo = useAppStore((s) => s.setRepo);
   const setView = useAppStore((s) => s.setView);
   const setPaletteOpen = useAppStore((s) => s.setPaletteOpen);
   const qc = useQueryClient();
@@ -83,17 +81,6 @@ export function Titlebar() {
   const files = data ?? [];
   const unstaged = files.filter((f) => f.worktree_status !== ".").length;
   const repoName = repo.path.replace(/[/\\]$/, "").split(/[/\\]/).pop() ?? repo.path;
-
-  async function addRepo() {
-    const path = await pickFolder();
-    if (!path) return;
-    try {
-      const info = await openRepo(path);
-      setRepo(info);
-    } catch {
-      /* surfaced elsewhere */
-    }
-  }
 
   function refresh() {
     qc.invalidateQueries({ queryKey: queryKeys.status(repo.path) });
@@ -167,7 +154,7 @@ export function Titlebar() {
           </span>
         </div>
         <div
-          onClick={addRepo}
+          onClick={() => setView("picker")}
           className="gs-lift"
           title="Abrir repositório"
           style={{
