@@ -38,7 +38,11 @@ pub fn run() {
       git::stashes::drop_stash,
       git::tags::list_tags,
       git::tags::create_tag,
-      git::tags::delete_tag
+      git::tags::delete_tag,
+      git::sync::fetch,
+      git::sync::sync_status,
+      git::sync::pull,
+      git::sync::push
     ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");
