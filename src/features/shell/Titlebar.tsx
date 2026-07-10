@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAppStore } from "../../state/appStore";
-import { useStatus, queryKeys } from "../../state/queries";
+import { useStatus, queryKeys, useSyncActions } from "../../state/queries";
 import { discardAll } from "../../lib/api";
 import { winMinimize, winToggleMaximize, winClose } from "../../lib/window";
 import { toast } from "../../state/toastStore";
@@ -80,6 +80,7 @@ export function Titlebar() {
   const setPaletteOpen = useAppStore((s) => s.setPaletteOpen);
   const qc = useQueryClient();
   const { data } = useStatus(repo.path);
+  const sync = useSyncActions(repo.path);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
 
   const files = data ?? [];
@@ -87,8 +88,15 @@ export function Titlebar() {
   const repoName = repo.path.replace(/[/\\]$/, "").split(/[/\\]/).pop() ?? repo.path;
 
   function refresh() {
-    qc.invalidateQueries({ queryKey: queryKeys.status(repo.path) });
-    qc.invalidateQueries({ queryKey: queryKeys.log(repo.path) });
+    // The ⟳ fetches origin; on failure (no remote/credentials) still reload local.
+    sync.fetch.mutate(undefined, {
+      onSuccess: () => toast("Fetch concluído"),
+      onError: (e: unknown) => {
+        qc.invalidateQueries({ queryKey: queryKeys.status(repo.path) });
+        qc.invalidateQueries({ queryKey: queryKeys.log(repo.path) });
+        toast((e as { message?: string })?.message ?? "não foi possível fazer fetch");
+      },
+    });
   }
 
   function onDiscardClick() {
@@ -197,8 +205,9 @@ export function Titlebar() {
       </div>
 
       <div style={{ display: "flex", gap: 6, alignItems: "center", flexShrink: 0 }}>
-        <Tool onClick={refresh} title="Recarregar estado e histórico">
-          <span style={{ fontSize: 14, lineHeight: 1 }}>⟳</span>Recarregar
+        <Tool onClick={refresh} title="Fetch de origin">
+          <span style={{ fontSize: 14, lineHeight: 1, display: "inline-block", animation: sync.fetch.isPending ? "spin 0.8s linear infinite" : "none" }}>⟳</span>
+          {sync.fetch.isPending ? "A obter…" : "Fetch"}
         </Tool>
         <Tool onClick={onDiscardClick} title="Descartar alterações não preparadas">
           ↩ Descartar

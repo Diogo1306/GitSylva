@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
-import type { RepoInfo, FileChange, Commit, CommitDetail, BranchInfo, StashInfo, TagInfo } from "./types";
+import type { RepoInfo, FileChange, Commit, CommitDetail, BranchInfo, StashInfo, TagInfo, SyncStatus } from "./types";
 
 export async function pickFolder(): Promise<string | null> {
   const picked = await openDialog({ directory: true, multiple: false });
@@ -97,4 +97,20 @@ export function createTag(path: string, name: string, message: string): Promise<
 
 export function deleteTag(path: string, name: string): Promise<void> {
   return invoke("delete_tag", { path, name });
+}
+
+export function fetchRemote(path: string): Promise<void> {
+  return invoke("fetch", { path });
+}
+
+export function syncStatus(path: string): Promise<SyncStatus> {
+  return invoke<SyncStatus>("sync_status", { path });
+}
+
+export function pull(path: string): Promise<void> {
+  return invoke("pull", { path });
+}
+
+export function push(path: string): Promise<void> {
+  return invoke("push", { path });
 }

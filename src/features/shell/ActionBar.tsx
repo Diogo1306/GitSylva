@@ -1,5 +1,5 @@
 import { useAppStore } from "../../state/appStore";
-import { useStatus } from "../../state/queries";
+import { useStatus, useSyncStatus, useSyncActions } from "../../state/queries";
 import { toast } from "../../state/toastStore";
 
 const mono = "'JetBrains Mono', monospace";
@@ -67,10 +67,27 @@ export function ActionBar() {
   const setView = useAppStore((s) => s.setView);
   const setModal = useAppStore((s) => s.setModal);
   const { data } = useStatus(repo.path);
+  const { data: syncData } = useSyncStatus(repo.path);
+  const sync = useSyncActions(repo.path);
 
   const files = data ?? [];
   const staged = files.filter((f) => f.index_status !== "." && f.index_status !== "?").length;
   const repoName = repo.path.replace(/[/\\]$/, "").split(/[/\\]/).pop() ?? repo.path;
+  const ahead = syncData?.ahead ?? 0;
+  const behind = syncData?.behind ?? 0;
+
+  function doPull() {
+    sync.pull.mutate(undefined, {
+      onSuccess: () => toast("Pull concluído"),
+      onError: (e: unknown) => toast((e as { message?: string })?.message ?? "não foi possível fazer pull"),
+    });
+  }
+  function doPush() {
+    sync.push.mutate(undefined, {
+      onSuccess: () => toast("Push concluído"),
+      onError: (e: unknown) => toast((e as { message?: string })?.message ?? "não foi possível fazer push"),
+    });
+  }
 
   return (
     <div
@@ -87,8 +104,8 @@ export function ActionBar() {
     >
       <Btn label="Commit" onClick={() => setView("working")} badge={staged} badgeAccent />
       <Divider />
-      <Btn label="↓ Pull" soon onClick={() => toast("Pull chega na fase de sincronização (git pull)")} />
-      <Btn label="↑ Push" soon onClick={() => toast("Push chega na fase de sincronização (git push)")} />
+      <Btn label={sync.pull.isPending ? "↓ …" : "↓ Pull"} onClick={doPull} badge={behind} />
+      <Btn label={sync.push.isPending ? "↑ …" : "↑ Push"} onClick={doPush} badge={ahead} badgeAccent />
       <Divider />
       <Btn label="Branch" onClick={() => setModal("branch")} />
       <Btn label="Merge" onClick={() => setModal("merge")} />
@@ -101,8 +118,8 @@ export function ActionBar() {
           <span style={{ color: "var(--muted)" }}> / </span>
           <span style={{ color: "var(--l0)", fontWeight: 600 }}>{repo.current_branch}</span>
         </span>
-        <span title="commits por enviar">↑0</span>
-        <span title="commits por integrar">↓0</span>
+        <span title="commits por enviar">↑{ahead}</span>
+        <span title="commits por integrar">↓{behind}</span>
       </div>
     </div>
   );

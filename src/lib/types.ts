@@ -54,3 +54,9 @@ export type TagInfo = {
   target: string;
   subject: string;
 };
+
+export type SyncStatus = {
+  ahead: number;
+  behind: number;
+  upstream: string | null;
+};

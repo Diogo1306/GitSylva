@@ -22,6 +22,10 @@ import {
   listTags,
   createTag,
   deleteTag,
+  fetchRemote,
+  syncStatus,
+  pull,
+  push,
 } from "../lib/api";
 
 export const queryKeys = {
@@ -33,6 +37,7 @@ export const queryKeys = {
   branches: (path: string) => ["branches", path] as const,
   stashes: (path: string) => ["stashes", path] as const,
   tags: (path: string) => ["tags", path] as const,
+  sync: (path: string) => ["sync", path] as const,
 };
 
 export function useStatus(path: string) {
@@ -135,6 +140,28 @@ export function useTags(path: string) {
     queryKey: queryKeys.tags(path),
     queryFn: () => listTags(path),
   });
+}
+
+export function useSyncStatus(path: string) {
+  return useQuery({
+    queryKey: queryKeys.sync(path),
+    queryFn: () => syncStatus(path),
+  });
+}
+
+export function useSyncActions(path: string) {
+  const qc = useQueryClient();
+  // After a network op, everything local may have moved.
+  const refresh = () => {
+    for (const key of ["status", "log", "branches", "sync", "tags"]) {
+      qc.invalidateQueries({ queryKey: [key, path] });
+    }
+  };
+  return {
+    fetch: useMutation({ mutationFn: () => fetchRemote(path), onSuccess: refresh }),
+    pull: useMutation({ mutationFn: () => pull(path), onSuccess: refresh }),
+    push: useMutation({ mutationFn: () => push(path), onSuccess: refresh }),
+  };
 }
 
 export function useTagActions(path: string) {
