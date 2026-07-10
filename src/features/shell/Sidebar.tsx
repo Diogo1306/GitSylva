@@ -26,8 +26,11 @@ export function Sidebar() {
   const { data: tagData } = useTags(repo.path);
   // Local branches only in the sidebar list.
   const localBranches = (branchData ?? []).filter((b) => !b.is_remote);
+  const remoteBranches = (branchData ?? []).filter((b) => b.is_remote);
   const stashCount = (stashData ?? []).length;
   const tags = (tagData ?? []).slice(0, 8);
+  // Remote names derived from "<remote>/<branch>" refs.
+  const remotes = Array.from(new Set(remoteBranches.map((b) => b.name.split("/")[0])));
 
   const navRow = (
     key: View,
@@ -172,23 +175,41 @@ export function Sidebar() {
 
       <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
         <SectionLabel>REMOTOS</SectionLabel>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 9,
-            padding: "6px 10px",
-            borderRadius: 8,
-            fontSize: 13,
-            fontFamily: mono,
-            color: "var(--text2)",
-            opacity: 0.7,
-          }}
-        >
-          <span style={{ color: "var(--muted)", fontSize: 11 }}>▸</span>
-          <span style={{ flex: 1 }}>origin</span>
-          <span className="gs-soon">Em breve</span>
-        </div>
+        {remotes.length === 0 ? (
+          <div style={{ padding: "6px 10px", fontSize: 12, color: "var(--muted)" }}>Sem remotos configurados</div>
+        ) : (
+          remotes.map((remote) => (
+            <div key={remote} style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "6px 10px", fontSize: 13, fontFamily: mono, color: "var(--text2)" }}>
+                <span style={{ color: "var(--muted)", fontSize: 11 }}>▾</span>
+                <span style={{ flex: 1 }}>{remote}</span>
+              </div>
+              {remoteBranches
+                .filter((b) => b.name.startsWith(remote + "/"))
+                .slice(0, 8)
+                .map((b) => {
+                  const shortName = b.name.slice(remote.length + 1);
+                  return (
+                    <div
+                      key={b.name}
+                      onClick={() =>
+                        checkout.mutate(shortName, {
+                          onSuccess: () => toast(`Em ${shortName}`),
+                          onError: (e: unknown) => toast((e as { message?: string })?.message ?? "não foi possível fazer checkout"),
+                        })
+                      }
+                      className="gs-row"
+                      title={`Checkout local de ${b.name}`}
+                      style={{ display: "flex", alignItems: "center", gap: 9, padding: "5px 10px 5px 20px", borderRadius: 8, fontSize: 12.5, fontFamily: mono, color: "var(--muted)", cursor: "pointer" }}
+                    >
+                      <span style={{ width: 5, height: 5, borderRadius: "50%", background: "var(--muted)", flexShrink: 0 }} />
+                      <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{shortName}</span>
+                    </div>
+                  );
+                })}
+            </div>
+          ))
+        )}
       </div>
 
       {tags.length > 0 && (
