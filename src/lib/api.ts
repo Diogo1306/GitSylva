@@ -127,8 +127,8 @@ export function syncStatus(path: string): Promise<SyncStatus> {
   return invoke<SyncStatus>("sync_status", { path });
 }
 
-export function pull(path: string): Promise<void> {
-  return invoke("pull", { path });
+export function pull(path: string, mode: "ff" | "merge" | "rebase"): Promise<void> {
+  return invoke("pull", { path, mode });
 }
 
 export function push(path: string): Promise<void> {

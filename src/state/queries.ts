@@ -1,5 +1,6 @@
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { useAppStore } from "./appStore";
+import { useThemeStore } from "./themeStore";
 import {
   getStatus,
   stageFile,
@@ -211,7 +212,8 @@ export function useSyncActions(path: string) {
   };
   return {
     fetch: useMutation({ mutationFn: () => fetchRemote(path), onSuccess: refresh }),
-    pull: useMutation({ mutationFn: () => pull(path), onSuccess: refresh }),
+    // Pull uses the mode chosen in Settings (read at call time).
+    pull: useMutation({ mutationFn: () => pull(path, useThemeStore.getState().pullMode), onSuccess: refresh }),
     push: useMutation({ mutationFn: () => push(path), onSuccess: refresh }),
   };
 }

@@ -39,11 +39,16 @@ pub fn incoming(path: String) -> Result<Vec<Commit>, GitError> {
     Ok(log_range(&path, "HEAD..@{u}"))
 }
 
-/// Pull with fast-forward only, so a diverged branch fails cleanly instead of
-/// creating an unexpected merge commit.
+/// Pull using the chosen mode: "ff" (fast-forward only, safe default),
+/// "merge" (default git merge), or "rebase".
 #[tauri::command]
-pub fn pull(path: String) -> Result<(), GitError> {
-    run_git(&path, &["pull", "--ff-only"]).map(|_| ())
+pub fn pull(path: String, mode: String) -> Result<(), GitError> {
+    let flag = match mode.as_str() {
+        "merge" => "--no-rebase",
+        "rebase" => "--rebase",
+        _ => "--ff-only",
+    };
+    run_git(&path, &["pull", flag]).map(|_| ())
 }
 
 /// Push the current branch. Sets the upstream if the branch has none yet.
@@ -140,7 +145,7 @@ mod tests {
         assert_eq!(outgoing(down_s.clone()).unwrap().len(), 0);
 
         // Fast-forward pull brings the downloader up to date.
-        pull(down_s.clone()).unwrap();
+        pull(down_s.clone(), "ff".into()).unwrap();
         let synced = sync_status(down_s.clone()).unwrap();
         assert_eq!(synced.behind, 0);
         let content = fs::read_to_string(down.join("a.txt")).unwrap();

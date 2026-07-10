@@ -3,6 +3,7 @@ import { useAppStore } from "../../state/appStore";
 import { useOnboardStore } from "../../state/onboardStore";
 import { Appearance } from "./sections/Appearance";
 import { GitIdentity } from "./sections/GitIdentity";
+import { PushPull } from "./sections/PushPull";
 import { StubSection } from "./sections/_shared";
 
 // Settings nav. Each entry is a section id rendered in the scroll area below;
@@ -11,6 +12,7 @@ const NAV: [string, string][] = [
   ["Aparência", "set-aparencia"],
   ["Contas", "set-contas"],
   ["Git", "set-git"],
+  ["Push & Pull", "set-pushpull"],
   ["Atalhos", "set-atalhos"],
   ["SSH", "set-ssh"],
   ["Avançado", "set-avancado"],
@@ -85,6 +87,8 @@ export function Settings() {
           <StubSection id="set-git-extra" title="GIT · EDITOR &amp; OPÇÕES">
             Editor externo e outras opções de git por repositório chegam numa próxima fase.
           </StubSection>
+
+          <PushPull />
 
           <StubSection id="set-atalhos" title="ATALHOS DE TECLADO">
             Atalhos regraváveis (clicar numa linha para gravar) chegam com o sistema de comandos.

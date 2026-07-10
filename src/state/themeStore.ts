@@ -10,6 +10,7 @@ import type {
 export type Density = "normal" | "compacta";
 export type RepoLayout = "tabs" | "rail";
 export type Language = "pt" | "en";
+export type PullMode = "ff" | "merge" | "rebase";
 
 type ThemeState = {
   theme: ThemeKey;
@@ -21,6 +22,7 @@ type ThemeState = {
   density: Density;
   repoLayout: RepoLayout;
   language: Language;
+  pullMode: PullMode;
   savePrefs: (patch: Partial<ThemePrefsSlice>) => void;
 };
 
@@ -35,6 +37,7 @@ type ThemePrefsSlice = Pick<
   | "density"
   | "repoLayout"
   | "language"
+  | "pullMode"
 >;
 
 export const useThemeStore = create<ThemeState>()(
@@ -49,6 +52,7 @@ export const useThemeStore = create<ThemeState>()(
       density: "normal",
       repoLayout: "tabs",
       language: "pt",
+      pullMode: "ff",
       // Resetting the accent when the theme changes keeps it in range, since
       // each theme has its own accent list.
       savePrefs: (patch) =>
