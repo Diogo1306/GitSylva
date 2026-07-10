@@ -16,6 +16,9 @@ function classify(line: string): Kind {
   return "ctx";
 }
 
+// Off-screen diff lines skip layout/paint, so even huge diffs stay smooth.
+const rowContain = { contentVisibility: "auto" as const, containIntrinsicSize: "auto 20px" };
+
 export function DiffLines({ patch, fontSize = 11.5 }: { patch: string; fontSize?: number }) {
   const lines = patch.replace(/\n$/, "").split("\n");
   return (
@@ -24,7 +27,7 @@ export function DiffLines({ patch, fontSize = 11.5 }: { patch: string; fontSize?
         const kind = classify(line);
         if (kind === "hunk" || kind === "meta") {
           return (
-            <div key={i} style={{ fontFamily: mono, fontSize, lineHeight: 1.75, padding: "0 14px", whiteSpace: "pre", background: kind === "hunk" ? "var(--dhB)" : "transparent", color: kind === "hunk" ? "var(--dhT)" : "var(--dcT)" }}>
+            <div key={i} style={{ fontFamily: mono, fontSize, lineHeight: 1.75, padding: "0 14px", whiteSpace: "pre", background: kind === "hunk" ? "var(--dhB)" : "transparent", color: kind === "hunk" ? "var(--dhT)" : "var(--dcT)", ...rowContain }}>
               {line || " "}
             </div>
           );
@@ -34,7 +37,7 @@ export function DiffLines({ patch, fontSize = 11.5 }: { patch: string; fontSize?
         const prefix = kind === "ctx" ? " " : line[0];
         const content = kind === "ctx" ? line : line.slice(1);
         return (
-          <div key={i} style={{ fontFamily: mono, fontSize, lineHeight: 1.75, padding: "0 14px", whiteSpace: "pre", background: bg, color: "var(--text2)" }}>
+          <div key={i} style={{ fontFamily: mono, fontSize, lineHeight: 1.75, padding: "0 14px", whiteSpace: "pre", background: bg, color: "var(--text2)", ...rowContain }}>
             <span style={{ color: marker }}>{prefix}</span>
             {highlight(content) || " "}
           </div>

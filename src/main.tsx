@@ -8,7 +8,14 @@ import App from './App.tsx'
 import { useAppStore } from './state/appStore'
 import { useThemeStore } from './state/themeStore'
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  // Git data is cheap to recompute but each query spawns a git process; a short
+  // staleTime dedupes bursts (e.g. rapid window-focus refetches) without making
+  // the UI feel stale. Mutations explicitly invalidate what they change.
+  defaultOptions: {
+    queries: { staleTime: 5000, retry: false },
+  },
+});
 
 // Dev-only: expose stores and the query client for manual verification in a
 // plain browser (no Tauri backend).
