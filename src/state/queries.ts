@@ -15,6 +15,9 @@ import {
   createBranch,
   mergeBranch,
   deleteBranch,
+  renameBranch,
+  resetTo,
+  cherryPick,
   listStashes,
   createStash,
   applyStash,
@@ -112,6 +115,27 @@ export function useBranchActions(path: string) {
       mutationFn: (v: { name: string; force: boolean }) => deleteBranch(path, v.name, v.force),
       onSuccess: refresh,
     }),
+    rename: useMutation({
+      mutationFn: (v: { old: string; name: string }) => renameBranch(path, v.old, v.name),
+      onSuccess: refresh,
+    }),
+  };
+}
+
+// History rewrite operations (reset/cherry-pick) refresh status, log and branches.
+export function useRewriteActions(path: string) {
+  const qc = useQueryClient();
+  const refresh = () => {
+    qc.invalidateQueries({ queryKey: queryKeys.status(path) });
+    qc.invalidateQueries({ queryKey: queryKeys.log(path) });
+    qc.invalidateQueries({ queryKey: queryKeys.branches(path) });
+  };
+  return {
+    reset: useMutation({
+      mutationFn: (v: { target: string; mode: "soft" | "mixed" | "hard" }) => resetTo(path, v.target, v.mode),
+      onSuccess: refresh,
+    }),
+    cherryPick: useMutation({ mutationFn: (hash: string) => cherryPick(path, hash), onSuccess: refresh }),
   };
 }
 
@@ -214,7 +238,7 @@ export function useStageActions(path: string) {
 export function useCommit(path: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (message: string) => commit(path, message),
+    mutationFn: (v: { message: string; amend: boolean }) => commit(path, v.message, v.amend),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.status(path) });
       qc.invalidateQueries({ queryKey: queryKeys.log(path) });

@@ -89,6 +89,15 @@ pub fn delete_branch(path: String, name: String, force: bool) -> Result<(), GitE
     run_git(&path, &["branch", flag, &name]).map(|_| ())
 }
 
+/// Rename a branch.
+#[tauri::command]
+pub fn rename_branch(path: String, old: String, new: String) -> Result<(), GitError> {
+    if new.trim().is_empty() {
+        return Err(GitError { code: "empty_name".into(), message: "o novo nome está vazio".into() });
+    }
+    run_git(&path, &["branch", "-m", &old, new.trim()]).map(|_| ())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -129,6 +138,16 @@ mod tests {
         create_branch(p.clone(), "dev".into(), true).unwrap();
         let branches = list_branches(p).unwrap();
         assert!(branches.iter().find(|b| b.name == "dev").unwrap().is_current);
+    }
+
+    #[test]
+    fn rename_moves_branch() {
+        let p = repo("rename");
+        create_branch(p.clone(), "old-name".into(), false).unwrap();
+        rename_branch(p.clone(), "old-name".into(), "new-name".into()).unwrap();
+        let names: Vec<String> = list_branches(p).unwrap().into_iter().map(|b| b.name).collect();
+        assert!(names.contains(&"new-name".to_string()));
+        assert!(!names.contains(&"old-name".to_string()));
     }
 
     #[test]

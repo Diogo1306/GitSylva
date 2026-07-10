@@ -102,6 +102,7 @@ export function WorkingCopy() {
   const commit = useCommit(repo.path);
   const [sel, setSel] = useState<Sel>(null);
   const [msg, setMsg] = useState("");
+  const [amend, setAmend] = useState(false);
   const [commitErr, setCommitErr] = useState<string | null>(null);
   const [confirmDiscardAll, setConfirmDiscardAll] = useState(false);
   const [stacked, setStacked] = useState(false);
@@ -122,10 +123,13 @@ export function WorkingCopy() {
 
   function doCommit() {
     setCommitErr(null);
-    commit.mutate(msg, {
-      onSuccess: () => setMsg(""),
-      onError: (e: unknown) => setCommitErr((e as { message?: string })?.message ?? "não foi possível fazer commit"),
-    });
+    commit.mutate(
+      { message: msg, amend },
+      {
+        onSuccess: () => { setMsg(""); setAmend(false); },
+        onError: (e: unknown) => setCommitErr((e as { message?: string })?.message ?? "não foi possível fazer commit"),
+      },
+    );
   }
 
   function discardAll() {
@@ -142,7 +146,7 @@ export function WorkingCopy() {
     : "";
   const selSt = statusStyle(selStatus);
 
-  const commitReady = staged.length > 0 && msg.trim() !== "";
+  const commitReady = msg.trim() !== "" && (staged.length > 0 || amend);
 
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: stacked ? "column" : "row", minWidth: 0, minHeight: 0, animation: "fadeIn 0.25s ease both" }}>
@@ -224,6 +228,12 @@ export function WorkingCopy() {
             }}
           />
           {commitErr && <div style={{ color: "var(--ddT)", fontSize: 12.5 }}>{commitErr}</div>}
+          <div onClick={() => setAmend((v) => !v)} style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 12.5, color: "var(--text2)" }}>
+            <span style={{ width: 15, height: 15, borderRadius: 4, border: "1.5px solid var(--btnB)", boxSizing: "border-box", display: "grid", placeItems: "center", background: amend ? "var(--accent)" : "transparent", color: "var(--accentT)", fontSize: 10, fontWeight: 800 }}>
+              {amend ? "✓" : ""}
+            </span>
+            <span>Emendar último commit (amend)</span>
+          </div>
           <div
             onClick={() => commitReady && !commit.isPending && doCommit()}
             className="gs-press"
@@ -243,7 +253,7 @@ export function WorkingCopy() {
               opacity: commit.isPending ? 0.7 : 1,
             }}
           >
-            {commit.isPending ? "A fazer commit…" : `Commit em ${branch}`}
+            {commit.isPending ? "A fazer commit…" : amend ? "Emendar commit" : `Commit em ${branch}`}
             <span style={{ fontFamily: mono, fontWeight: 500, opacity: 0.75 }}>· {staged.length} arq.</span>
           </div>
         </div>
