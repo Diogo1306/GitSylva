@@ -25,7 +25,10 @@ pub fn run() {
       git::commit::commit,
       git::log::get_log,
       git::diff::get_diff,
-      git::detail::commit_detail
+      git::detail::commit_detail,
+      git::branches::list_branches,
+      git::branches::checkout_branch,
+      git::branches::create_branch
     ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");

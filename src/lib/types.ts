@@ -35,3 +35,10 @@ export type CommitDetail = {
   files: CommitFile[];
   diff: string;
 };
+
+export type BranchInfo = {
+  name: string;
+  is_current: boolean;
+  is_remote: boolean;
+  upstream: string | null;
+};
