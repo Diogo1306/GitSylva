@@ -1,6 +1,8 @@
+import { highlight } from "../lib/highlight";
+
 // Side-by-side diff. Parses a unified patch into aligned old/new columns:
 // removals go left, additions right, context on both; hunk/file headers span
-// the full width.
+// the full width. Content is syntax-highlighted; the tint carries add/remove.
 
 const mono = "'JetBrains Mono', monospace";
 
@@ -46,8 +48,7 @@ function parse(patch: string): Row[] {
 
 function cellStyle(cell: Cell): React.CSSProperties {
   const bg = cell?.kind === "del" ? "var(--ddB)" : cell?.kind === "add" ? "var(--daB)" : "transparent";
-  const color = cell?.kind === "del" ? "var(--ddT)" : cell?.kind === "add" ? "var(--daT)" : "var(--text2)";
-  return { fontFamily: mono, fontSize: 11.5, lineHeight: 1.75, padding: "0 10px", whiteSpace: "pre", background: bg, color, overflow: "hidden" };
+  return { fontFamily: mono, fontSize: 11.5, lineHeight: 1.75, padding: "0 10px", whiteSpace: "pre", background: bg, color: "var(--text2)", overflow: "hidden" };
 }
 
 export function DiffSplit({ patch }: { patch: string }) {
@@ -61,8 +62,8 @@ export function DiffSplit({ patch }: { patch: string }) {
           </div>
         ) : (
           <div key={i} style={{ display: "contents" }}>
-            <div style={cellStyle(r.left ?? null)}>{r.left ? r.left.text || " " : " "}</div>
-            <div style={cellStyle(r.right ?? null)}>{r.right ? r.right.text || " " : " "}</div>
+            <div style={cellStyle(r.left ?? null)}>{r.left ? highlight(r.left.text) || " " : " "}</div>
+            <div style={cellStyle(r.right ?? null)}>{r.right ? highlight(r.right.text) || " " : " "}</div>
           </div>
         ),
       )}
