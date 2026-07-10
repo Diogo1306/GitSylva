@@ -1,30 +1,21 @@
-import { useState } from "react";
-import { pickFolder, openRepo } from "../../lib/api";
-import { useAppStore } from "../../state/appStore";
+import { pickFolder } from "../../lib/api";
+import { useRecentsStore } from "../../state/recentsStore";
+import { useOpenRepo } from "./useOpenRepo";
 import { TreeLogo } from "../../components/TreeLogo";
+import { initials } from "../../lib/format";
 import "../shell/shell.css";
 
 // Welcome / front door. Shown when no repository is open. On-brand: the growing
-// tree-S mark and wordmark over the theme's desk gradient, with a single clear
-// action. Account sign-in and recents live behind a later onboarding phase.
+// tree-S mark and wordmark over the theme's desk gradient, a clear open action,
+// and a quick list of recent repositories.
 export function OpenRepo() {
-  const setRepo = useAppStore((s) => s.setRepo);
-  const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
+  const { open, busy, error } = useOpenRepo();
+  const recents = useRecentsStore((s) => s.recents);
 
   async function handleOpen() {
-    setError(null);
     const path = await pickFolder();
     if (!path) return;
-    setBusy(true);
-    try {
-      const info = await openRepo(path);
-      setRepo(info);
-    } catch (e: unknown) {
-      setError((e as { message?: string })?.message ?? "não foi possível abrir o repositório");
-    } finally {
-      setBusy(false);
-    }
+    await open(path);
   }
 
   return (
@@ -72,6 +63,43 @@ export function OpenRepo() {
           {busy ? "A abrir…" : "Abrir repositório"}
         </div>
         {error && <div style={{ color: "var(--ddT)", fontSize: 13, maxWidth: 380 }}>{error}</div>}
+
+        {recents.length > 0 && (
+          <div style={{ marginTop: 14, width: 380, textAlign: "left" }}>
+            <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: "1.2px", color: "var(--muted)", padding: "0 4px 8px" }}>RECENTES</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              {recents.slice(0, 5).map((r) => (
+                <div
+                  key={r.path}
+                  onClick={() => !busy && open(r.path)}
+                  className="gs-row"
+                  title={r.path}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 11,
+                    padding: "9px 12px",
+                    borderRadius: 11,
+                    border: "1px solid var(--border)",
+                    background: "var(--panel)",
+                    cursor: "pointer",
+                  }}
+                >
+                  <div style={{ width: 30, height: 30, borderRadius: 8, background: "var(--l0bg)", color: "var(--l0)", display: "grid", placeItems: "center", fontWeight: 700, fontSize: 11.5, flexShrink: 0 }}>
+                    {initials(r.name)}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13.5, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.name}</div>
+                    <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: "var(--muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {r.branch} · {r.path}
+                    </div>
+                  </div>
+                  <span style={{ color: "var(--muted)", fontSize: 14 }}>→</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
