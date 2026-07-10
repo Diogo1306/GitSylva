@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { useAppStore } from "../../state/appStore";
 import { useRecentsStore } from "../../state/recentsStore";
-import { pickFolder } from "../../lib/api";
-import { toast } from "../../state/toastStore";
+import { pickFolder, initRepo, cloneRepo } from "../../lib/api";
 import { initials } from "../../lib/format";
 import { useOpenRepo } from "./useOpenRepo";
 
@@ -14,13 +13,19 @@ export function RepoPicker() {
   const prevView = useAppStore((s) => s.prevView);
   const recents = useRecentsStore((s) => s.recents);
   const removeRecent = useRecentsStore((s) => s.remove);
-  const { open, busy, error } = useOpenRepo();
+  const { open, run, busy, error } = useOpenRepo();
 
   const [tab, setTab] = useState<Tab>("local");
   const [q, setQ] = useState("");
   const [addPath, setAddPath] = useState("");
+  const [createParent, setCreateParent] = useState("");
+  const [createName, setCreateName] = useState("");
+  const [cloneUrl, setCloneUrl] = useState("");
+  const [cloneParent, setCloneParent] = useState("");
 
   const close = () => setView(prevView === "picker" ? "history" : prevView);
+  // Default the clone folder name from the URL (…/name.git -> name).
+  const cloneName = (cloneUrl.trim().split("/").pop() ?? "").replace(/\.git$/, "");
 
   async function browseAndOpen() {
     const path = await pickFolder();
@@ -163,21 +168,75 @@ export function RepoPicker() {
             </div>
           )}
 
-          {(tab === "remote" || tab === "clone" || tab === "create") && (
+          {tab === "create" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 14, animation: "fadeUp 0.3s ease both" }}>
+              <div style={bigTitle}>Criar repositório novo</div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1.4fr", gap: 8 }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  <div style={{ fontSize: 12.5, fontWeight: 600, color: "var(--text2)" }}>Nome</div>
+                  <input value={createName} onChange={(e) => setCreateName(e.target.value)} placeholder="o-meu-projeto" style={inputStyle} />
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  <div style={{ fontSize: 12.5, fontWeight: 600, color: "var(--text2)" }}>Pasta raiz</div>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <input value={createParent} onChange={(e) => setCreateParent(e.target.value)} placeholder="C:/dev" style={{ ...inputStyle, flex: 1 }} />
+                    <div onClick={() => browseInto(setCreateParent)} style={browseBtn} className="gs-lift">Escolher…</div>
+                  </div>
+                </div>
+              </div>
+              <div style={{ fontSize: 12, color: "var(--muted)" }}>
+                Corre <span style={{ fontFamily: mono }}>git init</span> em {createParent || "…"}/{createName || "nome"} com branch main.
+              </div>
+              <div
+                onClick={async () => {
+                  if (!createName.trim() || !createParent.trim() || busy) return;
+                  if (await run(() => initRepo(createParent.trim(), createName.trim()))) close();
+                }}
+                style={{ ...primaryBtn, opacity: createName.trim() && createParent.trim() ? 1 : 0.5 }}
+                className="gs-press"
+              >
+                {busy ? "A criar…" : "Criar repositório"}
+              </div>
+            </div>
+          )}
+
+          {tab === "clone" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 14, animation: "fadeUp 0.3s ease both" }}>
+              <div style={bigTitle}>Clonar repositório</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                <div style={{ fontSize: 12.5, fontWeight: 600, color: "var(--text2)" }}>URL de origem</div>
+                <input value={cloneUrl} onChange={(e) => setCloneUrl(e.target.value)} placeholder="https://github.com/user/repo.git" style={inputStyle} />
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                <div style={{ fontSize: 12.5, fontWeight: 600, color: "var(--text2)" }}>Pasta de destino</div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <input value={cloneParent} onChange={(e) => setCloneParent(e.target.value)} placeholder="C:/dev" style={{ ...inputStyle, flex: 1 }} />
+                  <div onClick={() => browseInto(setCloneParent)} style={browseBtn} className="gs-lift">Escolher…</div>
+                </div>
+              </div>
+              <div style={{ fontSize: 12, color: "var(--muted)" }}>Clona para {cloneParent || "…"}/{cloneName || "repo"}.</div>
+              <div
+                onClick={async () => {
+                  if (!cloneUrl.trim() || !cloneParent.trim() || !cloneName || busy) return;
+                  if (await run(() => cloneRepo(cloneParent.trim(), cloneUrl.trim(), cloneName))) close();
+                }}
+                style={{ ...primaryBtn, display: "flex", alignItems: "center", gap: 8, opacity: cloneUrl.trim() && cloneParent.trim() && cloneName ? 1 : 0.5 }}
+                className="gs-press"
+              >
+                {busy && <span style={{ animation: "spin 0.8s linear infinite" }}>⟳</span>}
+                {busy ? "A clonar…" : "Clonar"}
+              </div>
+            </div>
+          )}
+
+          {tab === "remote" && (
             <div style={{ display: "flex", flexDirection: "column", gap: 14, animation: "fadeUp 0.3s ease both" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <div style={bigTitle}>
-                  {tab === "remote" ? "Repositórios remotos" : tab === "clone" ? "Clonar repositório" : "Criar repositório novo"}
-                </div>
+                <div style={bigTitle}>Repositórios remotos</div>
                 <span className="gs-soon">Em breve</span>
               </div>
               <div style={{ padding: 20, border: "1px dashed var(--btnB)", borderRadius: 12, color: "var(--muted)", fontSize: 13.5, lineHeight: 1.6 }}>
-                {tab === "remote" && "Listar e clonar repositórios da tua conta (GitHub/GitLab/Bitbucket) chega quando o backend suportar autenticação."}
-                {tab === "clone" && "Clonar por URL (git clone) chega numa próxima fase, com o backend de rede."}
-                {tab === "create" && "Criar um repositório novo (git init) chega numa próxima fase."}
-              </div>
-              <div onClick={() => toast("Esta opção chega numa próxima fase")} style={{ ...browseBtn, alignSelf: "flex-start" }} className="gs-lift">
-                Entretanto, abrir uma pasta existente
+                Listar repositórios da tua conta (GitHub/GitLab/Bitbucket) chega quando o backend suportar autenticação. Entretanto, usa a aba Clonar com o URL.
               </div>
             </div>
           )}

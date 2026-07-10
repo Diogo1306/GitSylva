@@ -11,6 +11,14 @@ export function openRepo(path: string): Promise<RepoInfo> {
   return invoke<RepoInfo>("open_repo", { path });
 }
 
+export function initRepo(parent: string, name: string): Promise<RepoInfo> {
+  return invoke<RepoInfo>("init_repo", { parent, name });
+}
+
+export function cloneRepo(parent: string, url: string, name: string): Promise<RepoInfo> {
+  return invoke<RepoInfo>("clone_repo", { parent, url, name });
+}
+
 export function getStatus(path: string): Promise<FileChange[]> {
   return invoke<FileChange[]>("get_status", { path });
 }
