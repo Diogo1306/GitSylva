@@ -1,5 +1,6 @@
 import { useAppStore } from "../../state/appStore";
 import { useThemeStore } from "../../state/themeStore";
+import { useOnboardStore } from "../../state/onboardStore";
 import {
   PALETTES,
   FONTS,
@@ -122,6 +123,7 @@ function StubSection({ id, title, children }: { id: string; title: string; child
 export function Settings() {
   const setView = useAppStore((s) => s.setView);
   const prevView = useAppStore((s) => s.prevView);
+  const replayOnboard = useOnboardStore((s) => s.replay);
   const t = useThemeStore();
 
   const accents = PALETTES[t.theme].accents;
@@ -171,9 +173,18 @@ export function Settings() {
 
       <div style={{ flex: 1, overflowY: "auto" }}>
         <div style={{ maxWidth: 720, margin: "0 auto", padding: "28px 32px 48px", display: "flex", flexDirection: "column", gap: 32, animation: "fadeUp 0.3s ease both" }}>
-          <div>
-            <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.2px" }}>Definições</div>
-            <div style={{ fontSize: 13.5, color: "var(--text2)", marginTop: 4 }}>Preferências guardadas automaticamente neste dispositivo.</div>
+          <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.2px" }}>Definições</div>
+              <div style={{ fontSize: 13.5, color: "var(--text2)", marginTop: 4 }}>Preferências guardadas automaticamente neste dispositivo.</div>
+            </div>
+            <div
+              onClick={replayOnboard}
+              className="gs-lift"
+              style={{ fontSize: 12, color: "var(--text2)", border: "1px solid var(--btnB)", padding: "6px 12px", borderRadius: 8, cursor: "pointer", whiteSpace: "nowrap" }}
+            >
+              Rever ecrã de boas-vindas
+            </div>
           </div>
 
           {/* APARÊNCIA — fully wired */}
