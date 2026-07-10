@@ -34,6 +34,7 @@ import {
   incoming,
   getIdentity,
   setIdentity,
+  blame,
 } from "../lib/api";
 
 export const queryKeys = {
@@ -183,6 +184,14 @@ export function useIdentity(path: string) {
   return useQuery({
     queryKey: queryKeys.identity(path),
     queryFn: () => getIdentity(path),
+  });
+}
+
+export function useBlame(path: string, file: string | null, enabled: boolean) {
+  return useQuery({
+    queryKey: ["blame", path, file ?? ""],
+    queryFn: () => blame(path, file as string),
+    enabled: enabled && file !== null,
   });
 }
 
