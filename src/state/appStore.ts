@@ -3,7 +3,7 @@ import { persist } from "zustand/middleware";
 import type { RepoInfo } from "../lib/types";
 
 export type View = "working" | "history" | "stashes" | "settings" | "picker";
-export type Modal = "branch" | "stash" | "tag" | "merge" | null;
+export type Modal = "branch" | "stash" | "tag" | "merge" | "pull" | "push" | null;
 
 type AppState = {
   // All open repositories and the active one. `repo` mirrors the active repo so

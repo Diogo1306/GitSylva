@@ -48,6 +48,8 @@ pub fn run() {
       git::sync::sync_status,
       git::sync::pull,
       git::sync::push,
+      git::sync::outgoing,
+      git::sync::incoming,
       git::config::get_identity,
       git::config::set_identity
     ])
