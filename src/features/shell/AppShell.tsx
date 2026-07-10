@@ -1,5 +1,5 @@
 import "./shell.css";
-import { useEffect } from "react";
+import { Suspense, lazy, useEffect } from "react";
 import { useAppStore } from "../../state/appStore";
 import { useThemeStore } from "../../state/themeStore";
 import { Titlebar } from "./Titlebar";
@@ -9,11 +9,13 @@ import { ActionBar } from "./ActionBar";
 import { CommandPalette } from "./CommandPalette";
 import { Modals } from "./Modals";
 import { Toaster } from "../../components/Toaster";
-import { WorkingCopy } from "../working-copy/WorkingCopy";
-import { History } from "../history/History";
-import { Stashes } from "../stashes/Stashes";
-import { Settings } from "../settings/Settings";
-import { RepoPicker } from "../repo/RepoPicker";
+
+// Each screen is a separate chunk; only the active one is fetched and parsed.
+const WorkingCopy = lazy(() => import("../working-copy/WorkingCopy").then((m) => ({ default: m.WorkingCopy })));
+const History = lazy(() => import("../history/History").then((m) => ({ default: m.History })));
+const Stashes = lazy(() => import("../stashes/Stashes").then((m) => ({ default: m.Stashes })));
+const Settings = lazy(() => import("../settings/Settings").then((m) => ({ default: m.Settings })));
+const RepoPicker = lazy(() => import("../repo/RepoPicker").then((m) => ({ default: m.RepoPicker })));
 
 function Screen() {
   const view = useAppStore((s) => s.view);
@@ -54,7 +56,9 @@ export function AppShell() {
         {rail && <RepoRail />}
         <Sidebar />
         <div style={{ flex: 1, display: "flex", minWidth: 0, overflow: "hidden" }}>
-          <Screen />
+          <Suspense fallback={<div style={{ flex: 1, display: "grid", placeItems: "center", color: "var(--muted)", fontSize: 13 }}>A carregar…</div>}>
+            <Screen />
+          </Suspense>
         </div>
       </div>
       <ActionBar />
