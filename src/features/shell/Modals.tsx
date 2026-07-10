@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useAppStore } from "../../state/appStore";
-import { useBranchActions, useStashActions, useTagActions } from "../../state/queries";
+import { useBranchActions, useBranches, useStashActions, useTagActions } from "../../state/queries";
 import { toast } from "../../state/toastStore";
 
 const mono = "'JetBrains Mono', monospace";
@@ -186,6 +186,49 @@ function TagModal({ onClose }: { onClose: () => void }) {
   );
 }
 
+function MergeModal({ onClose }: { onClose: () => void }) {
+  const repo = useAppStore((s) => s.repo)!;
+  const { data } = useBranches(repo.path);
+  const { merge } = useBranchActions(repo.path);
+  const [error, setError] = useState<string | null>(null);
+  // Other local branches are candidates to merge into the current one.
+  const candidates = (data ?? []).filter((b) => !b.is_remote && !b.is_current);
+
+  function run(name: string) {
+    setError(null);
+    merge.mutate(name, {
+      onSuccess: () => {
+        toast(`${name} integrada em ${repo.current_branch}`);
+        onClose();
+      },
+      onError: (e: unknown) => setError((e as { message?: string })?.message ?? "conflito ou erro no merge"),
+    });
+  }
+
+  return (
+    <ModalShell title={`Merge para ${repo.current_branch}`} onClose={onClose}>
+      <div style={{ fontSize: 13, color: "var(--text2)" }}>Escolhe a branch a integrar na atual.</div>
+      {candidates.length === 0 ? (
+        <div style={{ padding: 16, border: "1px dashed var(--btnB)", borderRadius: 10, color: "var(--muted)", fontSize: 13, textAlign: "center" }}>Não há outras branches locais.</div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 240, overflowY: "auto" }}>
+          {candidates.map((b) => (
+            <div key={b.name} onClick={() => !merge.isPending && run(b.name)} className="gs-lift" style={{ display: "flex", alignItems: "center", gap: 9, padding: "9px 12px", borderRadius: 9, border: "1px solid var(--border)", background: "var(--panel)", cursor: "pointer" }}>
+              <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--l1bg)", border: "1.5px solid var(--l1)", boxSizing: "border-box" }} />
+              <span style={{ flex: 1, fontFamily: mono, fontSize: 13 }}>{b.name}</span>
+              <span style={{ fontSize: 12, color: "var(--muted)" }}>integrar →</span>
+            </div>
+          ))}
+        </div>
+      )}
+      {error && <div style={{ color: "var(--ddT)", fontSize: 12.5 }}>{error}</div>}
+      <div style={{ display: "flex", justifyContent: "flex-end" }}>
+        <div onClick={onClose} className="gs-lift" style={{ padding: "9px 16px", borderRadius: 9, border: "1px solid var(--btnB)", background: "var(--btn)", color: "var(--btnT)", fontSize: 13, cursor: "pointer" }}>Fechar</div>
+      </div>
+    </ModalShell>
+  );
+}
+
 export function Modals() {
   const modal = useAppStore((s) => s.modal);
   const setModal = useAppStore((s) => s.setModal);
@@ -193,5 +236,6 @@ export function Modals() {
   if (modal === "branch") return <BranchModal onClose={close} />;
   if (modal === "stash") return <StashModal onClose={close} />;
   if (modal === "tag") return <TagModal onClose={close} />;
+  if (modal === "merge") return <MergeModal onClose={close} />;
   return null;
 }

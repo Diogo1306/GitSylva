@@ -13,6 +13,8 @@ import {
   listBranches,
   checkoutBranch,
   createBranch,
+  mergeBranch,
+  deleteBranch,
   listStashes,
   createStash,
   applyStash,
@@ -96,6 +98,11 @@ export function useBranchActions(path: string) {
         if (v.checkout) setCurrent(v.name);
         refresh();
       },
+    }),
+    merge: useMutation({ mutationFn: (name: string) => mergeBranch(path, name), onSuccess: refresh }),
+    remove: useMutation({
+      mutationFn: (v: { name: string; force: boolean }) => deleteBranch(path, v.name, v.force),
+      onSuccess: refresh,
     }),
   };
 }

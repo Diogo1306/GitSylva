@@ -59,6 +59,14 @@ export function createBranch(path: string, name: string, checkout: boolean): Pro
   return invoke("create_branch", { path, name, checkout });
 }
 
+export function mergeBranch(path: string, name: string): Promise<void> {
+  return invoke("merge_branch", { path, name });
+}
+
+export function deleteBranch(path: string, name: string, force: boolean): Promise<void> {
+  return invoke("delete_branch", { path, name, force });
+}
+
 export function listStashes(path: string): Promise<StashInfo[]> {
   return invoke<StashInfo[]>("list_stashes", { path });
 }

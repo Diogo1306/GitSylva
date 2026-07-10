@@ -75,6 +75,20 @@ pub fn create_branch(path: String, name: String, checkout: bool) -> Result<(), G
     }
 }
 
+/// Merge a branch into the current one. On conflict, git leaves the tree in a
+/// conflicted state and this returns the git error message.
+#[tauri::command]
+pub fn merge_branch(path: String, name: String) -> Result<(), GitError> {
+    run_git(&path, &["merge", "--no-edit", &name]).map(|_| ())
+}
+
+/// Delete a branch. `force` uses -D (discard unmerged commits).
+#[tauri::command]
+pub fn delete_branch(path: String, name: String, force: bool) -> Result<(), GitError> {
+    let flag = if force { "-D" } else { "-d" };
+    run_git(&path, &["branch", flag, &name]).map(|_| ())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -115,5 +129,23 @@ mod tests {
         create_branch(p.clone(), "dev".into(), true).unwrap();
         let branches = list_branches(p).unwrap();
         assert!(branches.iter().find(|b| b.name == "dev").unwrap().is_current);
+    }
+
+    #[test]
+    fn merge_and_delete() {
+        let p = repo("merge");
+        // Commit on a feature branch, then merge it into main.
+        create_branch(p.clone(), "feature".into(), true).unwrap();
+        fs::write(format!("{p}/b.txt"), "hi").unwrap();
+        run_git(&p, &["add", "-A"]).unwrap();
+        run_git(&p, &["commit", "-m", "feature work"]).unwrap();
+        checkout_branch(p.clone(), "main".into()).unwrap();
+        merge_branch(p.clone(), "feature".into()).unwrap();
+        assert!(std::path::Path::new(&format!("{p}/b.txt")).exists());
+
+        // Now the feature branch is merged, so a plain delete succeeds.
+        delete_branch(p.clone(), "feature".into(), false).unwrap();
+        let names: Vec<String> = list_branches(p).unwrap().into_iter().map(|b| b.name).collect();
+        assert!(!names.contains(&"feature".to_string()));
     }
 }

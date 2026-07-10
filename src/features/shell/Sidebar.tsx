@@ -21,7 +21,7 @@ export function Sidebar() {
   const { data } = useStatus(repo.path);
   const wcCount = (data ?? []).length;
   const { data: branchData } = useBranches(repo.path);
-  const { checkout } = useBranchActions(repo.path);
+  const { checkout, remove } = useBranchActions(repo.path);
   const { data: stashData } = useStashes(repo.path);
   const { data: tagData } = useTags(repo.path);
   // Local branches only in the sidebar list.
@@ -145,6 +145,24 @@ export function Sidebar() {
               }}
             />
             <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{b.name}</span>
+            {!b.is_current && (
+              <span
+                onClick={(e) => {
+                  e.stopPropagation();
+                  remove.mutate(
+                    { name: b.name, force: false },
+                    {
+                      onSuccess: () => toast(`Branch ${b.name} apagada`),
+                      onError: (err: unknown) => toast((err as { message?: string })?.message ?? "não foi possível apagar"),
+                    },
+                  );
+                }}
+                title={`Apagar ${b.name}`}
+                style={{ color: "var(--muted)", fontSize: 10, padding: "1px 4px", borderRadius: 5, flexShrink: 0 }}
+              >
+                ✕
+              </span>
+            )}
           </div>
         ))}
         {localBranches.length === 0 && (
