@@ -37,6 +37,7 @@ pub fn run() {
       git::branches::rename_branch,
       git::rewrite::reset_to,
       git::rewrite::cherry_pick,
+      git::blame::blame,
       git::stashes::list_stashes,
       git::stashes::create_stash,
       git::stashes::apply_stash,

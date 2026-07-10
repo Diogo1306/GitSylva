@@ -11,6 +11,7 @@ pub mod tags;
 pub mod sync;
 pub mod config;
 pub mod rewrite;
+pub mod blame;
 
 use crate::error::GitError;
 use std::process::Command;

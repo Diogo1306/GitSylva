@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useAppStore } from "../../state/appStore";
-import { useStatus, useStageActions, useCommit, useDiff } from "../../state/queries";
+import { useStatus, useStageActions, useCommit, useDiff, useBlame } from "../../state/queries";
 import { DiffView } from "../../components/DiffView";
+import { BlameView } from "../../components/BlameView";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
 import { statusStyle } from "../../lib/status";
 import type { FileChange } from "../../lib/types";
@@ -106,8 +107,10 @@ export function WorkingCopy() {
   const [commitErr, setCommitErr] = useState<string | null>(null);
   const [confirmDiscardAll, setConfirmDiscardAll] = useState(false);
   const [stacked, setStacked] = useState(false);
+  const [blameOn, setBlameOn] = useState(false);
 
   const diff = useDiff(repo.path, sel?.path ?? null, sel?.staged ?? false);
+  const blameQ = useBlame(repo.path, sel?.path ?? null, blameOn);
 
   if (isLoading) return <div style={{ padding: 16, color: "var(--muted)" }}>A carregar alterações…</div>;
   if (error) return <div style={{ padding: 16, color: "var(--ddT)" }}>{String(error)}</div>;
@@ -273,13 +276,28 @@ export function WorkingCopy() {
             <span style={{ fontSize: 13, color: "var(--muted)" }}>Selecione um ficheiro para ver o diff</span>
           )}
           <div style={{ flex: 1 }} />
-          <span style={{ fontSize: 12, color: "var(--muted)" }}>{sel?.staged ? "diff preparado" : "diff da cópia de trabalho"}</span>
-          <div onClick={() => setStacked((v) => !v)} className="gs-lift" style={{ display: "flex", alignItems: "center", gap: 6, padding: "5px 11px", borderRadius: 7, background: "var(--btn)", border: "1px solid var(--btnB)", fontSize: 12, color: "var(--btnT)", cursor: "pointer", whiteSpace: "nowrap" }}>
-            {stacked ? "Lado a lado" : "Empilhado"}
-          </div>
+          {sel && selStatus !== "?" && (
+            <div onClick={() => setBlameOn((v) => !v)} className="gs-lift" style={{ display: "flex", alignItems: "center", gap: 6, padding: "5px 11px", borderRadius: 7, background: blameOn ? "var(--sel)" : "var(--btn)", border: "1px solid var(--btnB)", fontSize: 12, color: "var(--btnT)", cursor: "pointer", whiteSpace: "nowrap" }}>
+              Blame
+            </div>
+          )}
+          {!blameOn && <span style={{ fontSize: 12, color: "var(--muted)" }}>{sel?.staged ? "diff preparado" : "diff da cópia de trabalho"}</span>}
+          {!blameOn && (
+            <div onClick={() => setStacked((v) => !v)} className="gs-lift" style={{ display: "flex", alignItems: "center", gap: 6, padding: "5px 11px", borderRadius: 7, background: "var(--btn)", border: "1px solid var(--btnB)", fontSize: 12, color: "var(--btnT)", cursor: "pointer", whiteSpace: "nowrap" }}>
+              {stacked ? "Lado a lado" : "Empilhado"}
+            </div>
+          )}
         </div>
         <div style={{ flex: 1, overflow: "auto", padding: "10px 0", background: "var(--panel2)" }}>
-          {!sel ? null : diff.isLoading ? (
+          {!sel ? null : blameOn ? (
+            blameQ.isLoading ? (
+              <div style={{ padding: 20, color: "var(--muted)" }}>A carregar blame…</div>
+            ) : blameQ.data && blameQ.data.length ? (
+              <BlameView lines={blameQ.data} />
+            ) : (
+              <div style={{ padding: 20, color: "var(--muted)" }}>Sem blame (ficheiro novo?).</div>
+            )
+          ) : diff.isLoading ? (
             <div style={{ padding: 20, color: "var(--muted)" }}>A carregar diff…</div>
           ) : diff.data && diff.data.trim() ? (
             <DiffView patch={diff.data} fontSize={12.5} />

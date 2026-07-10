@@ -65,3 +65,10 @@ export type GitIdentity = {
   name: string;
   email: string;
 };
+
+export type BlameLine = {
+  line: number;
+  hash: string;
+  author: string;
+  content: string;
+};
