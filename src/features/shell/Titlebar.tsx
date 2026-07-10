@@ -76,6 +76,9 @@ function Tool({
 
 export function Titlebar() {
   const repo = useAppStore((s) => s.repo)!;
+  const repos = useAppStore((s) => s.repos);
+  const switchRepo = useAppStore((s) => s.switchRepo);
+  const closeRepo = useAppStore((s) => s.closeRepo);
   const setView = useAppStore((s) => s.setView);
   const setPaletteOpen = useAppStore((s) => s.setPaletteOpen);
   const qc = useQueryClient();
@@ -85,7 +88,6 @@ export function Titlebar() {
 
   const files = data ?? [];
   const unstaged = files.filter((f) => f.worktree_status !== ".").length;
-  const repoName = repo.path.replace(/[/\\]$/, "").split(/[/\\]/).pop() ?? repo.path;
 
   function refresh() {
     // The ⟳ fetches origin; on failure (no remote/credentials) still reload local.
@@ -152,53 +154,54 @@ export function Titlebar() {
         <span>ylva</span>
       </div>
 
-      {/* Repo tabs. Multi-repo tabs and groups arrive later; for now the open
-          repo is the single active tab, with + to open another. */}
+      {/* Repo tabs: one per open repository, switch on click, ✕ to close. */}
       <div style={{ display: "flex", alignItems: "center", gap: 5, minWidth: 0, flex: 1, overflow: "hidden" }}>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 7,
-            padding: "5px 12px",
-            borderRadius: 8,
-            border: "1px solid var(--btnB)",
-            background: "var(--sel)",
-            minWidth: 0,
-          }}
-        >
-          <span style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--l0)", flexShrink: 0 }} />
-          <span
-            style={{
-              fontSize: 12.5,
-              fontWeight: 600,
-              color: "var(--text)",
-              whiteSpace: "nowrap",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-            }}
-          >
-            {repoName}
-          </span>
-          <span style={{ fontFamily: mono, fontSize: 10.5, color: "var(--muted)", whiteSpace: "nowrap" }}>
-            {repo.current_branch}
-          </span>
-        </div>
+        {repos.map((r, i) => {
+          const active = r.path === repo.path;
+          const name = r.path.replace(/[/\\]$/, "").split(/[/\\]/).pop() ?? r.path;
+          return (
+            <div
+              key={r.path}
+              onClick={() => switchRepo(r.path)}
+              className="gs-row"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 7,
+                padding: "5px 8px 5px 12px",
+                borderRadius: 8,
+                border: `1px solid ${active ? "var(--btnB)" : "transparent"}`,
+                background: active ? "var(--sel)" : "transparent",
+                minWidth: 0,
+                cursor: "pointer",
+              }}
+            >
+              <span style={{ width: 7, height: 7, borderRadius: "50%", background: `var(--l${i % 3})`, flexShrink: 0 }} />
+              <span style={{ fontSize: 12.5, fontWeight: active ? 600 : 400, color: active ? "var(--text)" : "var(--text2)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                {name}
+              </span>
+              <span style={{ fontFamily: mono, fontSize: 10.5, color: "var(--muted)", whiteSpace: "nowrap" }}>
+                {active ? repo.current_branch : r.current_branch}
+              </span>
+              <span
+                onClick={(e) => {
+                  e.stopPropagation();
+                  closeRepo(r.path);
+                }}
+                title="Fechar"
+                className="gs-row"
+                style={{ width: 16, height: 16, borderRadius: 5, display: "grid", placeItems: "center", color: "var(--muted)", fontSize: 10, flexShrink: 0 }}
+              >
+                ✕
+              </span>
+            </div>
+          );
+        })}
         <div
           onClick={() => setView("picker")}
           className="gs-lift"
           title="Abrir repositório"
-          style={{
-            width: 26,
-            height: 26,
-            borderRadius: 8,
-            display: "grid",
-            placeItems: "center",
-            color: "var(--muted)",
-            fontSize: 15,
-            cursor: "pointer",
-            flexShrink: 0,
-          }}
+          style={{ width: 26, height: 26, borderRadius: 8, display: "grid", placeItems: "center", color: "var(--muted)", fontSize: 15, cursor: "pointer", flexShrink: 0 }}
         >
           +
         </div>
