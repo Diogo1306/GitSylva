@@ -56,6 +56,19 @@
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
   --radius: 14px;
   --radius-sm: 8px;
+  --radius-pill: 999px;
+
+  /* Spacing scale (4px base). */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 28px;
+
+  /* Elevation. */
+  --shadow-1: 0 6px 18px rgba(0, 0, 0, 0.12);
+  --shadow-2: 0 24px 80px rgba(0, 0, 0, 0.35);
 
   /*
    * Transitional aliases. The MVP screens (OpenRepo, WorkingCopy, History)
