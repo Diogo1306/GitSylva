@@ -1,7 +1,12 @@
+import { useRef } from "react";
 import { useThemeStore } from "../../../state/themeStore";
+import { toast } from "../../../state/toastStore";
 import { PALETTES, FONTS, TREE_META, BRANCH_COLOR_META, type ThemeKey, type TreeStyleKey, type FontKey } from "../../../theme/themes";
 import { Toggle } from "../../../components/ui/misc";
+import { Button } from "../../../components/ui/Button";
 import { SectionTitle, FieldLabel, Hint, pillStyle } from "./_shared";
+
+const THEME_KEYS = ["theme", "treeStyle", "branchColor", "accentIdx", "fontKey", "anims"] as const;
 
 const THEME_ORDER: ThemeKey[] = ["escuro", "claro", "nipon", "gitclassic"];
 const TREE_ORDER: TreeStyleKey[] = ["normal", "sakura", "tropical", "grafo"];
@@ -67,6 +72,33 @@ function TreeIcon({ kind }: { kind: TreeStyleKey }) {
 export function Appearance() {
   const t = useThemeStore();
   const accents = PALETTES[t.theme].accents;
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  function exportTheme() {
+    const data = Object.fromEntries(THEME_KEYS.map((k) => [k, t[k]]));
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "gitsylva-theme.json";
+    a.click();
+    URL.revokeObjectURL(url);
+    toast("Tema exportado");
+  }
+
+  function importTheme(file: File) {
+    file.text().then((text) => {
+      try {
+        const data = JSON.parse(text);
+        const patch: Record<string, unknown> = {};
+        for (const k of THEME_KEYS) if (k in data) patch[k] = data[k];
+        t.savePrefs(patch);
+        toast("Tema importado");
+      } catch {
+        toast("Ficheiro de tema inválido");
+      }
+    });
+  }
 
   return (
     <div id="set-aparencia" style={{ display: "flex", flexDirection: "column", gap: 16, scrollMarginTop: 20 }}>
@@ -162,6 +194,26 @@ export function Appearance() {
             );
           })}
         </div>
+      </div>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <FieldLabel>Partilhar tema</FieldLabel>
+        <div style={{ display: "flex", gap: 8 }}>
+          <Button onClick={exportTheme}>Exportar</Button>
+          <Button onClick={() => fileRef.current?.click()}>Importar</Button>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="application/json,.json"
+            style={{ display: "none" }}
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) importTheme(f);
+              e.target.value = "";
+            }}
+          />
+        </div>
+        <Hint>Guarda ou carrega tema, estilo de árvore, cores, accent e fonte num ficheiro.</Hint>
       </div>
     </div>
   );
