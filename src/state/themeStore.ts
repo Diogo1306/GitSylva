@@ -23,6 +23,7 @@ type ThemeState = {
   repoLayout: RepoLayout;
   language: Language;
   pullMode: PullMode;
+  confirmDiscard: boolean;
   savePrefs: (patch: Partial<ThemePrefsSlice>) => void;
   resetPrefs: () => void;
 };
@@ -38,6 +39,7 @@ const DEFAULTS: ThemePrefsSlice = {
   repoLayout: "tabs",
   language: "pt",
   pullMode: "ff",
+  confirmDiscard: true,
 };
 
 type ThemePrefsSlice = Pick<
@@ -52,6 +54,7 @@ type ThemePrefsSlice = Pick<
   | "repoLayout"
   | "language"
   | "pullMode"
+  | "confirmDiscard"
 >;
 
 export const useThemeStore = create<ThemeState>()(
