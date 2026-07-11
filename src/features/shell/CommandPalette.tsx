@@ -33,6 +33,7 @@ export function CommandPalette() {
   const repos = useAppStore((s) => s.repos);
   const switchRepo = useAppStore((s) => s.switchRepo);
   const [q, setQ] = useState("");
+  const [active, setActive] = useState(0);
   const { data: commits } = useLog(repo?.path ?? "");
   const { data: branches } = useBranches(repo?.path ?? "");
   const { data: files } = useStatus(repo?.path ?? "");
@@ -124,7 +125,9 @@ export function CommandPalette() {
 
   if (!open) return null;
 
-  const firstHit = groups[0]?.items[0]?.run;
+  const flat = groups.flatMap((g) => g.items);
+  const activeIdx = Math.min(active, Math.max(0, flat.length - 1));
+  let flatIdx = -1;
 
   return (
     <div
@@ -157,12 +160,14 @@ export function CommandPalette() {
         <input
           autoFocus
           value={q}
-          onChange={(e) => setQ(e.target.value)}
+          onChange={(e) => { setQ(e.target.value); setActive(0); }}
           onKeyDown={(e) => {
             if (e.key === "Escape") setOpen(false);
-            if (e.key === "Enter" && firstHit) firstHit();
+            else if (e.key === "ArrowDown") { e.preventDefault(); setActive((a) => Math.min(flat.length - 1, a + 1)); }
+            else if (e.key === "ArrowUp") { e.preventDefault(); setActive((a) => Math.max(0, a - 1)); }
+            else if (e.key === "Enter") flat[activeIdx]?.run();
           }}
-          placeholder="Pesquisar commits, ir para…"
+          placeholder="Pesquisar commits, ficheiros, branches…"
           style={{
             width: "100%",
             boxSizing: "border-box",
@@ -180,18 +185,23 @@ export function CommandPalette() {
           {groups.map((g) => (
             <div key={g.title}>
               <div style={{ padding: "8px 10px 4px", fontSize: 10.5, fontWeight: 700, letterSpacing: "1.3px", color: "var(--muted)" }}>{g.title}</div>
-              {g.items.map((it, i) => (
-                <div
-                  key={i}
-                  onClick={it.run}
-                  className="gs-row"
-                  style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", borderRadius: 8, cursor: "pointer" }}
-                >
-                  <span style={{ width: 7, height: 7, borderRadius: it.dotR, background: it.dot, flexShrink: 0 }} />
-                  <span style={{ flex: 1, fontSize: 13.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{markMatch(it.label, q.trim())}</span>
-                  <span style={{ fontFamily: mono, fontSize: 11, color: "var(--muted)", whiteSpace: "nowrap" }}>{it.sub}</span>
-                </div>
-              ))}
+              {g.items.map((it, i) => {
+                flatIdx += 1;
+                const isActive = flatIdx === activeIdx;
+                return (
+                  <div
+                    key={i}
+                    onClick={it.run}
+                    onMouseEnter={() => setActive(flat.indexOf(it))}
+                    className="gs-row"
+                    style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", borderRadius: 8, cursor: "pointer", background: isActive ? "var(--sel)" : undefined }}
+                  >
+                    <span style={{ width: 7, height: 7, borderRadius: it.dotR, background: it.dot, flexShrink: 0 }} />
+                    <span style={{ flex: 1, fontSize: 13.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{markMatch(it.label, q.trim())}</span>
+                    <span style={{ fontFamily: mono, fontSize: 11, color: "var(--muted)", whiteSpace: "nowrap" }}>{it.sub}</span>
+                  </div>
+                );
+              })}
             </div>
           ))}
           {groups.length === 0 && (
@@ -199,7 +209,8 @@ export function CommandPalette() {
           )}
         </div>
         <div style={{ padding: "8px 14px", borderTop: "1px solid var(--border)", display: "flex", gap: 14, fontSize: 11, color: "var(--muted)" }}>
-          <span>↵ abrir o primeiro</span>
+          <span>↑↓ navegar</span>
+          <span>↵ abrir</span>
           <span>esc fechar</span>
           <span>⌘K / Ctrl+K em qualquer ecrã</span>
         </div>
