@@ -3,6 +3,7 @@ import { useAppStore } from "../../state/appStore";
 import { useOnboardStore } from "../../state/onboardStore";
 import { Appearance } from "./sections/Appearance";
 import { GitIdentity } from "./sections/GitIdentity";
+import { Commits } from "./sections/Commits";
 import { PushPull } from "./sections/PushPull";
 import { Cleanup } from "./sections/Cleanup";
 import { StubSection } from "./sections/_shared";
@@ -13,6 +14,7 @@ const NAV: [string, string][] = [
   ["Aparência", "set-aparencia"],
   ["Contas", "set-contas"],
   ["Git", "set-git"],
+  ["Commits", "set-commits"],
   ["Push & Pull", "set-pushpull"],
   ["Atalhos", "set-atalhos"],
   ["SSH", "set-ssh"],
@@ -90,6 +92,7 @@ export function Settings() {
             Editor externo e outras opções de git por repositório chegam numa próxima fase.
           </StubSection>
 
+          <Commits />
           <PushPull />
 
           <StubSection id="set-atalhos" title="ATALHOS DE TECLADO">

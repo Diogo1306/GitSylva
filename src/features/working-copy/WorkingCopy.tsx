@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useAppStore } from "../../state/appStore";
 import { useStatus, useStageActions, useCommit, useDiff, useBlame } from "../../state/queries";
+import { useThemeStore } from "../../state/themeStore";
 import { DiffView } from "../../components/DiffView";
 import { BlameView } from "../../components/BlameView";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
@@ -183,7 +184,11 @@ export function WorkingCopy() {
             Preparar tudo
           </div>
           <div
-            onClick={() => unstaged.length > 0 && setConfirmDiscardAll(true)}
+            onClick={() => {
+              if (unstaged.length === 0) return;
+              if (useThemeStore.getState().confirmDiscard) setConfirmDiscardAll(true);
+              else discardAll();
+            }}
             className="gs-row"
             style={{ fontSize: 12, color: "var(--ddT)", cursor: unstaged.length ? "pointer" : "default", opacity: unstaged.length ? 1 : 0.5, padding: "3px 8px", borderRadius: 6, fontWeight: 600 }}
           >

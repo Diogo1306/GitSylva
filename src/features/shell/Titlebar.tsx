@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAppStore } from "../../state/appStore";
 import { useStatus, queryKeys, useSyncActions } from "../../state/queries";
+import { useThemeStore } from "../../state/themeStore";
 import { discardAll } from "../../lib/api";
 import { winMinimize, winToggleMaximize, winClose } from "../../lib/window";
 import { toast } from "../../state/toastStore";
@@ -106,7 +107,8 @@ export function Titlebar({ rail = false }: { rail?: boolean }) {
       toast("Sem alterações para descartar");
       return;
     }
-    setConfirmDiscard(true);
+    if (useThemeStore.getState().confirmDiscard) setConfirmDiscard(true);
+    else void doDiscardAll();
   }
 
   async function doDiscardAll() {
