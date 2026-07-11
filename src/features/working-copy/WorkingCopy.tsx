@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAppStore } from "../../state/appStore";
-import { useStatus, useStageActions, useCommit, useDiff, useBlame } from "../../state/queries";
+import { useStatus, useStageActions, useCommit, useDiff, useBlame, useHunkActions } from "../../state/queries";
 import { useThemeStore } from "../../state/themeStore";
 import { DiffView } from "../../components/DiffView";
 import { BlameView } from "../../components/BlameView";
@@ -102,6 +102,7 @@ export function WorkingCopy() {
   const repo = useAppStore((s) => s.repo)!;
   const { data, isLoading, error } = useStatus(repo.path);
   const actions = useStageActions(repo.path);
+  const hunk = useHunkActions(repo.path);
   const commit = useCommit(repo.path);
   const [sel, setSel] = useState<Sel>(null);
   const [msg, setMsg] = useState("");
@@ -318,7 +319,16 @@ export function WorkingCopy() {
           ) : diff.isLoading ? (
             <div style={{ padding: 20, color: "var(--muted)" }}>A carregar diff…</div>
           ) : diff.data && diff.data.trim() ? (
-            <DiffView patch={diff.data} fontSize={12.5} />
+            <DiffView
+              patch={diff.data}
+              fontSize={12.5}
+              stageLabel={sel.staged ? "Retirar" : "Preparar"}
+              onStageHunk={
+                selStatus === "?"
+                  ? undefined
+                  : (p) => hunk.mutate({ patch: p, cached: true, reverse: sel.staged })
+              }
+            />
           ) : (
             <div style={{ padding: 20, color: "var(--muted)" }}>Sem alterações textuais.</div>
           )}

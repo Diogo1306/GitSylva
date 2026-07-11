@@ -6,7 +6,17 @@ import { DiffSplit } from "./DiffSplit";
 // via a module-level default so switching files keeps the chosen view.
 let lastMode: "unified" | "split" = "unified";
 
-export function DiffView({ patch, fontSize }: { patch: string; fontSize?: number }) {
+export function DiffView({
+  patch,
+  fontSize,
+  onStageHunk,
+  stageLabel,
+}: {
+  patch: string;
+  fontSize?: number;
+  onStageHunk?: (hunkPatch: string) => void;
+  stageLabel?: string;
+}) {
   const [mode, setMode] = useState<"unified" | "split">(lastMode);
   const set = (m: "unified" | "split") => {
     lastMode = m;
@@ -30,7 +40,7 @@ export function DiffView({ patch, fontSize }: { patch: string; fontSize?: number
           {tab("split", "Lado a lado")}
         </div>
       </div>
-      {mode === "split" ? <DiffSplit patch={patch} /> : <DiffLines patch={patch} fontSize={fontSize} />}
+      {mode === "split" ? <DiffSplit patch={patch} /> : <DiffLines patch={patch} fontSize={fontSize} onStageHunk={onStageHunk} stageLabel={stageLabel} />}
     </div>
   );
 }

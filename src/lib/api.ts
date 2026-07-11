@@ -71,6 +71,10 @@ export function getDiff(path: string, file: string, staged: boolean): Promise<st
   return invoke<string>("get_diff", { path, file, staged });
 }
 
+export function applyHunk(path: string, patch: string, cached: boolean, reverse: boolean): Promise<void> {
+  return invoke("apply_hunk", { path, patch, cached, reverse });
+}
+
 export function commitDetail(path: string, hash: string): Promise<CommitDetail> {
   return invoke<CommitDetail>("commit_detail", { path, hash });
 }
