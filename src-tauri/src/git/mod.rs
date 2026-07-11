@@ -4,6 +4,7 @@ pub mod stage;
 pub mod commit;
 pub mod log;
 pub mod diff;
+pub mod hunk;
 pub mod detail;
 pub mod branches;
 pub mod stashes;
@@ -15,7 +16,8 @@ pub mod blame;
 pub mod conflict;
 
 use crate::error::GitError;
-use std::process::Command;
+use std::io::Write;
+use std::process::{Command, Stdio};
 
 /// Run the system git in `repo` with `args`. Returns stdout on success.
 ///
@@ -34,6 +36,43 @@ pub fn run_git(repo: &str, args: &[&str]) -> Result<String, GitError> {
             code: "spawn_failed".into(),
             message: format!("could not run git: {e}"),
         })?;
+    if output.status.success() {
+        Ok(String::from_utf8_lossy(&output.stdout).into_owned())
+    } else {
+        Err(GitError {
+            code: "git_failed".into(),
+            message: String::from_utf8_lossy(&output.stderr).trim().to_owned(),
+        })
+    }
+}
+
+/// Run git in `repo` feeding `input` to stdin. Used for `git apply`, which reads
+/// a patch from stdin. Same environment guards as `run_git`.
+pub fn run_git_stdin(repo: &str, args: &[&str], input: &str) -> Result<String, GitError> {
+    let mut child = Command::new("git")
+        .arg("-C")
+        .arg(repo)
+        .args(args)
+        .env("GIT_TERMINAL_PROMPT", "0")
+        .env("GIT_EDITOR", "true")
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .map_err(|e| GitError {
+            code: "spawn_failed".into(),
+            message: format!("could not run git: {e}"),
+        })?;
+    child
+        .stdin
+        .take()
+        .ok_or_else(|| GitError { code: "spawn_failed".into(), message: "no stdin".into() })?
+        .write_all(input.as_bytes())
+        .map_err(|e| GitError { code: "spawn_failed".into(), message: format!("write failed: {e}") })?;
+    let output = child.wait_with_output().map_err(|e| GitError {
+        code: "spawn_failed".into(),
+        message: format!("could not run git: {e}"),
+    })?;
     if output.status.success() {
         Ok(String::from_utf8_lossy(&output.stdout).into_owned())
     } else {

@@ -10,6 +10,7 @@ import {
   commit,
   getLog,
   getDiff,
+  applyHunk,
   commitDetail,
   listBranches,
   checkoutBranch,
@@ -280,6 +281,20 @@ export function useStageActions(path: string) {
       onSuccess: invalidate,
     }),
   };
+}
+
+// Stage / unstage / discard a single hunk. `patch` comes from parseHunks; the
+// diff (of the same file+staged combo) and status are refreshed afterwards.
+export function useHunkActions(path: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (v: { patch: string; cached: boolean; reverse: boolean }) =>
+      applyHunk(path, v.patch, v.cached, v.reverse),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.status(path) });
+      qc.invalidateQueries({ queryKey: ["diff", path] });
+    },
+  });
 }
 
 export function useCommit(path: string) {

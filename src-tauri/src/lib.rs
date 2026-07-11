@@ -28,6 +28,7 @@ pub fn run() {
       git::commit::commit,
       git::log::get_log,
       git::diff::get_diff,
+      git::hunk::apply_hunk,
       git::detail::commit_detail,
       git::branches::list_branches,
       git::branches::checkout_branch,
