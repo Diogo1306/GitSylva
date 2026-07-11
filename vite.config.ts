@@ -1,3 +1,4 @@
+/// <reference types="vitest/config" />
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
@@ -9,6 +10,10 @@ export default defineConfig({
   server: {
     port: 6767,
     strictPort: true,
+  },
+  test: {
+    // Component tests render into jsdom; pure-function tests are unaffected.
+    environment: "jsdom",
   },
   build: {
     rollupOptions: {
