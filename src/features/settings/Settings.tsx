@@ -6,6 +6,7 @@ import { GitIdentity } from "./sections/GitIdentity";
 import { Commits } from "./sections/Commits";
 import { PushPull } from "./sections/PushPull";
 import { Cleanup } from "./sections/Cleanup";
+import { Shortcuts } from "./sections/Shortcuts";
 import { StubSection } from "./sections/_shared";
 
 // Settings nav. Each entry is a section id rendered in the scroll area below;
@@ -95,9 +96,7 @@ export function Settings() {
           <Commits />
           <PushPull />
 
-          <StubSection id="set-atalhos" title="ATALHOS DE TECLADO">
-            Atalhos regraváveis (clicar numa linha para gravar) chegam com o sistema de comandos.
-          </StubSection>
+          <Shortcuts />
           <StubSection id="set-ssh" title="CHAVES SSH">
             Gerar chaves, testar ligação e assinar commits chegam quando o backend suportar SSH.
           </StubSection>
