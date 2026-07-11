@@ -49,6 +49,24 @@ export function AppShell() {
     return () => window.removeEventListener("keydown", onKey);
   }, [setPaletteOpen]);
 
+  // Warm the other screens' chunks while the machine is idle, so the first
+  // switch to Working/Stashes/Settings is instant. First paint still only pays
+  // for the active screen; these imports are deduped by the module cache.
+  useEffect(() => {
+    const warm = () => {
+      import("../working-copy/WorkingCopy");
+      import("../stashes/Stashes");
+      import("../settings/Settings");
+    };
+    const ric = (window as unknown as { requestIdleCallback?: (cb: () => void) => number }).requestIdleCallback;
+    const id = ric ? ric(warm) : window.setTimeout(warm, 1200);
+    return () => {
+      const cic = (window as unknown as { cancelIdleCallback?: (id: number) => void }).cancelIdleCallback;
+      if (ric && cic) cic(id);
+      else window.clearTimeout(id);
+    };
+  }, []);
+
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", background: "var(--win)", color: "var(--text)", overflow: "hidden" }}>
       <Titlebar rail={rail} />
