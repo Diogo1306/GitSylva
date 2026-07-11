@@ -5,12 +5,17 @@ import type { RepoInfo } from "../lib/types";
 export type View = "working" | "history" | "stashes" | "settings" | "picker";
 export type Modal = "branch" | "stash" | "tag" | "merge" | "pull" | "push" | null;
 
+export type RepoGroup = { id: string; name: string; color: number; collapsed: boolean };
+
 type AppState = {
   // All open repositories and the active one. `repo` mirrors the active repo so
   // existing code that reads `s.repo` keeps working; multi-repo tabs (B2) build
   // on `repos` / switchRepo / closeRepo.
   repos: RepoInfo[];
   repo: RepoInfo | null;
+  // Optional grouping of the open repos (name + color), shown in the rail.
+  groups: RepoGroup[];
+  groupOf: Record<string, string | undefined>;
   view: View;
   // The view to return to when leaving settings/picker.
   prevView: View;
@@ -23,6 +28,11 @@ type AppState = {
   setRepo: (repo: RepoInfo | null) => void;
   switchRepo: (path: string) => void;
   closeRepo: (path: string) => void;
+  addGroup: (name: string) => string;
+  renameGroup: (id: string, name: string) => void;
+  removeGroup: (id: string) => void;
+  toggleGroupCollapsed: (id: string) => void;
+  setRepoGroup: (path: string, groupId: string | undefined) => void;
   setView: (view: View) => void;
   setSelectedFile: (file: string | null) => void;
   setFocusCommit: (hash: string | null) => void;
@@ -35,6 +45,8 @@ export const useAppStore = create<AppState>()(
     (set) => ({
   repos: [],
   repo: null,
+  groups: [],
+  groupOf: {},
   view: "history",
   prevView: "history",
   selectedFile: null,
@@ -57,12 +69,29 @@ export const useAppStore = create<AppState>()(
     set((s) => {
       const repos = s.repos.filter((r) => r.path !== path);
       const wasActive = s.repo?.path === path;
+      const groupOf = { ...s.groupOf };
+      delete groupOf[path];
       return {
         repos,
+        groupOf,
         repo: wasActive ? repos[repos.length - 1] ?? null : s.repo,
         selectedFile: wasActive ? null : s.selectedFile,
       };
     }),
+  addGroup: (name) => {
+    const id = (globalThis.crypto?.randomUUID?.() ?? String(performance.now())).slice(0, 12);
+    set((s) => ({ groups: [...s.groups, { id, name, color: s.groups.length % 3, collapsed: false }] }));
+    return id;
+  },
+  renameGroup: (id, name) => set((s) => ({ groups: s.groups.map((g) => (g.id === id ? { ...g, name } : g)) })),
+  removeGroup: (id) =>
+    set((s) => {
+      const groupOf = { ...s.groupOf };
+      for (const k of Object.keys(groupOf)) if (groupOf[k] === id) groupOf[k] = undefined;
+      return { groups: s.groups.filter((g) => g.id !== id), groupOf };
+    }),
+  toggleGroupCollapsed: (id) => set((s) => ({ groups: s.groups.map((g) => (g.id === id ? { ...g, collapsed: !g.collapsed } : g)) })),
+  setRepoGroup: (path, groupId) => set((s) => ({ groupOf: { ...s.groupOf, [path]: groupId } })),
   setView: (view) =>
     set((s) => ({
       view,
@@ -75,9 +104,9 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: "gitsylva-open-repos",
-      // Only the open repos and the active one survive a restart; transient UI
-      // state (view, selection, palette, modal) resets.
-      partialize: (s) => ({ repos: s.repos, repo: s.repo }),
+      // Only the open repos, grouping and the active one survive a restart;
+      // transient UI state (view, selection, palette, modal) resets.
+      partialize: (s) => ({ repos: s.repos, repo: s.repo, groups: s.groups, groupOf: s.groupOf }),
     },
   ),
 );
