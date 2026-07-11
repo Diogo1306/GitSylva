@@ -72,3 +72,9 @@ export type BlameLine = {
   author: string;
   content: string;
 };
+
+export type ConflictState = {
+  in_merge: boolean;
+  in_rebase: boolean;
+  files: string[];
+};

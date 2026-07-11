@@ -4,6 +4,7 @@ import { useStatus, useStageActions, useCommit, useDiff, useBlame } from "../../
 import { useThemeStore } from "../../state/themeStore";
 import { DiffView } from "../../components/DiffView";
 import { BlameView } from "../../components/BlameView";
+import { ConflictBanner } from "./ConflictBanner";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
 import { statusStyle } from "../../lib/status";
 import type { FileChange } from "../../lib/types";
@@ -163,7 +164,9 @@ export function WorkingCopy() {
   const commitReady = msg.trim() !== "" && (staged.length > 0 || amend);
 
   return (
-    <div style={{ flex: 1, display: "flex", flexDirection: stacked ? "column" : "row", minWidth: 0, minHeight: 0, animation: "fadeIn 0.25s ease both" }}>
+    <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, minHeight: 0, animation: "fadeIn 0.25s ease both" }}>
+      <ConflictBanner />
+      <div style={{ flex: 1, display: "flex", flexDirection: stacked ? "column" : "row", minWidth: 0, minHeight: 0 }}>
       {/* Files + commit */}
       <div
         style={{
@@ -320,6 +323,7 @@ export function WorkingCopy() {
             <div style={{ padding: 20, color: "var(--muted)" }}>Sem alterações textuais.</div>
           )}
         </div>
+      </div>
       </div>
 
       {confirmDiscardAll && (
