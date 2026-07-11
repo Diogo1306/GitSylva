@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
-import type { RepoInfo, FileChange, Commit, CommitDetail, BranchInfo, StashInfo, TagInfo, SyncStatus, GitIdentity, BlameLine } from "./types";
+import type { RepoInfo, FileChange, Commit, CommitDetail, BranchInfo, StashInfo, TagInfo, SyncStatus, GitIdentity, BlameLine, ConflictState } from "./types";
 
 export async function pickFolder(): Promise<string | null> {
   const picked = await openDialog({ directory: true, multiple: false });
@@ -157,4 +157,24 @@ export function setIdentity(path: string, name: string, email: string): Promise<
 
 export function blame(path: string, file: string): Promise<BlameLine[]> {
   return invoke<BlameLine[]>("blame", { path, file });
+}
+
+export function conflictState(path: string): Promise<ConflictState> {
+  return invoke<ConflictState>("conflict_state", { path });
+}
+
+export function resolveUse(path: string, file: string, side: "ours" | "theirs"): Promise<void> {
+  return invoke("resolve_use", { path, file, side });
+}
+
+export function markResolved(path: string, file: string): Promise<void> {
+  return invoke("mark_resolved", { path, file });
+}
+
+export function continueOp(path: string, kind: "merge" | "rebase"): Promise<void> {
+  return invoke("continue_op", { path, kind });
+}
+
+export function abortOp(path: string, kind: "merge" | "rebase"): Promise<void> {
+  return invoke("abort_op", { path, kind });
 }

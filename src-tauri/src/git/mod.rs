@@ -12,6 +12,7 @@ pub mod sync;
 pub mod config;
 pub mod rewrite;
 pub mod blame;
+pub mod conflict;
 
 use crate::error::GitError;
 use std::process::Command;
@@ -19,13 +20,15 @@ use std::process::Command;
 /// Run the system git in `repo` with `args`. Returns stdout on success.
 ///
 /// GIT_TERMINAL_PROMPT=0 makes network operations fail fast instead of hanging
-/// on a credential prompt, which a GUI must never block on.
+/// on a credential prompt. GIT_EDITOR=true stops merge/rebase --continue from
+/// opening an editor and blocking. A GUI must never block on either.
 pub fn run_git(repo: &str, args: &[&str]) -> Result<String, GitError> {
     let output = Command::new("git")
         .arg("-C")
         .arg(repo)
         .args(args)
         .env("GIT_TERMINAL_PROMPT", "0")
+        .env("GIT_EDITOR", "true")
         .output()
         .map_err(|e| GitError {
             code: "spawn_failed".into(),

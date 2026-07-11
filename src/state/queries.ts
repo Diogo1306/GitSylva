@@ -36,6 +36,11 @@ import {
   getIdentity,
   setIdentity,
   blame,
+  conflictState,
+  resolveUse,
+  markResolved,
+  continueOp,
+  abortOp,
 } from "../lib/api";
 
 export const queryKeys = {
@@ -187,6 +192,25 @@ export function useIdentity(path: string) {
     queryKey: queryKeys.identity(path),
     queryFn: () => getIdentity(path),
   });
+}
+
+export function useConflictState(path: string) {
+  return useQuery({ queryKey: ["conflict", path], queryFn: () => conflictState(path) });
+}
+
+export function useConflictActions(path: string) {
+  const qc = useQueryClient();
+  const refresh = () => {
+    for (const key of ["conflict", "status", "log", "branches"]) {
+      qc.invalidateQueries({ queryKey: [key, path] });
+    }
+  };
+  return {
+    resolve: useMutation({ mutationFn: (v: { file: string; side: "ours" | "theirs" }) => resolveUse(path, v.file, v.side), onSuccess: refresh }),
+    markResolved: useMutation({ mutationFn: (file: string) => markResolved(path, file), onSuccess: refresh }),
+    continue: useMutation({ mutationFn: (kind: "merge" | "rebase") => continueOp(path, kind), onSuccess: refresh }),
+    abort: useMutation({ mutationFn: (kind: "merge" | "rebase") => abortOp(path, kind), onSuccess: refresh }),
+  };
 }
 
 export function useBlame(path: string, file: string | null, enabled: boolean) {
