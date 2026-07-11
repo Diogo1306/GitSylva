@@ -1,4 +1,4 @@
-import { memo, useEffect, useMemo, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { useAppStore } from "../../state/appStore";
 import { useLog, useCommitDetail, useRewriteActions } from "../../state/queries";
 import { ContextMenu, type MenuItem } from "../../components/ui/ContextMenu";
@@ -234,6 +234,29 @@ export function History() {
     }
   }, [focusCommit, setFocusCommit]);
 
+  // Arrow-key navigation between commits (kept in a ref so the listener binds once).
+  const navRef = useRef<{ hashes: string[]; selected: string | null }>({ hashes: [], selected: null });
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA") return;
+      const st = useAppStore.getState();
+      if (st.paletteOpen || st.modal) return;
+      const { hashes, selected } = navRef.current;
+      if (!hashes.length) return;
+      const idx = Math.max(0, hashes.indexOf(selected ?? hashes[0]));
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setSelectedHash(hashes[Math.min(hashes.length - 1, idx + 1)]);
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setSelectedHash(hashes[Math.max(0, idx - 1)]);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
   const commits = data ?? [];
   const rows = useMemo(() => graphRows(commits), [commits]);
 
@@ -248,6 +271,7 @@ export function History() {
   if (commits.length === 0) return <div style={{ padding: 16, color: "var(--muted)" }}>Sem commits ainda.</div>;
 
   const selected = commits.find((c) => c.hash === selectedHash) ?? commits[0];
+  navRef.current = { hashes: filtered.map((c) => c.hash), selected: selected.hash };
 
   return (
     <div style={{ flex: 1, display: "flex", minWidth: 0, animation: "fadeIn 0.25s ease both" }}>
