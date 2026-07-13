@@ -30,10 +30,13 @@ function Check({ on, onToggle, children }: { on: boolean; onToggle: () => void; 
 }
 
 function Actions({ onClose, onConfirm, label, busy, disabled }: { onClose: () => void; onConfirm: () => void; label: string; busy?: boolean; disabled?: boolean }) {
+  // `busy` really blocks the click — a double-click must not run the git
+  // operation twice.
+  const blocked = disabled || busy;
   return (
     <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 2 }}>
       <Button onClick={onClose}>Cancelar</Button>
-      <Button variant="primary" onClick={disabled ? undefined : onConfirm} style={disabled ? { opacity: 0.5, cursor: "default" } : busy ? { opacity: 0.7 } : undefined}>
+      <Button variant="primary" onClick={blocked ? undefined : onConfirm} style={disabled ? { opacity: 0.5, cursor: "default" } : busy ? { opacity: 0.7, cursor: "default" } : undefined}>
         {label}
       </Button>
     </div>
@@ -52,7 +55,7 @@ function BranchModal({ onClose }: { onClose: () => void }) {
   const [error, setError] = useState<string | null>(null);
 
   function submit() {
-    if (!name.trim()) return;
+    if (!name.trim() || create.isPending) return;
     setError(null);
     create.mutate(
       { name: name.trim(), checkout },
@@ -88,6 +91,7 @@ function StashModal({ onClose }: { onClose: () => void }) {
   const [error, setError] = useState<string | null>(null);
 
   function submit() {
+    if (create.isPending) return;
     setError(null);
     create.mutate(
       { message, keepIndex: !includeStaged },
@@ -118,7 +122,7 @@ function TagModal({ onClose }: { onClose: () => void }) {
   const [error, setError] = useState<string | null>(null);
 
   function submit() {
-    if (!name.trim()) return;
+    if (!name.trim() || create.isPending) return;
     setError(null);
     create.mutate(
       { name: name.trim(), message },
@@ -236,12 +240,13 @@ function PullModal({ onClose }: { onClose: () => void }) {
         <Button
           variant="primary"
           onClick={() =>
+            !sync.pull.isPending &&
             sync.pull.mutate(undefined, {
               onSuccess: () => { toast("Pull concluído"); onClose(); },
               onError: (e: unknown) => setError((e as { message?: string })?.message ?? "não foi possível fazer pull (ff-only)"),
             })
           }
-          style={sync.pull.isPending ? { opacity: 0.7 } : undefined}
+          style={sync.pull.isPending ? { opacity: 0.7, cursor: "default" } : undefined}
         >
           {sync.pull.isPending ? "A integrar…" : "Fazer pull"}
         </Button>
@@ -267,12 +272,13 @@ function PushModal({ onClose }: { onClose: () => void }) {
         <Button
           variant="primary"
           onClick={() =>
+            !sync.push.isPending &&
             sync.push.mutate(undefined, {
               onSuccess: () => { toast("Push concluído"); onClose(); },
               onError: (e: unknown) => setError((e as { message?: string })?.message ?? "não foi possível fazer push"),
             })
           }
-          style={sync.push.isPending ? { opacity: 0.7 } : undefined}
+          style={sync.push.isPending ? { opacity: 0.7, cursor: "default" } : undefined}
         >
           {sync.push.isPending ? "A enviar…" : "Fazer push"}
         </Button>

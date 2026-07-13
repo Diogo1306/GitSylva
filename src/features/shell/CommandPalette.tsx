@@ -70,7 +70,10 @@ export function CommandPalette() {
         dot: "var(--leaf)",
         dotR: "2px",
         run: () => {
-          checkout.mutate(b.name, { onSuccess: () => toast(`Em ${b.name}`) });
+          checkout.mutate(b.name, {
+            onSuccess: () => toast(`Em ${b.name}`),
+            onError: (e: unknown) => toast((e as { message?: string })?.message ?? "não foi possível fazer checkout", "error"),
+          });
           setOpen(false);
         },
       }));
