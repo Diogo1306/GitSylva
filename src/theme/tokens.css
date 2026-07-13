@@ -16,7 +16,7 @@
   --bsoft: rgba(255, 255, 255, 0.05);
   --text: #eaecee;
   --text2: #a5acb2;
-  --muted: #61686e;
+  --muted: #7b838b;
   --sel: rgba(234, 236, 238, 0.08);
   --hover: rgba(234, 236, 238, 0.05);
   --btn: #1b1e21;
@@ -46,6 +46,8 @@
   --daT: #a9ddbc;
   --ddB: rgba(228, 122, 122, 0.1);
   --ddT: #e4a3a3;
+  --danger: #c25555;
+  --dangerT: #ffffff;
   --stMB: rgba(217, 169, 107, 0.14);
   --stMT: #dcbe93;
   --stAB: rgba(130, 201, 155, 0.14);

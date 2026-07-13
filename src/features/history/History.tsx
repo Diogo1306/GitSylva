@@ -235,6 +235,7 @@ export function History() {
   const [query, setQuery] = useState("");
   const [menu, setMenu] = useState<{ x: number; y: number; hash: string } | null>(null);
   const [confirmHardReset, setConfirmHardReset] = useState<string | null>(null);
+  const [confirmRebase, setConfirmRebase] = useState<string | null>(null);
 
   // Selecting a commit locally also clears any pending palette focus request.
   const selectHash = useCallback((hash: string) => {
@@ -364,11 +365,27 @@ export function History() {
             { label: `Reset forçado (hard) para ${short}…`, onClick: () => setConfirmHardReset(h), danger: true },
             { label: "", onClick: () => {}, divider: true },
             { label: "Cherry-pick para a branch atual", onClick: () => rewrite.cherryPick.mutate(h, { onSuccess: () => toast("Cherry-pick aplicado"), onError: (e: unknown) => toast((e as { message?: string })?.message ?? "conflito no cherry-pick", "error") }) },
-            { label: "Rebase da atual sobre este commit", onClick: () => rewrite.rebase.mutate(h, { onSuccess: () => toast("Rebase concluído"), onError: (e: unknown) => toast((e as { message?: string })?.message ?? "conflito no rebase", "error") }) },
+            { label: "Rebase da atual sobre este commit…", onClick: () => setConfirmRebase(h) },
             { label: "Copiar hash", onClick: () => navigator.clipboard?.writeText(h).then(() => toast("Hash copiado")) },
           ];
           return <ContextMenu x={menu.x} y={menu.y} items={items} onClose={() => setMenu(null)} />;
         })()}
+
+      {confirmRebase && (
+        <ConfirmDialog
+          message={`Rebase de ${repo.current_branch} sobre ${confirmRebase.slice(0, 7)}? Os commits locais da branch atual são reescritos.`}
+          confirmLabel="Rebase"
+          onCancel={() => setConfirmRebase(null)}
+          onConfirm={() => {
+            const onto = confirmRebase;
+            setConfirmRebase(null);
+            rewrite.rebase.mutate(onto, {
+              onSuccess: () => toast("Rebase concluído"),
+              onError: (e: unknown) => toast((e as { message?: string })?.message ?? "conflito no rebase — vê a Cópia de trabalho", "error"),
+            });
+          }}
+        />
+      )}
 
       {confirmHardReset && (
         <ConfirmDialog
