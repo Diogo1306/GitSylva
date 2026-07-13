@@ -2,6 +2,7 @@ import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { useAppStore } from "../../state/appStore";
 import { useLog, useCommitDetail, useRewriteActions } from "../../state/queries";
 import { ContextMenu, type MenuItem } from "../../components/ui/ContextMenu";
+import { ConfirmDialog } from "../../components/ConfirmDialog";
 import { toast } from "../../state/toastStore";
 import { graphRows } from "../../graph/layout";
 import { CommitGraphSvg } from "../../components/CommitGraphSvg";
@@ -225,6 +226,7 @@ export function History() {
   const [selectedHash, setSelectedHash] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [menu, setMenu] = useState<{ x: number; y: number; hash: string } | null>(null);
+  const [confirmHardReset, setConfirmHardReset] = useState<string | null>(null);
 
   // Honor a commit chosen from the command palette, then clear the request.
   useEffect(() => {
@@ -333,7 +335,7 @@ export function History() {
           const items: MenuItem[] = [
             { label: `Reset suave para ${short}`, onClick: reset("soft") },
             { label: `Reset misto para ${short}`, onClick: reset("mixed") },
-            { label: `Reset forçado (hard) para ${short}`, onClick: reset("hard"), danger: true },
+            { label: `Reset forçado (hard) para ${short}…`, onClick: () => setConfirmHardReset(h), danger: true },
             { label: "", onClick: () => {}, divider: true },
             { label: "Cherry-pick para a branch atual", onClick: () => rewrite.cherryPick.mutate(h, { onSuccess: () => toast("Cherry-pick aplicado"), onError: (e: unknown) => toast((e as { message?: string })?.message ?? "conflito no cherry-pick") }) },
             { label: "Rebase da atual sobre este commit", onClick: () => rewrite.rebase.mutate(h, { onSuccess: () => toast("Rebase concluído"), onError: (e: unknown) => toast((e as { message?: string })?.message ?? "conflito no rebase") }) },
@@ -341,6 +343,22 @@ export function History() {
           ];
           return <ContextMenu x={menu.x} y={menu.y} items={items} onClose={() => setMenu(null)} />;
         })()}
+
+      {confirmHardReset && (
+        <ConfirmDialog
+          message={`Reset forçado (hard) para ${confirmHardReset.slice(0, 7)}? Descarta TODAS as alterações locais (preparadas e não preparadas) e os commits à frente deste. Esta ação não pode ser desfeita.`}
+          confirmLabel="Reset forçado"
+          onCancel={() => setConfirmHardReset(null)}
+          onConfirm={() => {
+            const target = confirmHardReset;
+            setConfirmHardReset(null);
+            rewrite.reset.mutate(
+              { target, mode: "hard" },
+              { onSuccess: () => toast(`Reset hard para ${target.slice(0, 7)}`), onError: (e: unknown) => toast((e as { message?: string })?.message ?? "erro no reset") },
+            );
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { useAppStore } from "../../state/appStore";
 import { useStashes, useStashActions } from "../../state/queries";
 import { toast } from "../../state/toastStore";
+import { ConfirmDialog } from "../../components/ConfirmDialog";
 
 const mono = "'JetBrains Mono', monospace";
 
@@ -9,6 +11,7 @@ export function Stashes() {
   const setModal = useAppStore((s) => s.setModal);
   const { data, isLoading } = useStashes(repo.path);
   const { apply, drop } = useStashActions(repo.path);
+  const [confirmDrop, setConfirmDrop] = useState<number | null>(null);
   const stashes = data ?? [];
 
   return (
@@ -49,12 +52,7 @@ export function Stashes() {
                 Aplicar
               </div>
               <div
-                onClick={() =>
-                  drop.mutate(s.index, {
-                    onSuccess: () => toast("Stash descartado"),
-                    onError: (e: unknown) => toast((e as { message?: string })?.message ?? "não foi possível descartar"),
-                  })
-                }
+                onClick={() => setConfirmDrop(s.index)}
                 className="gs-lift"
                 style={{ padding: "7px 14px", borderRadius: 8, background: "var(--btn)", border: "1px solid var(--btnB)", color: "var(--ddT)", fontSize: 13, cursor: "pointer" }}
               >
@@ -63,6 +61,21 @@ export function Stashes() {
             </div>
           </div>
         ))
+      )}
+
+      {confirmDrop !== null && (
+        <ConfirmDialog
+          message={`Descartar o stash stash@{${confirmDrop}}? O conteúdo guardado perde-se definitivamente.`}
+          onCancel={() => setConfirmDrop(null)}
+          onConfirm={() => {
+            const idx = confirmDrop;
+            setConfirmDrop(null);
+            drop.mutate(idx, {
+              onSuccess: () => toast("Stash descartado"),
+              onError: (e: unknown) => toast((e as { message?: string })?.message ?? "não foi possível descartar"),
+            });
+          }}
+        />
       )}
     </div>
   );
