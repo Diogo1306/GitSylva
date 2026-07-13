@@ -1,11 +1,23 @@
 import { useState } from "react";
 import { useAppStore } from "../../state/appStore";
-import { useStashes, useStashActions } from "../../state/queries";
+import { useStashes, useStashFiles, useStashActions } from "../../state/queries";
 import { toast } from "../../state/toastStore";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
 import { errMsg } from "../../lib/errors";
 
 const mono = "'JetBrains Mono', monospace";
+
+// The design's card meta line: "{n} arquivos · a, b, …".
+function StashMeta({ path, index }: { path: string; index: number }) {
+  const { data } = useStashFiles(path, index);
+  if (!data || data.length === 0) return null;
+  return (
+    <div style={{ fontFamily: mono, fontSize: 12, color: "var(--muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+      {data.length} ficheiro(s) · {data.slice(0, 3).join(", ")}
+      {data.length > 3 ? "…" : ""}
+    </div>
+  );
+}
 
 export function Stashes() {
   const repo = useAppStore((s) => s.repo)!;
@@ -41,6 +53,7 @@ export function Stashes() {
               <span style={{ fontSize: 12, color: "var(--muted)" }}>{s.relative_date}</span>
             </div>
             <div style={{ fontFamily: mono, fontSize: 12, color: "var(--text2)" }}>stash@{`{${s.index}}`}</div>
+            <StashMeta path={repo.path} index={s.index} />
             <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
               <div
                 onClick={() =>

@@ -26,6 +26,7 @@ import {
   createStash,
   applyStash,
   popStash,
+  stashFiles,
   dropStash,
   listTags,
   createTag,
@@ -170,10 +171,18 @@ export function useStashes(path: string) {
   });
 }
 
+export function useStashFiles(path: string, index: number) {
+  return useQuery({
+    queryKey: ["stash-files", path, index],
+    queryFn: () => stashFiles(path, index),
+  });
+}
+
 export function useStashActions(path: string) {
   const qc = useQueryClient();
   const refresh = () => {
-    for (const key of ["stashes", "status", "conflict"]) {
+    // stash-files too: indices shift after a drop/pop.
+    for (const key of ["stashes", "stash-files", "status", "conflict"]) {
       qc.invalidateQueries({ queryKey: [key, path] });
     }
   };

@@ -48,6 +48,7 @@ pub fn run() {
       git::conflict::continue_op,
       git::conflict::abort_op,
       git::stashes::list_stashes,
+      git::stashes::stash_files,
       git::stashes::create_stash,
       git::stashes::apply_stash,
       git::stashes::pop_stash,

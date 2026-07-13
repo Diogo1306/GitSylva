@@ -9,6 +9,7 @@ import { Cleanup } from "./sections/Cleanup";
 import { Shortcuts } from "./sections/Shortcuts";
 import { Notifications } from "./sections/Notifications";
 import { StubSection } from "./sections/_shared";
+import { fold } from "../../lib/fold";
 
 // Settings nav. Each entry is a section id rendered in the scroll area below;
 // a scroll-spy highlights the one currently in view.
@@ -33,6 +34,8 @@ export function Settings() {
   const replayOnboard = useOnboardStore((s) => s.replay);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [active, setActive] = useState("set-aparencia");
+  const [navQuery, setNavQuery] = useState("");
+  const visibleNav = navQuery.trim() ? NAV.filter(([name]) => fold(name).includes(fold(navQuery.trim()))) : NAV;
 
   // Scroll-spy: highlight the nav entry whose section is nearest the top.
   useEffect(() => {
@@ -55,10 +58,19 @@ export function Settings() {
   return (
     <div style={{ flex: 1, display: "flex", minHeight: 0, background: "var(--win)", animation: "fadeIn 0.25s ease both" }}>
       <div style={{ width: 192, flexShrink: 0, borderRight: "1px solid var(--border)", background: "var(--panel)", padding: "16px 10px", display: "flex", flexDirection: "column", gap: 2, overflowY: "auto", boxSizing: "border-box" }}>
-        <div onClick={() => setView(prevView)} className="gs-lift" style={{ display: "flex", alignItems: "center", gap: 7, padding: "7px 11px", marginBottom: 12, borderRadius: 8, background: "var(--btn)", border: "1px solid var(--btnB)", color: "var(--btnT)", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>
+        <div onClick={() => setView(prevView)} className="gs-lift" style={{ display: "flex", alignItems: "center", gap: 7, padding: "7px 11px", marginBottom: 8, borderRadius: 8, background: "var(--btn)", border: "1px solid var(--btnB)", color: "var(--btnT)", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>
           ← Voltar
         </div>
-        {NAV.map(([name, id]) => (
+        <input
+          value={navQuery}
+          onChange={(e) => setNavQuery(e.target.value)}
+          placeholder="Procurar…"
+          style={{ marginBottom: 8, background: "var(--input)", border: "1px solid var(--btnB)", borderRadius: 8, padding: "6px 10px", fontSize: 12.5, color: "var(--text)", outline: "none", fontFamily: "var(--font)", boxSizing: "border-box", width: "100%" }}
+        />
+        {visibleNav.length === 0 && (
+          <div style={{ padding: "6px 11px", fontSize: 12, color: "var(--muted)" }}>Sem secções para "{navQuery}"</div>
+        )}
+        {visibleNav.map(([name, id]) => (
           <a
             key={id}
             href={`#${id}`}

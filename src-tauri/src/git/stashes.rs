@@ -61,6 +61,13 @@ pub fn create_stash(path: String, message: String, keep_index: bool, include_unt
     Ok(())
 }
 
+/// File paths touched by a stash (tracked changes), for the card preview.
+#[tauri::command]
+pub fn stash_files(path: String, index: u32) -> Result<Vec<String>, GitError> {
+    let out = run_git(&path, &["stash", "show", "--name-only", &format!("stash@{{{index}}}")])?;
+    Ok(out.lines().filter(|l| !l.trim().is_empty()).map(|s| s.to_string()).collect())
+}
+
 /// Apply a stash without removing it. A conflicting apply DOES write the
 /// changes (with conflict markers), so that case is reported distinctly
 /// instead of pretending nothing happened.
@@ -147,6 +154,9 @@ mod tests {
         let stashes = list_stashes(p.clone()).unwrap();
         assert_eq!(stashes.len(), 1);
         assert!(stashes[0].message.contains("WIP teste"));
+
+        let files = stash_files(p.clone(), 0).unwrap();
+        assert_eq!(files, vec!["a.txt".to_string()]);
 
         apply_stash(p.clone(), 0).unwrap();
         // still present after apply
