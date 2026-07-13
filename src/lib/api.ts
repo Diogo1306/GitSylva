@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
-import type { RepoInfo, FileChange, Commit, CommitDetail, BranchInfo, StashInfo, TagInfo, SyncStatus, GitIdentity, BlameLine, ConflictState } from "./types";
+import type { RepoInfo, FileChange, Commit, CommitDetail, BranchInfo, StashInfo, TagInfo, SyncStatus, GitIdentity, BlameLine, ConflictState, ConflictKind } from "./types";
 
 export async function pickFolder(): Promise<string | null> {
   const picked = await openDialog({ directory: true, multiple: false });
@@ -47,6 +47,18 @@ export function commit(path: string, message: string, amend = false): Promise<st
   return invoke<string>("commit", { path, message, amend });
 }
 
+export function headMessage(path: string): Promise<string> {
+  return invoke<string>("head_message", { path });
+}
+
+export function openPath(path: string, file: string): Promise<void> {
+  return invoke("open_path", { path, file });
+}
+
+export function revealPath(path: string, file: string): Promise<void> {
+  return invoke("reveal_path", { path, file });
+}
+
 export function resetTo(path: string, target: string, mode: "soft" | "mixed" | "hard"): Promise<void> {
   return invoke("reset_to", { path, target, mode });
 }
@@ -63,12 +75,12 @@ export function renameBranch(path: string, old: string, name: string): Promise<v
   return invoke("rename_branch", { path, old, new: name });
 }
 
-export function getLog(path: string, limit: number): Promise<Commit[]> {
-  return invoke<Commit[]>("get_log", { path, limit });
+export function getLog(path: string, limit: number, skip = 0): Promise<Commit[]> {
+  return invoke<Commit[]>("get_log", { path, limit, skip });
 }
 
-export function getDiff(path: string, file: string, staged: boolean): Promise<string> {
-  return invoke<string>("get_diff", { path, file, staged });
+export function getDiff(path: string, file: string, staged: boolean, untracked = false): Promise<string> {
+  return invoke<string>("get_diff", { path, file, staged, untracked });
 }
 
 export function applyHunk(path: string, patch: string, cached: boolean, reverse: boolean): Promise<void> {
@@ -103,8 +115,8 @@ export function listStashes(path: string): Promise<StashInfo[]> {
   return invoke<StashInfo[]>("list_stashes", { path });
 }
 
-export function createStash(path: string, message: string, keepIndex: boolean): Promise<void> {
-  return invoke("create_stash", { path, message, keepIndex });
+export function createStash(path: string, message: string, keepIndex: boolean, includeUntracked: boolean): Promise<void> {
+  return invoke("create_stash", { path, message, keepIndex, includeUntracked });
 }
 
 export function applyStash(path: string, index: number): Promise<void> {
@@ -175,10 +187,10 @@ export function markResolved(path: string, file: string): Promise<void> {
   return invoke("mark_resolved", { path, file });
 }
 
-export function continueOp(path: string, kind: "merge" | "rebase"): Promise<void> {
+export function continueOp(path: string, kind: ConflictKind): Promise<void> {
   return invoke("continue_op", { path, kind });
 }
 
-export function abortOp(path: string, kind: "merge" | "rebase"): Promise<void> {
+export function abortOp(path: string, kind: ConflictKind): Promise<void> {
   return invoke("abort_op", { path, kind });
 }

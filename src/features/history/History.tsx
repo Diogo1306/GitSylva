@@ -1,12 +1,16 @@
-import { memo, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAppStore } from "../../state/appStore";
 import { useLog, useCommitDetail, useRewriteActions } from "../../state/queries";
 import { ContextMenu, type MenuItem } from "../../components/ui/ContextMenu";
+import { ConfirmDialog } from "../../components/ConfirmDialog";
+import { PanelHandle } from "../../components/ui/PanelResize";
+import { usePanelWidth } from "../../lib/usePanelWidth";
 import { toast } from "../../state/toastStore";
 import { graphRows } from "../../graph/layout";
 import { CommitGraphSvg } from "../../components/CommitGraphSvg";
 import { DiffView } from "../../components/DiffView";
 import { statusStyle } from "../../lib/status";
+import { errMsg } from "../../lib/errors";
 import {
   relativeTime,
   fullDate,
@@ -72,7 +76,9 @@ function Chips({ refs }: { refs: string }) {
 }
 
 function DetailPanel({ repoPath, commit }: { repoPath: string; commit: Commit }) {
-  const { data, isLoading } = useCommitDetail(repoPath, commit.hash);
+  const { data, isLoading, error: detailError } = useCommitDetail(repoPath, commit.hash);
+  // %B = subject + blank line + body; everything after the first line is the body.
+  const body = (data?.message ?? "").split("\n").slice(1).join("\n").trim();
 
   return (
     <div style={{ display: "flex", flexDirection: "column", minHeight: 0, height: "100%" }}>
@@ -98,6 +104,11 @@ function DetailPanel({ repoPath, commit }: { repoPath: string; commit: Commit })
           </div>
         </div>
         <div style={{ fontSize: 14.5, lineHeight: 1.45, color: "var(--text)" }}>{commit.subject}</div>
+        {body && (
+          <div style={{ fontSize: 12.5, lineHeight: 1.55, color: "var(--text2)", whiteSpace: "pre-wrap", wordBreak: "break-word", maxHeight: 110, overflowY: "auto" }}>
+            {body}
+          </div>
+        )}
         <div style={{ display: "flex", gap: 12, fontFamily: mono, fontSize: 12 }}>
           <span style={{ color: "var(--daT)" }}>+{data?.additions ?? 0}</span>
           <span style={{ color: "var(--ddT)" }}>−{data?.deletions ?? 0}</span>
@@ -154,6 +165,8 @@ function DetailPanel({ repoPath, commit }: { repoPath: string; commit: Commit })
       <div style={{ flex: 1, overflow: "auto", margin: "0 12px 12px", border: "1px solid var(--border)", borderRadius: 10, background: "var(--panel2)", padding: "8px 0" }}>
         {isLoading ? (
           <div style={{ padding: 12, color: "var(--muted)", fontSize: 12 }}>A carregar diff…</div>
+        ) : detailError ? (
+          <div style={{ padding: 12, color: "var(--ddT)", fontSize: 12 }}>{errMsg(detailError, "não foi possível ler o commit")}</div>
         ) : data && data.diff.trim() ? (
           <DiffView patch={data.diff} />
         ) : (
@@ -181,6 +194,8 @@ const CommitRow = memo(function CommitRow({
 }) {
   return (
     <div
+      // Keyboard navigation must keep the selected row visible.
+      ref={selected ? (el) => el?.scrollIntoView({ block: "nearest" }) : undefined}
       onClick={() => onSelect(commit.hash)}
       onContextMenu={(e) => {
         e.preventDefault();
@@ -219,20 +234,27 @@ const CommitRow = memo(function CommitRow({
 export function History() {
   const repo = useAppStore((s) => s.repo)!;
   const focusCommit = useAppStore((s) => s.focusCommit);
-  const setFocusCommit = useAppStore((s) => s.setFocusCommit);
-  const { data, isLoading, error } = useLog(repo.path);
+  const [limit, setLimit] = useState(200);
+  const { data, isLoading, error, isFetching } = useLog(repo.path, limit);
   const rewrite = useRewriteActions(repo.path);
   const [selectedHash, setSelectedHash] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [menu, setMenu] = useState<{ x: number; y: number; hash: string } | null>(null);
+  const [confirmHardReset, setConfirmHardReset] = useState<string | null>(null);
+  const [confirmRebase, setConfirmRebase] = useState<string | null>(null);
+  // Design: detail panel resizable 300–560, persisted.
+  const detailW = usePanelWidth("gitsylva-w-detail", 372, 300, 560, "left");
 
-  // Honor a commit chosen from the command palette, then clear the request.
-  useEffect(() => {
-    if (focusCommit) {
-      setSelectedHash(focusCommit);
-      setFocusCommit(null);
-    }
-  }, [focusCommit, setFocusCommit]);
+  // Selecting a commit locally also clears any pending palette focus request.
+  const selectHash = useCallback((hash: string) => {
+    setSelectedHash(hash);
+    const st = useAppStore.getState();
+    if (st.focusCommit) st.setFocusCommit(null);
+  }, []);
+
+  // Stable handler so the memo() around CommitRow actually holds: without it,
+  // selecting a commit re-rendered every row in the list.
+  const onContext = useCallback((hash: string, x: number, y: number) => setMenu({ hash, x, y }), []);
 
   // Arrow-key navigation between commits (kept in a ref so the listener binds once).
   const navRef = useRef<{ hashes: string[]; selected: string | null }>({ hashes: [], selected: null });
@@ -247,17 +269,17 @@ export function History() {
       const idx = Math.max(0, hashes.indexOf(selected ?? hashes[0]));
       if (e.key === "ArrowDown") {
         e.preventDefault();
-        setSelectedHash(hashes[Math.min(hashes.length - 1, idx + 1)]);
+        selectHash(hashes[Math.min(hashes.length - 1, idx + 1)]);
       } else if (e.key === "ArrowUp") {
         e.preventDefault();
-        setSelectedHash(hashes[Math.max(0, idx - 1)]);
+        selectHash(hashes[Math.max(0, idx - 1)]);
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  }, [selectHash]);
 
-  const commits = data ?? [];
+  const commits = useMemo(() => data ?? [], [data]);
   const rows = useMemo(() => graphRows(commits), [commits]);
 
   const q = query.trim().toLowerCase();
@@ -266,12 +288,17 @@ export function History() {
     ? commits.filter((c) => (c.subject + " " + c.hash + " " + c.author).toLowerCase().includes(q))
     : commits;
 
-  if (isLoading) return <div style={{ padding: 16, color: "var(--muted)" }}>A carregar histórico…</div>;
-  if (error) return <div style={{ padding: 16, color: "var(--ddT)" }}>{String(error)}</div>;
-  if (commits.length === 0) return <div style={{ padding: 16, color: "var(--muted)" }}>Sem commits ainda.</div>;
+  // A palette pick (focusCommit) wins until the user selects something else.
+  const selected = commits.find((c) => c.hash === (focusCommit ?? selectedHash)) ?? commits[0];
 
-  const selected = commits.find((c) => c.hash === selectedHash) ?? commits[0];
-  navRef.current = { hashes: filtered.map((c) => c.hash), selected: selected.hash };
+  // Refs must not be written during render; sync the key-nav snapshot after it.
+  useEffect(() => {
+    navRef.current = { hashes: filtered.map((c) => c.hash), selected: selected?.hash ?? null };
+  });
+
+  if (isLoading) return <div style={{ padding: 16, color: "var(--muted)" }}>A carregar histórico…</div>;
+  if (error) return <div style={{ padding: 16, color: "var(--ddT)" }}>{errMsg(error, "não foi possível ler o histórico")}</div>;
+  if (commits.length === 0) return <div style={{ padding: 16, color: "var(--muted)" }}>Sem commits ainda.</div>;
 
   return (
     <div style={{ flex: 1, display: "flex", minWidth: 0, animation: "fadeIn 0.25s ease both" }}>
@@ -312,15 +339,26 @@ export function History() {
                 commit={c}
                 selected={selected.hash === c.hash}
                 filtering={filtering}
-                onSelect={setSelectedHash}
-                onContext={(hash, x, y) => setMenu({ hash, x, y })}
+                onSelect={selectHash}
+                onContext={onContext}
               />
             ))}
           </div>
+          {/* When the log filled the window, there are probably older commits. */}
+          {!filtering && commits.length >= limit && (
+            <div
+              onClick={() => !isFetching && setLimit((l) => l + 200)}
+              className="gs-row"
+              style={{ padding: "12px 16px", textAlign: "center", fontSize: 12.5, color: "var(--l0)", cursor: "pointer", fontWeight: 600 }}
+            >
+              {isFetching ? "A carregar…" : "Carregar mais commits"}
+            </div>
+          )}
         </div>
       </div>
 
-      <div style={{ width: 360, flexShrink: 0, background: "var(--panel)", minHeight: 0 }}>
+      <div style={{ width: detailW.width, flexShrink: 0, background: "var(--panel)", minHeight: 0, position: "relative" }}>
+        <PanelHandle edge="left" handleProps={detailW.handleProps} />
         <DetailPanel repoPath={repo.path} commit={selected} />
       </div>
 
@@ -329,18 +367,50 @@ export function History() {
           const h = menu.hash;
           const short = h.slice(0, 7);
           const reset = (mode: "soft" | "mixed" | "hard") => () =>
-            rewrite.reset.mutate({ target: h, mode }, { onSuccess: () => toast(`Reset ${mode} para ${short}`), onError: (e: unknown) => toast((e as { message?: string })?.message ?? "erro no reset") });
+            rewrite.reset.mutate({ target: h, mode }, { onSuccess: () => toast(`Reset ${mode} para ${short}`), onError: (e: unknown) => toast((e as { message?: string })?.message ?? "erro no reset", "error") });
           const items: MenuItem[] = [
             { label: `Reset suave para ${short}`, onClick: reset("soft") },
             { label: `Reset misto para ${short}`, onClick: reset("mixed") },
-            { label: `Reset forçado (hard) para ${short}`, onClick: reset("hard"), danger: true },
+            { label: `Reset forçado (hard) para ${short}…`, onClick: () => setConfirmHardReset(h), danger: true },
             { label: "", onClick: () => {}, divider: true },
-            { label: "Cherry-pick para a branch atual", onClick: () => rewrite.cherryPick.mutate(h, { onSuccess: () => toast("Cherry-pick aplicado"), onError: (e: unknown) => toast((e as { message?: string })?.message ?? "conflito no cherry-pick") }) },
-            { label: "Rebase da atual sobre este commit", onClick: () => rewrite.rebase.mutate(h, { onSuccess: () => toast("Rebase concluído"), onError: (e: unknown) => toast((e as { message?: string })?.message ?? "conflito no rebase") }) },
+            { label: "Cherry-pick para a branch atual", onClick: () => rewrite.cherryPick.mutate(h, { onSuccess: () => toast("Cherry-pick aplicado"), onError: (e: unknown) => toast((e as { message?: string })?.message ?? "conflito no cherry-pick", "error") }) },
+            { label: "Rebase da atual sobre este commit…", onClick: () => setConfirmRebase(h) },
             { label: "Copiar hash", onClick: () => navigator.clipboard?.writeText(h).then(() => toast("Hash copiado")) },
           ];
           return <ContextMenu x={menu.x} y={menu.y} items={items} onClose={() => setMenu(null)} />;
         })()}
+
+      {confirmRebase && (
+        <ConfirmDialog
+          message={`Rebase de ${repo.current_branch} sobre ${confirmRebase.slice(0, 7)}? Os commits locais da branch atual são reescritos.`}
+          confirmLabel="Rebase"
+          onCancel={() => setConfirmRebase(null)}
+          onConfirm={() => {
+            const onto = confirmRebase;
+            setConfirmRebase(null);
+            rewrite.rebase.mutate(onto, {
+              onSuccess: () => toast("Rebase concluído"),
+              onError: (e: unknown) => toast((e as { message?: string })?.message ?? "conflito no rebase — vê a Cópia de trabalho", "error"),
+            });
+          }}
+        />
+      )}
+
+      {confirmHardReset && (
+        <ConfirmDialog
+          message={`Reset forçado (hard) para ${confirmHardReset.slice(0, 7)}? Descarta TODAS as alterações locais (preparadas e não preparadas) e os commits à frente deste. Esta ação não pode ser desfeita.`}
+          confirmLabel="Reset forçado"
+          onCancel={() => setConfirmHardReset(null)}
+          onConfirm={() => {
+            const target = confirmHardReset;
+            setConfirmHardReset(null);
+            rewrite.reset.mutate(
+              { target, mode: "hard" },
+              { onSuccess: () => toast(`Reset hard para ${target.slice(0, 7)}`), onError: (e: unknown) => toast((e as { message?: string })?.message ?? "erro no reset", "error") },
+            );
+          }}
+        />
+      )}
     </div>
   );
 }

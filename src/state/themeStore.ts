@@ -7,11 +7,12 @@ import type {
   FontKey,
 } from "../theme/themes";
 
-export type Density = "normal" | "compacta";
 export type RepoLayout = "tabs" | "rail";
-export type Language = "pt" | "en";
 export type PullMode = "ff" | "merge" | "rebase";
 
+// Note: earlier builds persisted `density` and `language` keys that nothing
+// consumed; they were dropped to keep every stored preference real. Stale keys
+// in localStorage are simply ignored on rehydrate.
 type ThemeState = {
   theme: ThemeKey;
   treeStyle: TreeStyleKey;
@@ -19,9 +20,7 @@ type ThemeState = {
   accentIdx: number;
   fontKey: FontKey;
   anims: boolean;
-  density: Density;
   repoLayout: RepoLayout;
-  language: Language;
   pullMode: PullMode;
   confirmDiscard: boolean;
   savePrefs: (patch: Partial<ThemePrefsSlice>) => void;
@@ -35,9 +34,7 @@ const DEFAULTS: ThemePrefsSlice = {
   accentIdx: 0,
   fontKey: "inter",
   anims: true,
-  density: "normal",
   repoLayout: "tabs",
-  language: "pt",
   pullMode: "ff",
   confirmDiscard: true,
 };
@@ -50,9 +47,7 @@ type ThemePrefsSlice = Pick<
   | "accentIdx"
   | "fontKey"
   | "anims"
-  | "density"
   | "repoLayout"
-  | "language"
   | "pullMode"
   | "confirmDiscard"
 >;

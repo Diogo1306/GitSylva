@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { useShallow } from "zustand/react/shallow";
 import { useThemeStore } from "../state/themeStore";
 import { computeThemeVars } from "./themes";
 
@@ -9,7 +10,19 @@ import { computeThemeVars } from "./themes";
  * theme changes (unless decorative animations are off).
  */
 export function useApplyTheme() {
-  const { theme, treeStyle, branchColor, accentIdx, fontKey, anims } = useThemeStore();
+  // Shallow-selected: this hook lives on <App/>, so subscribing to the whole
+  // store would re-render the entire tree on ANY preference change (e.g.
+  // pullMode or confirmDiscard, which don't affect theming).
+  const { theme, treeStyle, branchColor, accentIdx, fontKey, anims } = useThemeStore(
+    useShallow((s) => ({
+      theme: s.theme,
+      treeStyle: s.treeStyle,
+      branchColor: s.branchColor,
+      accentIdx: s.accentIdx,
+      fontKey: s.fontKey,
+      anims: s.anims,
+    })),
+  );
   const prevTheme = useRef<string | null>(null);
 
   useEffect(() => {

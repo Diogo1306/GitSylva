@@ -3,7 +3,7 @@
  * :active states, which inline styles cannot express. */
 
 .gs-lift {
-  transition: transform 0.15s ease, background 0.15s ease, filter 0.15s ease;
+  transition: transform 0.15s ease, background 0.15s ease;
 }
 .gs-lift:hover {
   background: var(--hover);
@@ -15,6 +15,13 @@
 }
 .gs-row:hover {
   background: var(--hover);
+}
+
+/* Panel resize grab area: invisible until hovered/dragged. */
+.gs-resize:hover,
+.gs-resize:active {
+  background: var(--accent);
+  opacity: 0.35;
 }
 
 .gs-press {

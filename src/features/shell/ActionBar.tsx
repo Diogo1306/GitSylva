@@ -85,6 +85,10 @@ export function ActionBar() {
         alignItems: "center",
         gap: 6,
         padding: "0 14px",
+        // Narrow windows scroll the bar instead of clipping actions away.
+        overflowX: "auto",
+        overflowY: "hidden",
+        scrollbarWidth: "thin",
       }}
     >
       <Btn label="Commit" onClick={() => setView("working")} badge={staged} badgeAccent />

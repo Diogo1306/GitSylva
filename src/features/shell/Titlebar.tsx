@@ -6,7 +6,7 @@ import { useThemeStore } from "../../state/themeStore";
 import { discardAll } from "../../lib/api";
 import { winMinimize, winToggleMaximize, winClose } from "../../lib/window";
 import { toast } from "../../state/toastStore";
-import { TreeLogo } from "../../components/TreeLogo";
+import { Wordmark } from "../../components/Wordmark";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
 
 const mono = "'JetBrains Mono', monospace";
@@ -97,7 +97,7 @@ export function Titlebar({ rail = false }: { rail?: boolean }) {
       onError: (e: unknown) => {
         qc.invalidateQueries({ queryKey: queryKeys.status(repo.path) });
         qc.invalidateQueries({ queryKey: queryKeys.log(repo.path) });
-        toast((e as { message?: string })?.message ?? "não foi possível fazer fetch");
+        toast((e as { message?: string })?.message ?? "não foi possível fazer fetch", "error");
       },
     });
   }
@@ -118,7 +118,7 @@ export function Titlebar({ rail = false }: { rail?: boolean }) {
       qc.invalidateQueries({ queryKey: queryKeys.status(repo.path) });
       toast("Alterações não preparadas descartadas");
     } catch (e: unknown) {
-      toast((e as { message?: string })?.message ?? "não foi possível descartar");
+      toast((e as { message?: string })?.message ?? "não foi possível descartar", "error");
     }
   }
 
@@ -138,22 +138,8 @@ export function Titlebar({ rail = false }: { rail?: boolean }) {
     >
       <TrafficLights />
 
-      <div
-        style={{
-          display: "flex",
-          alignItems: "baseline",
-          flexShrink: 0,
-          fontFamily: "'Space Grotesk', sans-serif",
-          fontWeight: 600,
-          fontSize: 17,
-          letterSpacing: "0.3px",
-        }}
-      >
-        <span>git</span>
-        <span style={{ display: "inline-block", margin: "0 1px", transform: "translateY(2px)" }}>
-          <TreeLogo size={14} crop xScale={1.22} />
-        </span>
-        <span>ylva</span>
+      <div style={{ flexShrink: 0 }}>
+        <Wordmark size={17} />
       </div>
 
       {/* Rail mode: the tabs live in the left rail, so show repo/branch inline. */}
@@ -166,8 +152,9 @@ export function Titlebar({ rail = false }: { rail?: boolean }) {
           <span style={{ fontFamily: mono, fontSize: 12, color: "var(--l0)", fontWeight: 600 }}>{repo.current_branch}</span>
         </div>
       ) : (
-      /* Repo tabs: one per open repository, switch on click, ✕ to close. */
-      <div style={{ display: "flex", alignItems: "center", gap: 5, minWidth: 0, flex: 1, overflow: "hidden" }}>
+      /* Repo tabs: one per open repository, switch on click, ✕ to close.
+         Horizontal scroll keeps every tab reachable with many repos open. */
+      <div style={{ display: "flex", alignItems: "center", gap: 5, minWidth: 0, flex: 1, overflowX: "auto", overflowY: "hidden", scrollbarWidth: "thin" }}>
         {repos.map((r, i) => {
           const active = r.path === repo.path;
           const name = r.path.replace(/[/\\]$/, "").split(/[/\\]/).pop() ?? r.path;
@@ -309,7 +296,11 @@ export function Titlebar({ rail = false }: { rail?: boolean }) {
 
       {confirmDiscard && (
         <ConfirmDialog
-          message={`Descartar ${unstaged} alteração(ões) não preparada(s)? Esta ação não pode ser desfeita.`}
+          message={`Descartar ${unstaged} alteração(ões) não preparada(s)?${
+            files.filter((f) => f.worktree_status === "?").length > 0
+              ? ` ${files.filter((f) => f.worktree_status === "?").length} ficheiro(s) não rastreado(s) serão apagados do disco.`
+              : ""
+          } As alterações preparadas mantêm-se. Esta ação não pode ser desfeita.`}
           onCancel={() => setConfirmDiscard(false)}
           onConfirm={doDiscardAll}
         />

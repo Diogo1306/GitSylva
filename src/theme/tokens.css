@@ -16,7 +16,7 @@
   --bsoft: rgba(255, 255, 255, 0.05);
   --text: #eaecee;
   --text2: #a5acb2;
-  --muted: #61686e;
+  --muted: #7b838b;
   --sel: rgba(234, 236, 238, 0.08);
   --hover: rgba(234, 236, 238, 0.05);
   --btn: #1b1e21;
@@ -46,6 +46,8 @@
   --daT: #a9ddbc;
   --ddB: rgba(228, 122, 122, 0.1);
   --ddT: #e4a3a3;
+  --danger: #c25555;
+  --dangerT: #ffffff;
   --stMB: rgba(217, 169, 107, 0.14);
   --stMT: #dcbe93;
   --stAB: rgba(130, 201, 155, 0.14);
@@ -125,35 +127,21 @@ button:focus-visible {
   100% { transform: scale(1) rotate(0deg); }
 }
 @keyframes fadeUp { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: none; } }
-@keyframes fadeUp2 { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: none; } }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes popIn { from { opacity: 0; transform: scale(0.94) translateY(8px); } to { opacity: 1; transform: none; } }
-@keyframes winIn { from { opacity: 0; transform: scale(0.965) translateY(14px); } to { opacity: 1; transform: none; } }
-@keyframes toastUp { from { opacity: 0; transform: translate(-50%, 12px); } to { opacity: 1; transform: translate(-50%, 0); } }
 @keyframes splashSeq { 0% { opacity: 1; } 72% { opacity: 1; } 100% { opacity: 0; } }
 @keyframes logoIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: none; } }
-@keyframes lineGrow { from { width: 0; } to { width: 120px; } }
-@keyframes recPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
 @keyframes letterHop {
   0% { opacity: 1; transform: none; }
   45% { transform: translateY(-14px); opacity: 1; }
   100% { transform: translateY(10px); opacity: 0; }
 }
-@keyframes obFade { from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(1.05); } }
 @keyframes themeSwapA { 0% { opacity: 0.45; } 100% { opacity: 1; } }
-@keyframes themeSwapB { 0% { opacity: 0.45; } 100% { opacity: 1; } }
-@keyframes fxFall {
-  0% { transform: translateY(0) rotate(0deg); opacity: 0; }
-  12% { opacity: 0.9; }
-  100% { transform: translateY(340px) translateX(-18px) rotate(230deg); opacity: 0; }
-}
-@keyframes toastIn { from { opacity: 0; transform: translateX(-50%) translateY(10px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+@keyframes toastIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes fileIn { from { opacity: 0; transform: translateX(-8px) scale(0.98); } to { opacity: 1; transform: none; } }
 @keyframes letterL { from { opacity: 0; transform: translateX(16px) scale(0.85); } to { opacity: 1; transform: none; } }
 @keyframes letterR { from { opacity: 0; transform: translateX(-16px) scale(0.85); } to { opacity: 1; transform: none; } }
 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-@keyframes notifIn { from { opacity: 0; transform: translateX(28px) scale(0.97); } to { opacity: 1; transform: none; } }
-@keyframes sway { from { transform: rotate(-1.1deg); } to { transform: rotate(1.4deg); } }
 @keyframes leafFall {
   0% { transform: translate(0, -6vh) rotate(0deg); opacity: 0; }
   10% { opacity: 0.75; }
@@ -163,12 +151,16 @@ button:focus-visible {
 }
 
 /*
- * Motion gating. When the user turns off decorative animations, or the OS
- * asks for reduced motion, suppress the purely decorative keyframes. Essential
- * feedback (spinners, quick fades) is kept short elsewhere.
+ * Motion gating. Turning off "Animações decorativas" is a real master switch:
+ * every CSS animation collapses (entrances, leaves, theme flash), matching the
+ * OS-level reduced-motion behaviour below. Spinners lose their rotation but
+ * pending states still read through their text ("A obter…").
  */
-:root[data-anims="off"] [data-decor-anim] {
-  animation: none !important;
+:root[data-anims="off"] *,
+:root[data-anims="off"] *::before,
+:root[data-anims="off"] *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
 }
 @media (prefers-reduced-motion: reduce) {
   *,

@@ -3,8 +3,9 @@ import { DiffLines } from "./DiffLines";
 import { DiffSplit } from "./DiffSplit";
 
 // Diff with a unified/side-by-side toggle. The mode is remembered per session
-// via a module-level default so switching files keeps the chosen view.
-let lastMode: "unified" | "split" = "unified";
+// (sessionStorage) so switching files keeps the chosen view.
+type DiffMode = "unified" | "split";
+const MODE_KEY = "gitsylva-diff-mode";
 
 export function DiffView({
   patch,
@@ -17,9 +18,11 @@ export function DiffView({
   onStageHunk?: (hunkPatch: string) => void;
   stageLabel?: string;
 }) {
-  const [mode, setMode] = useState<"unified" | "split">(lastMode);
-  const set = (m: "unified" | "split") => {
-    lastMode = m;
+  const [mode, setMode] = useState<DiffMode>(() =>
+    sessionStorage.getItem(MODE_KEY) === "split" ? "split" : "unified",
+  );
+  const set = (m: DiffMode) => {
+    sessionStorage.setItem(MODE_KEY, m);
     setMode(m);
   };
 

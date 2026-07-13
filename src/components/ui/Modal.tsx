@@ -1,7 +1,15 @@
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 
-// Centered modal shell with a scrim. Click outside or the ✕ to close.
+// Centered modal shell with a scrim. Click outside, press Escape, or the ✕ to close.
 export function Modal({ title, onClose, width = 460, children }: { title: string; onClose: () => void; width?: number; children: ReactNode }) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
   return (
     <div
       onClick={onClose}

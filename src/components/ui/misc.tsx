@@ -54,7 +54,8 @@ export function IconButton({ onClick, title, size = 30, children }: { onClick?: 
 export function Toggle({ on }: { on: boolean }) {
   return (
     <div style={{ width: 38, height: 22, borderRadius: "var(--radius-pill)", background: on ? "var(--accent)" : "var(--btnB)", position: "relative", flexShrink: 0, transition: "background 0.15s" }}>
-      <div style={{ position: "absolute", top: 2, left: on ? 18 : 2, width: 18, height: 18, borderRadius: "50%", background: "#fff", boxShadow: "0 1px 3px rgba(0,0,0,0.25)", transition: "left 0.15s" }} />
+      {/* Themed knob with a hairline border so it stays visible on light tracks. */}
+      <div style={{ position: "absolute", top: 2, left: on ? 18 : 2, width: 18, height: 18, borderRadius: "50%", background: "var(--win)", border: "1px solid var(--border)", boxSizing: "border-box", boxShadow: "0 1px 3px rgba(0,0,0,0.25)", transition: "left 0.15s" }} />
     </div>
   );
 }

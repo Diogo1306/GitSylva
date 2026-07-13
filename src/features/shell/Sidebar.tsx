@@ -3,6 +3,9 @@ import { useAppStore } from "../../state/appStore";
 import { useStatus, useBranches, useBranchActions, useStashes, useTags, useRewriteActions } from "../../state/queries";
 import { toast } from "../../state/toastStore";
 import { ContextMenu, type MenuItem } from "../../components/ui/ContextMenu";
+import { ConfirmDialog } from "../../components/ConfirmDialog";
+import { PanelHandle } from "../../components/ui/PanelResize";
+import { usePanelWidth } from "../../lib/usePanelWidth";
 import { Input } from "../../components/ui/Input";
 import type { View } from "../../state/appStore";
 
@@ -29,6 +32,26 @@ export function Sidebar() {
   const [menu, setMenu] = useState<{ x: number; y: number; name: string } | null>(null);
   const [renaming, setRenaming] = useState<string | null>(null);
   const [renameVal, setRenameVal] = useState("");
+  const [confirmDelete, setConfirmDelete] = useState<{ name: string; force: boolean } | null>(null);
+  const [confirmRebase, setConfirmRebase] = useState<string | null>(null);
+  // Design: sidebar resizable 180–340, persisted.
+  const sidebarW = usePanelWidth("gitsylva-w-sidebar", 232, 180, 340, "right");
+
+  // Delete asks first; if git refuses because the branch isn't merged, a second
+  // dialog offers the forced (-D) path with a clear data-loss warning.
+  function deleteBranch(name: string, force: boolean) {
+    remove.mutate(
+      { name, force },
+      {
+        onSuccess: () => toast(`Branch ${name} apagada`),
+        onError: (e: unknown) => {
+          const msg = (e as { message?: string })?.message ?? "";
+          if (!force && msg.includes("not fully merged")) setConfirmDelete({ name, force: true });
+          else toast(msg || "não foi possível apagar", "error");
+        },
+      },
+    );
+  }
   const { data: stashData } = useStashes(repo.path);
   const { data: tagData } = useTags(repo.path);
   // Local branches only in the sidebar list.
@@ -73,7 +96,7 @@ export function Sidebar() {
   return (
     <div
       style={{
-        width: 230,
+        width: sidebarW.width,
         flexShrink: 0,
         borderRight: "1px solid var(--border)",
         background: "var(--panel)",
@@ -83,8 +106,10 @@ export function Sidebar() {
         flexDirection: "column",
         gap: 20,
         boxSizing: "border-box",
+        position: "relative",
       }}
     >
+      <PanelHandle edge="right" handleProps={sidebarW.handleProps} />
       <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
         <SectionLabel>ESPAÇO DE TRABALHO</SectionLabel>
         {navRow(
@@ -125,7 +150,7 @@ export function Sidebar() {
               if (b.is_current || renaming === b.name) return;
               checkout.mutate(b.name, {
                 onSuccess: () => toast(`Em ${b.name}`),
-                onError: (e: unknown) => toast((e as { message?: string })?.message ?? "não foi possível mudar de branch"),
+                onError: (e: unknown) => toast((e as { message?: string })?.message ?? "não foi possível mudar de branch", "error"),
               });
             }}
             onContextMenu={(e) => {
@@ -170,7 +195,7 @@ export function Sidebar() {
                   if (e.key === "Enter" && renameVal.trim()) {
                     rename.mutate(
                       { old: b.name, name: renameVal.trim() },
-                      { onSuccess: () => { toast(`Renomeada para ${renameVal.trim()}`); setRenaming(null); }, onError: (err: unknown) => toast((err as { message?: string })?.message ?? "não foi possível renomear") },
+                      { onSuccess: () => { toast(`Renomeada para ${renameVal.trim()}`); setRenaming(null); }, onError: (err: unknown) => toast((err as { message?: string })?.message ?? "não foi possível renomear", "error") },
                     );
                   }
                 }}
@@ -184,13 +209,7 @@ export function Sidebar() {
               <span
                 onClick={(e) => {
                   e.stopPropagation();
-                  remove.mutate(
-                    { name: b.name, force: false },
-                    {
-                      onSuccess: () => toast(`Branch ${b.name} apagada`),
-                      onError: (err: unknown) => toast((err as { message?: string })?.message ?? "não foi possível apagar"),
-                    },
-                  );
+                  setConfirmDelete({ name: b.name, force: false });
                 }}
                 title={`Apagar ${b.name}`}
                 style={{ color: "var(--muted)", fontSize: 10, padding: "1px 4px", borderRadius: 5, flexShrink: 0 }}
@@ -227,7 +246,7 @@ export function Sidebar() {
                       onClick={() =>
                         checkout.mutate(shortName, {
                           onSuccess: () => toast(`Em ${shortName}`),
-                          onError: (e: unknown) => toast((e as { message?: string })?.message ?? "não foi possível fazer checkout"),
+                          onError: (e: unknown) => toast((e as { message?: string })?.message ?? "não foi possível fazer checkout", "error"),
                         })
                       }
                       className="gs-row"
@@ -287,11 +306,44 @@ export function Sidebar() {
             { label: "Renomear", onClick: () => { setRenaming(name); setRenameVal(name); } },
           ];
           if (!isCurrent) {
-            items.push({ label: `Rebase da atual sobre ${name}`, onClick: () => rebase.mutate(name, { onSuccess: () => toast("Rebase concluído"), onError: (e: unknown) => toast((e as { message?: string })?.message ?? "conflito no rebase") }) });
-            items.push({ label: "Apagar branch", danger: true, onClick: () => remove.mutate({ name, force: false }, { onSuccess: () => toast(`Branch ${name} apagada`), onError: (e: unknown) => toast((e as { message?: string })?.message ?? "não foi possível apagar") }) });
+            items.push({ label: `Rebase da atual sobre ${name}…`, onClick: () => setConfirmRebase(name) });
+            items.push({ label: "Apagar branch…", danger: true, onClick: () => setConfirmDelete({ name, force: false }) });
           }
           return <ContextMenu x={menu.x} y={menu.y} items={items} onClose={() => setMenu(null)} />;
         })()}
+
+      {confirmDelete && (
+        <ConfirmDialog
+          message={
+            confirmDelete.force
+              ? `A branch ${confirmDelete.name} tem commits que ainda não estão integrados noutra branch. Apagar mesmo assim? Esses commits perdem-se.`
+              : `Apagar a branch ${confirmDelete.name}?`
+          }
+          confirmLabel={confirmDelete.force ? "Forçar eliminação" : "Apagar"}
+          onCancel={() => setConfirmDelete(null)}
+          onConfirm={() => {
+            const { name, force } = confirmDelete;
+            setConfirmDelete(null);
+            deleteBranch(name, force);
+          }}
+        />
+      )}
+
+      {confirmRebase && (
+        <ConfirmDialog
+          message={`Rebase de ${repo.current_branch} sobre ${confirmRebase}? Os commits locais da branch atual são reescritos.`}
+          confirmLabel="Rebase"
+          onCancel={() => setConfirmRebase(null)}
+          onConfirm={() => {
+            const onto = confirmRebase;
+            setConfirmRebase(null);
+            rebase.mutate(onto, {
+              onSuccess: () => toast("Rebase concluído"),
+              onError: (e: unknown) => toast((e as { message?: string })?.message ?? "conflito no rebase — vê a Cópia de trabalho", "error"),
+            });
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Button } from "./ui/Button";
 
 type Props = {
@@ -8,7 +9,16 @@ type Props = {
 };
 
 // Small confirmation dialog for destructive actions (discard, etc.).
+// Escape cancels — never confirms.
 export function ConfirmDialog({ message, confirmLabel = "Descartar", onConfirm, onCancel }: Props) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onCancel();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onCancel]);
+
   return (
     <div onClick={onCancel} style={{ position: "fixed", inset: 0, zIndex: 60, background: "rgba(0,0,0,0.5)", display: "grid", placeItems: "center", animation: "fadeIn 0.15s ease both" }}>
       <div
@@ -18,7 +28,7 @@ export function ConfirmDialog({ message, confirmLabel = "Descartar", onConfirm, 
         <div style={{ fontSize: 14, lineHeight: 1.5, color: "var(--text)" }}>{message}</div>
         <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
           <Button onClick={onCancel}>Cancelar</Button>
-          <Button variant="primary" style={{ background: "var(--ddT)", color: "#fff" }} onClick={onConfirm}>
+          <Button variant="primary" style={{ background: "var(--danger)", color: "var(--dangerT)" }} onClick={onConfirm}>
             {confirmLabel}
           </Button>
         </div>

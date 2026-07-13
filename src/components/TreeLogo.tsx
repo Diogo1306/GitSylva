@@ -1,4 +1,4 @@
-import { createElement, type ReactElement } from "react";
+import { createElement, memo, type ReactElement } from "react";
 import { useThemeStore } from "../state/themeStore";
 import type { TreeStyleKey } from "../theme/themes";
 
@@ -84,7 +84,8 @@ function bloom(x: number, y: number, s: number, delay: number, animated: boolean
         cx: Math.cos(ang) * 3.4,
         cy: Math.sin(ang) * 3.4,
         r: 2.3,
-        style: { fill: "#E8A6C0" },
+        // Themed like the graph's sakura petals (was a fixed pink).
+        style: { fill: "var(--leaf)" },
       }),
     );
   }
@@ -209,7 +210,9 @@ type Props = {
   treeStyle?: TreeStyleKey;
 };
 
-export function TreeLogo({ size, animated = false, crop = false, xScale, treeStyle }: Props) {
+// Memoized: the mark sits in the Titlebar, which re-renders on every status
+// change — the ~300-element SVG must not be rebuilt each time.
+export const TreeLogo = memo(function TreeLogo({ size, animated = false, crop = false, xScale, treeStyle }: Props) {
   const prefStyle = useThemeStore((s) => s.treeStyle);
   const styl = treeStyle ?? prefStyle;
   const vbH = crop ? 52 : 62;
@@ -225,7 +228,7 @@ export function TreeLogo({ size, animated = false, crop = false, xScale, treeSty
     },
     treeSKids(styl, animated, "ls"),
   );
-}
+});
 
 // The onboarding tree: the logo mark grows in stages (0 = login sapling,
 // 1 = setup, 2 = planted) by adding branches, tufts, nodes and leaves.

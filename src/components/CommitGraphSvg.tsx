@@ -302,8 +302,11 @@ function buildGraph(rows: GraphCommit[], rowH: number, styleKey: TreeStyleKey, a
 export const CommitGraphSvg = memo(function CommitGraphSvg({ rows, rowH }: { rows: GraphCommit[]; rowH: number }) {
   const styleKey = useThemeStore((s) => s.treeStyle);
   const anims = useThemeStore((s) => s.anims);
+  // Cap the entrance animation: past ~120 rows a burst of staggered keyframes
+  // costs real jank and the reveal is off-screen anyway.
+  const animate = anims && rows.length <= 120;
   // Built once per (rows, rowH, treeStyle, anims); stable across selection and
   // scroll so the entrance animation plays a single time.
-  const els = useMemo(() => buildGraph(rows, rowH, styleKey, anims), [rows, rowH, styleKey, anims]);
+  const els = useMemo(() => buildGraph(rows, rowH, styleKey, animate), [rows, rowH, styleKey, animate]);
   return h("svg", { width: 72, height: rows.length * rowH, style: { display: "block", overflow: "visible" } }, els);
 });

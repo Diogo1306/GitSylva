@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
 import { useAppStore } from "../../state/appStore";
-import { useLog, useBranches, useBranchActions, useStatus } from "../../state/queries";
+import { useLog, useBranches, useBranchActions, useStatus, useSyncActions } from "../../state/queries";
 import { toast } from "../../state/toastStore";
+import { fold, foldChars } from "../../lib/fold";
 import type { View } from "../../state/appStore";
 
 const mono = "'JetBrains Mono', monospace";
@@ -12,13 +13,15 @@ type Group = { title: string; items: Item[] };
 // Bold the matched portion of a result label.
 function markMatch(text: string, q: string) {
   if (!q) return text;
-  const i = text.toLowerCase().indexOf(q.toLowerCase());
+  const chars = Array.from(text);
+  const i = foldChars(text).indexOf(fold(q));
   if (i < 0) return text;
+  const end = i + Array.from(q).length;
   return (
     <>
-      {text.slice(0, i)}
-      <span style={{ color: "var(--accent)", fontWeight: 700 }}>{text.slice(i, i + q.length)}</span>
-      {text.slice(i + q.length)}
+      {chars.slice(0, i).join("")}
+      <span style={{ color: "var(--accent)", fontWeight: 700 }}>{chars.slice(i, end).join("")}</span>
+      {chars.slice(end).join("")}
     </>
   );
 }
@@ -32,17 +35,19 @@ export function CommandPalette() {
   const repo = useAppStore((s) => s.repo);
   const repos = useAppStore((s) => s.repos);
   const switchRepo = useAppStore((s) => s.switchRepo);
+  const setModal = useAppStore((s) => s.setModal);
   const [q, setQ] = useState("");
   const [active, setActive] = useState(0);
   const { data: commits } = useLog(repo?.path ?? "");
   const { data: branches } = useBranches(repo?.path ?? "");
   const { data: files } = useStatus(repo?.path ?? "");
   const { checkout } = useBranchActions(repo?.path ?? "");
+  const sync = useSyncActions(repo?.path ?? "");
 
   const groups = useMemo<Group[]>(() => {
     if (!open) return [];
-    const query = q.trim().toLowerCase();
-    const match = (s: string) => !query || s.toLowerCase().includes(query);
+    const query = fold(q.trim());
+    const match = (s: string) => !query || fold(s).includes(query);
 
     const go = (view: View) => () => {
       setView(view);
@@ -70,7 +75,10 @@ export function CommandPalette() {
         dot: "var(--leaf)",
         dotR: "2px",
         run: () => {
-          checkout.mutate(b.name, { onSuccess: () => toast(`Em ${b.name}`) });
+          checkout.mutate(b.name, {
+            onSuccess: () => toast(`Em ${b.name}`),
+            onError: (e: unknown) => toast((e as { message?: string })?.message ?? "não foi possível fazer checkout", "error"),
+          });
           setOpen(false);
         },
       }));
@@ -114,14 +122,38 @@ export function CommandPalette() {
         },
       }));
 
+    // Git actions: each opens the same modal/flow as the toolbar buttons.
+    const actionDefs: [string, string, () => void][] = [
+      ["Fazer commit…", "cópia de trabalho", go("working")],
+      ["Pull…", "integrar do remoto", () => { setModal("pull"); setOpen(false); }],
+      ["Push…", "enviar para o remoto", () => { setModal("push"); setOpen(false); }],
+      ["Fetch", "atualizar do remoto", () => {
+        sync.fetch.mutate(undefined, {
+          onSuccess: () => toast("Fetch concluído"),
+          onError: (e: unknown) => toast((e as { message?: string })?.message ?? "não foi possível fazer fetch", "error"),
+        });
+        setOpen(false);
+      }],
+      ["Nova branch…", "criar branch", () => { setModal("branch"); setOpen(false); }],
+      ["Merge…", "integrar branch", () => { setModal("merge"); setOpen(false); }],
+      ["Guardar stash…", "guardar alterações", () => { setModal("stash"); setOpen(false); }],
+      ["Nova tag…", "criar tag", () => { setModal("tag"); setOpen(false); }],
+    ];
+    const ac: Item[] = repo
+      ? actionDefs
+          .filter(([n]) => match(n))
+          .map(([label, sub, run]) => ({ label, sub, dot: "var(--accent)", dotR: "50%", run }))
+      : [];
+
     const gs: Group[] = [];
     if (rp.length) gs.push({ title: "REPOSITÓRIOS", items: rp });
     if (br.length) gs.push({ title: "BRANCHES", items: br });
     if (fl.length) gs.push({ title: "FICHEIROS", items: fl });
     if (cm.length) gs.push({ title: "COMMITS", items: cm });
+    if (ac.length) gs.push({ title: "AÇÕES", items: ac });
     if (nav.length) gs.push({ title: "IR PARA", items: nav });
     return gs;
-  }, [open, q, commits, branches, files, repos, repo, switchRepo, checkout, setView, setOpen, setFocusCommit, setSelectedFile]);
+  }, [open, q, commits, branches, files, repos, repo, switchRepo, checkout, sync, setView, setOpen, setFocusCommit, setSelectedFile, setModal]);
 
   if (!open) return null;
 
@@ -205,7 +237,9 @@ export function CommandPalette() {
             </div>
           ))}
           {groups.length === 0 && (
-            <div style={{ padding: 24, textAlign: "center", color: "var(--muted)", fontSize: 13 }}>Sem resultados para "{q}"</div>
+            <div style={{ padding: 24, textAlign: "center", color: "var(--muted)", fontSize: 13 }}>
+              {q.trim() ? `Sem resultados para "${q}"` : "Escreve para pesquisar…"}
+            </div>
           )}
         </div>
         <div style={{ padding: "8px 14px", borderTop: "1px solid var(--border)", display: "flex", gap: 14, fontSize: 11, color: "var(--muted)" }}>

@@ -30,10 +30,13 @@ function Check({ on, onToggle, children }: { on: boolean; onToggle: () => void; 
 }
 
 function Actions({ onClose, onConfirm, label, busy, disabled }: { onClose: () => void; onConfirm: () => void; label: string; busy?: boolean; disabled?: boolean }) {
+  // `busy` really blocks the click — a double-click must not run the git
+  // operation twice.
+  const blocked = disabled || busy;
   return (
     <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 2 }}>
       <Button onClick={onClose}>Cancelar</Button>
-      <Button variant="primary" onClick={disabled ? undefined : onConfirm} style={disabled ? { opacity: 0.5, cursor: "default" } : busy ? { opacity: 0.7 } : undefined}>
+      <Button variant="primary" onClick={blocked ? undefined : onConfirm} style={disabled ? { opacity: 0.5, cursor: "default" } : busy ? { opacity: 0.7, cursor: "default" } : undefined}>
         {label}
       </Button>
     </div>
@@ -52,7 +55,7 @@ function BranchModal({ onClose }: { onClose: () => void }) {
   const [error, setError] = useState<string | null>(null);
 
   function submit() {
-    if (!name.trim()) return;
+    if (!name.trim() || create.isPending) return;
     setError(null);
     create.mutate(
       { name: name.trim(), checkout },
@@ -85,12 +88,14 @@ function StashModal({ onClose }: { onClose: () => void }) {
   const { create } = useStashActions(repo.path);
   const [message, setMessage] = useState("");
   const [includeStaged, setIncludeStaged] = useState(true);
+  const [includeUntracked, setIncludeUntracked] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   function submit() {
+    if (create.isPending) return;
     setError(null);
     create.mutate(
-      { message, keepIndex: !includeStaged },
+      { message, keepIndex: !includeStaged, includeUntracked },
       {
         onSuccess: () => { toast("Alterações guardadas no stash"); onClose(); setView("stashes"); },
         onError: (e: unknown) => setError((e as { message?: string })?.message ?? "não foi possível guardar"),
@@ -104,6 +109,7 @@ function StashModal({ onClose }: { onClose: () => void }) {
         <Input autoFocus value={message} onChange={(e) => setMessage(e.target.value)} onKeyDown={(e) => e.key === "Enter" && submit()} placeholder={`WIP em ${repo.current_branch}`} />
       </Field>
       <Check on={includeStaged} onToggle={() => setIncludeStaged((v) => !v)}>Incluir alterações preparadas</Check>
+      <Check on={includeUntracked} onToggle={() => setIncludeUntracked((v) => !v)}>Incluir ficheiros não rastreados</Check>
       <Err msg={error} />
       <Actions onClose={onClose} onConfirm={submit} busy={create.isPending} label={create.isPending ? "A guardar…" : "Guardar"} />
     </Modal>
@@ -118,7 +124,7 @@ function TagModal({ onClose }: { onClose: () => void }) {
   const [error, setError] = useState<string | null>(null);
 
   function submit() {
-    if (!name.trim()) return;
+    if (!name.trim() || create.isPending) return;
     setError(null);
     create.mutate(
       { name: name.trim(), message },
@@ -207,32 +213,42 @@ function PullModal({ onClose }: { onClose: () => void }) {
   const { data: status } = useSyncStatus(repo.path);
   const inc = useIncoming(repo.path, true);
   const [error, setError] = useState<string | null>(null);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
-  // Fetch on open so the preview reflects the remote.
+  // Fetch on open so the preview reflects the remote. A failed fetch must NOT
+  // read as "up to date" — surface it and mark the preview as stale.
   useEffect(() => {
-    sync.fetch.mutate();
+    sync.fetch.mutate(undefined, {
+      onError: (e: unknown) => setFetchError((e as { message?: string })?.message ?? "não foi possível contactar o remoto"),
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const commits = inc.data ?? [];
   return (
     <Modal title="Pull de origin" onClose={onClose} width={520}>
-      <div style={{ fontSize: 13, color: "var(--text2)" }}>
-        {sync.fetch.isPending ? "A verificar origin…" : `${status?.behind ?? commits.length} commit(s) para integrar em ${repo.current_branch}.`}
+      <div style={{ fontSize: 13, color: fetchError ? "var(--ddT)" : "var(--text2)" }}>
+        {sync.fetch.isPending
+          ? "A verificar origin…"
+          : fetchError
+            ? "Não foi possível verificar o remoto — a lista pode estar desatualizada."
+            : `${status?.behind ?? commits.length} commit(s) para integrar em ${repo.current_branch}.`}
       </div>
-      <CommitList commits={commits} empty="Nada para integrar. Estás em dia." />
+      {fetchError && <Err msg={fetchError} />}
+      <CommitList commits={commits} empty={fetchError ? "Sem ligação ao remoto." : "Nada para integrar. Estás em dia."} />
       <Err msg={error} />
       <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
         <Button onClick={onClose}>Fechar</Button>
         <Button
           variant="primary"
           onClick={() =>
+            !sync.pull.isPending &&
             sync.pull.mutate(undefined, {
               onSuccess: () => { toast("Pull concluído"); onClose(); },
               onError: (e: unknown) => setError((e as { message?: string })?.message ?? "não foi possível fazer pull (ff-only)"),
             })
           }
-          style={sync.pull.isPending ? { opacity: 0.7 } : undefined}
+          style={sync.pull.isPending ? { opacity: 0.7, cursor: "default" } : undefined}
         >
           {sync.pull.isPending ? "A integrar…" : "Fazer pull"}
         </Button>
@@ -258,12 +274,13 @@ function PushModal({ onClose }: { onClose: () => void }) {
         <Button
           variant="primary"
           onClick={() =>
+            !sync.push.isPending &&
             sync.push.mutate(undefined, {
               onSuccess: () => { toast("Push concluído"); onClose(); },
               onError: (e: unknown) => setError((e as { message?: string })?.message ?? "não foi possível fazer push"),
             })
           }
-          style={sync.push.isPending ? { opacity: 0.7 } : undefined}
+          style={sync.push.isPending ? { opacity: 0.7, cursor: "default" } : undefined}
         >
           {sync.push.isPending ? "A enviar…" : "Fazer push"}
         </Button>

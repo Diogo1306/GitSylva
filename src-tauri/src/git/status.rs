@@ -60,6 +60,19 @@ fn parse_status(out: &str) -> Vec<FileChange> {
                     orig_path: None,
                 });
             }
+            'u' => {
+                // Unmerged (conflict): "u XY sub m1 m2 m3 mW h1 h2 h3 path"
+                let parts: Vec<&str> = entry.splitn(11, ' ').collect();
+                if parts.len() == 11 {
+                    let xy = parts[1];
+                    changes.push(FileChange {
+                        path: parts[10].to_string(),
+                        index_status: xy[0..1].to_string(),
+                        worktree_status: xy[1..2].to_string(),
+                        orig_path: None,
+                    });
+                }
+            }
             _ => {}
         }
     }
@@ -71,8 +84,8 @@ mod tests {
     use super::*;
     use std::fs;
 
-    fn repo() -> String {
-        let dir = std::env::temp_dir().join("gitsylva-status-test");
+    fn repo(name: &str) -> String {
+        let dir = std::env::temp_dir().join(format!("gitsylva-status-test-{name}"));
         let _ = fs::remove_dir_all(&dir);
         fs::create_dir_all(&dir).unwrap();
         let p = dir.to_string_lossy().to_string();
@@ -83,8 +96,29 @@ mod tests {
     }
 
     #[test]
+    fn detects_conflicted_files() {
+        let p = repo("conflict");
+        // Base commit, then two branches editing the same line -> merge conflict.
+        fs::write(format!("{p}/a.txt"), "base\n").unwrap();
+        run_git(&p, &["add", "-A"]).unwrap();
+        run_git(&p, &["commit", "-m", "base"]).unwrap();
+        run_git(&p, &["checkout", "-b", "feature"]).unwrap();
+        fs::write(format!("{p}/a.txt"), "feature\n").unwrap();
+        run_git(&p, &["commit", "-am", "feat"]).unwrap();
+        run_git(&p, &["checkout", "-"]).unwrap();
+        fs::write(format!("{p}/a.txt"), "main\n").unwrap();
+        run_git(&p, &["commit", "-am", "main"]).unwrap();
+        let _ = run_git(&p, &["merge", "feature"]);
+
+        let changes = get_status(p).unwrap();
+        let conflicted = changes.iter().find(|c| c.path == "a.txt").expect("conflicted file listed");
+        assert_eq!(conflicted.index_status, "U");
+        assert_eq!(conflicted.worktree_status, "U");
+    }
+
+    #[test]
     fn detects_untracked_and_staged() {
-        let p = repo();
+        let p = repo("basic");
         fs::write(format!("{p}/a.txt"), "hello").unwrap();
         let changes = get_status(p.clone()).unwrap();
         assert_eq!(changes.len(), 1);
@@ -93,5 +127,33 @@ mod tests {
         run_git(&p, &["add", "a.txt"]).unwrap();
         let changes = get_status(p).unwrap();
         assert_eq!(changes[0].index_status, "A");
+    }
+
+    #[test]
+    fn detects_rename_with_orig_path() {
+        let p = repo("rename");
+        fs::write(format!("{p}/old name.txt"), "same content kept intact\n").unwrap();
+        run_git(&p, &["add", "-A"]).unwrap();
+        run_git(&p, &["commit", "-m", "init"]).unwrap();
+        run_git(&p, &["mv", "old name.txt", "novo çãõ.txt"]).unwrap();
+
+        let changes = get_status(p).unwrap();
+        assert_eq!(changes.len(), 1);
+        assert_eq!(changes[0].index_status, "R");
+        assert_eq!(changes[0].path, "novo çãõ.txt");
+        assert_eq!(changes[0].orig_path.as_deref(), Some("old name.txt"));
+    }
+
+    #[test]
+    fn detects_deleted_file() {
+        let p = repo("delete");
+        fs::write(format!("{p}/a.txt"), "x").unwrap();
+        run_git(&p, &["add", "-A"]).unwrap();
+        run_git(&p, &["commit", "-m", "init"]).unwrap();
+        fs::remove_file(format!("{p}/a.txt")).unwrap();
+
+        let changes = get_status(p).unwrap();
+        assert_eq!(changes.len(), 1);
+        assert_eq!(changes[0].worktree_status, "D");
     }
 }

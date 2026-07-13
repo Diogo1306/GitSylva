@@ -12,14 +12,26 @@ pub struct RepoInfo {
 
 #[tauri::command]
 pub fn open_repo(path: String) -> Result<RepoInfo, GitError> {
+    // Bare repositories have no working copy to operate on.
+    if run_git(&path, &["rev-parse", "--is-bare-repository"]).map(|s| s.trim() == "true").unwrap_or(false) {
+        return Err(GitError {
+            code: "bare_repo".into(),
+            message: "este é um repositório bare (sem cópia de trabalho)".into(),
+        });
+    }
     // Fail early if this is not a git work tree.
     let inside = run_git(&path, &["rev-parse", "--is-inside-work-tree"])?;
     if inside.trim() != "true" {
         return Err(GitError {
             code: "not_a_repo".into(),
-            message: "this folder is not a git repository".into(),
+            message: "esta pasta não é um repositório git".into(),
         });
     }
+    // Normalize to the repository root: opening a subfolder must not create a
+    // second "repo" with a wrong name and subfolder-relative paths.
+    let path = run_git(&path, &["rev-parse", "--show-toplevel"])
+        .map(|s| s.trim().to_string())
+        .unwrap_or(path);
     // symbolic-ref resolves the branch name even on an unborn branch (no commits yet),
     // where rev-parse --abbrev-ref would only print "HEAD". Falls back on detached HEAD.
     let branch = run_git(&path, &["symbolic-ref", "--short", "HEAD"])
@@ -58,7 +70,8 @@ pub fn clone_repo(parent: String, url: String, name: String) -> Result<RepoInfo,
     if name.is_empty() {
         return Err(GitError { code: "empty_name".into(), message: "a pasta de destino está vazia".into() });
     }
-    run_git(&parent, &["clone", url, name])?;
+    // "--" keeps a URL beginning with "-" from being read as a git option.
+    run_git(&parent, &["clone", "--", url, name])?;
     open_repo(join(&parent, name))
 }
 
@@ -85,6 +98,19 @@ mod tests {
         let info = open_repo(p).unwrap();
         assert_eq!(info.current_branch, "main");
         assert!(info.is_empty);
+    }
+
+    #[test]
+    fn open_repo_normalizes_subfolder_to_toplevel() {
+        let dir = std::env::temp_dir().join("gitsylva-openrepo-toplevel-test");
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(dir.join("inner")).unwrap();
+        let p = dir.to_string_lossy().to_string();
+        run_git(&p, &["init", "-b", "main"]).unwrap();
+        let info = open_repo(dir.join("inner").to_string_lossy().to_string()).unwrap();
+        // The stored path is the repo root, not the subfolder.
+        assert!(!info.path.ends_with("inner"));
+        assert!(info.path.ends_with("gitsylva-openrepo-toplevel-test"));
     }
 
     #[test]

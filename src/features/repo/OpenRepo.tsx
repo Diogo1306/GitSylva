@@ -2,6 +2,7 @@ import { pickFolder } from "../../lib/api";
 import { useRecentsStore } from "../../state/recentsStore";
 import { useOpenRepo } from "./useOpenRepo";
 import { TreeLogo } from "../../components/TreeLogo";
+import { Wordmark } from "../../components/Wordmark";
 import { FallingLeaves } from "../../components/FallingLeaves";
 import { initials } from "../../lib/format";
 import "../shell/shell.css";
@@ -36,13 +37,7 @@ export function OpenRepo() {
       <FallingLeaves />
       <div style={{ position: "relative", zIndex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 20, textAlign: "center" }}>
         <TreeLogo size={112} animated crop />
-        <div style={{ display: "flex", alignItems: "baseline", fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: 30, letterSpacing: "0.4px" }}>
-          <span>git</span>
-          <span style={{ display: "inline-block", margin: "0 2px", transform: "translateY(4px)" }}>
-            <TreeLogo size={26} crop xScale={1.22} />
-          </span>
-          <span>ylva</span>
-        </div>
+        <Wordmark size={30} />
         <div style={{ color: "var(--text2)", fontSize: 14, maxWidth: 360, lineHeight: 1.5 }}>
           Um cliente Git de desktop onde o histórico é uma árvore viva. Abra um repositório para começar.
         </div>

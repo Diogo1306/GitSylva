@@ -7,6 +7,7 @@ import { Commits } from "./sections/Commits";
 import { PushPull } from "./sections/PushPull";
 import { Cleanup } from "./sections/Cleanup";
 import { Shortcuts } from "./sections/Shortcuts";
+import { Notifications } from "./sections/Notifications";
 import { StubSection } from "./sections/_shared";
 
 // Settings nav. Each entry is a section id rendered in the scroll area below;
@@ -15,10 +16,13 @@ const NAV: [string, string][] = [
   ["Aparência", "set-aparencia"],
   ["Contas", "set-contas"],
   ["Git", "set-git"],
+  ["Git · Editor", "set-git-extra"],
   ["Commits", "set-commits"],
   ["Push & Pull", "set-pushpull"],
   ["Atalhos", "set-atalhos"],
   ["SSH", "set-ssh"],
+  ["Notificações", "set-notificacoes"],
+  ["Idioma", "set-idioma"],
   ["Avançado", "set-avancado"],
   ["Limpeza", "set-limpeza"],
 ];
@@ -100,6 +104,14 @@ export function Settings() {
           <StubSection id="set-ssh" title="CHAVES SSH">
             Gerar chaves, testar ligação e assinar commits chegam quando o backend suportar SSH.
           </StubSection>
+
+          <Notifications />
+
+          <StubSection id="set-idioma" title="IDIOMA">
+            A interface está em português. English chega numa próxima fase, com todas as strings
+            num catálogo de tradução central.
+          </StubSection>
+
           <StubSection id="set-avancado" title="AVANÇADO">
             Git LFS, hooks e editor externo chegam numa próxima fase.
           </StubSection>

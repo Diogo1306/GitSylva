@@ -7,6 +7,7 @@ import {
   unstageFile,
   stageAll,
   discardFile,
+  discardAll as discardAllApi,
   commit,
   getLog,
   getDiff,
@@ -43,6 +44,7 @@ import {
   continueOp,
   abortOp,
 } from "../lib/api";
+import type { ConflictKind } from "../lib/types";
 
 export const queryKeys = {
   status: (path: string) => ["status", path] as const,
@@ -66,15 +68,19 @@ export function useStatus(path: string) {
 
 export function useLog(path: string, limit = 200) {
   return useQuery({
-    queryKey: queryKeys.log(path),
+    // The limit is part of the key ("load more" grows it); invalidations use
+    // the ["log", path] prefix and still hit every limit.
+    queryKey: [...queryKeys.log(path), limit],
     queryFn: () => getLog(path, limit),
+    // Keep showing the previous page while a bigger one loads.
+    placeholderData: (prev) => prev,
   });
 }
 
-export function useDiff(path: string, file: string | null, staged: boolean) {
+export function useDiff(path: string, file: string | null, staged: boolean, untracked = false) {
   return useQuery({
-    queryKey: queryKeys.diff(path, file ?? "", staged),
-    queryFn: () => getDiff(path, file as string, staged),
+    queryKey: [...queryKeys.diff(path, file ?? "", staged), untracked],
+    queryFn: () => getDiff(path, file as string, staged, untracked),
     enabled: file !== null,
   });
 }
@@ -97,14 +103,16 @@ export function useBranches(path: string) {
 export function useBranchActions(path: string) {
   const qc = useQueryClient();
   const refresh = () => {
-    qc.invalidateQueries({ queryKey: queryKeys.branches(path) });
-    qc.invalidateQueries({ queryKey: queryKeys.status(path) });
-    qc.invalidateQueries({ queryKey: queryKeys.log(path) });
+    for (const key of ["branches", "status", "log", "conflict"]) {
+      qc.invalidateQueries({ queryKey: [key, path] });
+    }
   };
-  // Reflect the new HEAD branch in app state after a switch.
+  // Reflect the new HEAD branch on the repo THIS action belongs to — the user
+  // may have switched to another repo while the checkout was in flight.
   const setCurrent = (name: string) => {
     const s = useAppStore.getState();
-    if (s.repo) s.setRepo({ ...s.repo, current_branch: name });
+    const target = s.repos.find((r) => r.path === path);
+    if (target) s.updateRepo(path, { ...target, current_branch: name });
   };
   return {
     checkout: useMutation({
@@ -121,7 +129,8 @@ export function useBranchActions(path: string) {
         refresh();
       },
     }),
-    merge: useMutation({ mutationFn: (name: string) => mergeBranch(path, name), onSuccess: refresh }),
+    // A failed merge can still leave the repo mid-conflict, so refresh on error too.
+    merge: useMutation({ mutationFn: (name: string) => mergeBranch(path, name), onSettled: refresh }),
     remove: useMutation({
       mutationFn: (v: { name: string; force: boolean }) => deleteBranch(path, v.name, v.force),
       onSuccess: refresh,
@@ -133,21 +142,23 @@ export function useBranchActions(path: string) {
   };
 }
 
-// History rewrite operations (reset/cherry-pick) refresh status, log and branches.
+// History rewrite operations (reset/cherry-pick/rebase). They refresh on
+// settle (not just success): a conflicting cherry-pick/rebase leaves the repo
+// mid-operation and the UI must reflect that.
 export function useRewriteActions(path: string) {
   const qc = useQueryClient();
   const refresh = () => {
-    qc.invalidateQueries({ queryKey: queryKeys.status(path) });
-    qc.invalidateQueries({ queryKey: queryKeys.log(path) });
-    qc.invalidateQueries({ queryKey: queryKeys.branches(path) });
+    for (const key of ["status", "log", "branches", "conflict"]) {
+      qc.invalidateQueries({ queryKey: [key, path] });
+    }
   };
   return {
     reset: useMutation({
       mutationFn: (v: { target: string; mode: "soft" | "mixed" | "hard" }) => resetTo(path, v.target, v.mode),
-      onSuccess: refresh,
+      onSettled: refresh,
     }),
-    cherryPick: useMutation({ mutationFn: (hash: string) => cherryPick(path, hash), onSuccess: refresh }),
-    rebase: useMutation({ mutationFn: (onto: string) => rebase(path, onto), onSuccess: refresh }),
+    cherryPick: useMutation({ mutationFn: (hash: string) => cherryPick(path, hash), onSettled: refresh }),
+    rebase: useMutation({ mutationFn: (onto: string) => rebase(path, onto), onSettled: refresh }),
   };
 }
 
@@ -161,15 +172,18 @@ export function useStashes(path: string) {
 export function useStashActions(path: string) {
   const qc = useQueryClient();
   const refresh = () => {
-    qc.invalidateQueries({ queryKey: queryKeys.stashes(path) });
-    qc.invalidateQueries({ queryKey: queryKeys.status(path) });
+    for (const key of ["stashes", "status", "conflict"]) {
+      qc.invalidateQueries({ queryKey: [key, path] });
+    }
   };
   return {
     create: useMutation({
-      mutationFn: (v: { message: string; keepIndex: boolean }) => createStash(path, v.message, v.keepIndex),
+      mutationFn: (v: { message: string; keepIndex: boolean; includeUntracked: boolean }) =>
+        createStash(path, v.message, v.keepIndex, v.includeUntracked),
       onSuccess: refresh,
     }),
-    apply: useMutation({ mutationFn: (index: number) => applyStash(path, index), onSuccess: refresh }),
+    // A conflicting apply still writes to the worktree — refresh on error too.
+    apply: useMutation({ mutationFn: (index: number) => applyStash(path, index), onSettled: refresh }),
     drop: useMutation({ mutationFn: (index: number) => dropStash(path, index), onSuccess: refresh }),
   };
 }
@@ -209,8 +223,8 @@ export function useConflictActions(path: string) {
   return {
     resolve: useMutation({ mutationFn: (v: { file: string; side: "ours" | "theirs" }) => resolveUse(path, v.file, v.side), onSuccess: refresh }),
     markResolved: useMutation({ mutationFn: (file: string) => markResolved(path, file), onSuccess: refresh }),
-    continue: useMutation({ mutationFn: (kind: "merge" | "rebase") => continueOp(path, kind), onSuccess: refresh }),
-    abort: useMutation({ mutationFn: (kind: "merge" | "rebase") => abortOp(path, kind), onSuccess: refresh }),
+    continue: useMutation({ mutationFn: (kind: ConflictKind) => continueOp(path, kind), onSettled: refresh }),
+    abort: useMutation({ mutationFn: (kind: ConflictKind) => abortOp(path, kind), onSettled: refresh }),
   };
 }
 
@@ -242,14 +256,15 @@ export function useSyncActions(path: string) {
   const qc = useQueryClient();
   // After a network op, everything local may have moved.
   const refresh = () => {
-    for (const key of ["status", "log", "branches", "sync", "tags", "outgoing", "incoming"]) {
+    for (const key of ["status", "log", "branches", "sync", "tags", "outgoing", "incoming", "conflict"]) {
       qc.invalidateQueries({ queryKey: [key, path] });
     }
   };
   return {
     fetch: useMutation({ mutationFn: () => fetchRemote(path), onSuccess: refresh }),
-    // Pull uses the mode chosen in Settings (read at call time).
-    pull: useMutation({ mutationFn: () => pull(path, useThemeStore.getState().pullMode), onSuccess: refresh }),
+    // Pull uses the mode chosen in Settings (read at call time). A conflicting
+    // pull (merge/rebase mode) leaves the repo mid-operation: refresh on error too.
+    pull: useMutation({ mutationFn: () => pull(path, useThemeStore.getState().pullMode), onSettled: refresh }),
     push: useMutation({ mutationFn: () => push(path), onSuccess: refresh }),
   };
 }
@@ -271,15 +286,21 @@ export function useTagActions(path: string) {
 
 export function useStageActions(path: string) {
   const qc = useQueryClient();
-  const invalidate = () => qc.invalidateQueries({ queryKey: queryKeys.status(path) });
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: queryKeys.status(path) });
+    qc.invalidateQueries({ queryKey: ["diff", path] });
+  };
   return {
     stage: useMutation({ mutationFn: (file: string) => stageFile(path, file), onSuccess: invalidate }),
     unstage: useMutation({ mutationFn: (file: string) => unstageFile(path, file), onSuccess: invalidate }),
     stageAll: useMutation({ mutationFn: () => stageAll(path), onSuccess: invalidate }),
     discard: useMutation({
       mutationFn: (v: { file: string; untracked: boolean }) => discardFile(path, v.file, v.untracked),
-      onSuccess: invalidate,
+      onSettled: invalidate,
     }),
+    // One backend call: reverts tracked worktree edits (keeps staged) and
+    // removes untracked files/dirs. Never touches the index.
+    discardAll: useMutation({ mutationFn: () => discardAllApi(path), onSettled: invalidate }),
   };
 }
 

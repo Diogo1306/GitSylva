@@ -1,29 +1,35 @@
 import { describe, it, expect } from "vitest";
-import { layoutGraph, graphRows } from "./layout";
+import { graphRows } from "./layout";
 import type { Commit } from "../lib/types";
 
 function c(hash: string, parents: string[]): Commit {
   return { hash, parents, author: "", email: "", date: "", subject: "", refs: "" };
 }
 
-describe("layoutGraph", () => {
-  it("puts a linear history in a single lane", () => {
-    const commits = [c("c", ["b"]), c("b", ["a"]), c("a", [])];
-    const rows = layoutGraph(commits);
-    expect(rows.map((r) => r.lane)).toEqual([0, 0, 0]);
-  });
-
+describe("graphRows", () => {
   it("assigns a second lane on a branch", () => {
-    // m merges b and a. b and a are separate lines.
+    // m merges a and b; b's line gets its own lane.
     const commits = [c("m", ["a", "b"]), c("b", ["root"]), c("a", ["root"]), c("root", [])];
-    const rows = layoutGraph(commits);
+    const rows = graphRows(commits);
     expect(rows[0].lane).toBe(0);
-    // b takes a new lane because it is the second parent branch
     expect(rows.find((r) => r.commit.hash === "b")!.lane).toBeGreaterThan(0);
   });
-});
 
-describe("graphRows", () => {
+  it("handles octopus merges (3+ parents)", () => {
+    const commits = [
+      c("m", ["a", "b", "x"]),
+      c("x", ["root"]),
+      c("b", ["root"]),
+      c("a", ["root"]),
+      c("root", []),
+    ];
+    const rows = graphRows(commits);
+    expect(rows[0].merge).toBe(true);
+    expect(rows[0].parentRows.sort()).toEqual([1, 2, 3]);
+    // The three parent lines occupy three distinct lanes.
+    const lanes = new Set(rows.slice(1, 4).map((r) => r.lane));
+    expect(lanes.size).toBe(3);
+  });
   it("keeps linear history in lane 0 with parent row links", () => {
     const commits = [c("c", ["b"]), c("b", ["a"]), c("a", [])];
     const rows = graphRows(commits);

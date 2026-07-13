@@ -18,12 +18,15 @@ pub fn stage_all(path: String) -> Result<(), GitError> {
     run_git(&path, &["add", "-A"]).map(|_| ())
 }
 
+/// Discard the UNSTAGED changes of one file. Staged changes are kept: a
+/// partially staged file loses only its worktree edits. Untracked files
+/// (and directories) are removed from disk.
 #[tauri::command]
 pub fn discard_file(path: String, file: String, untracked: bool) -> Result<(), GitError> {
     if untracked {
-        run_git(&path, &["clean", "-f", "--", &file]).map(|_| ())
+        run_git(&path, &["clean", "-fd", "--", &file]).map(|_| ())
     } else {
-        run_git(&path, &["restore", "--staged", "--worktree", "--", &file]).map(|_| ())
+        run_git(&path, &["restore", "--worktree", "--", &file]).map(|_| ())
     }
 }
 
@@ -61,6 +64,44 @@ mod tests {
         assert_eq!(get_status(p.clone()).unwrap()[0].index_status, "A");
         unstage_file(p.clone(), "a.txt".into()).unwrap();
         assert_eq!(get_status(p).unwrap()[0].worktree_status, "?");
+    }
+
+    #[test]
+    fn discard_file_keeps_staged_changes() {
+        let p = repo("partial");
+        // Commit, stage an edit, then edit again (partially staged file).
+        fs::write(format!("{p}/a.txt"), "one\n").unwrap();
+        run_git(&p, &["add", "-A"]).unwrap();
+        run_git(&p, &["commit", "-m", "init"]).unwrap();
+        fs::write(format!("{p}/a.txt"), "one\nstaged\n").unwrap();
+        run_git(&p, &["add", "a.txt"]).unwrap();
+        fs::write(format!("{p}/a.txt"), "one\nstaged\nunstaged\n").unwrap();
+
+        discard_file(p.clone(), "a.txt".into(), false).unwrap();
+
+        // The staged part survived; only the worktree edit was discarded.
+        let st = get_status(p.clone()).unwrap();
+        assert_eq!(st.len(), 1);
+        assert_eq!(st[0].index_status, "M");
+        assert_eq!(st[0].worktree_status, ".");
+        let content = fs::read_to_string(format!("{p}/a.txt")).unwrap();
+        assert!(content.contains("staged") && !content.contains("unstaged"));
+    }
+
+    #[test]
+    fn discard_file_removes_untracked_dir() {
+        let p = repo("untrackeddir");
+        fs::write(format!("{p}/keep.txt"), "x").unwrap();
+        run_git(&p, &["add", "-A"]).unwrap();
+        run_git(&p, &["commit", "-m", "init"]).unwrap();
+        fs::create_dir_all(format!("{p}/newdir")).unwrap();
+        fs::write(format!("{p}/newdir/file.txt"), "x").unwrap();
+
+        // Porcelain reports the directory itself as one untracked entry.
+        let st = get_status(p.clone()).unwrap();
+        assert_eq!(st[0].path, "newdir/");
+        discard_file(p.clone(), st[0].path.clone(), true).unwrap();
+        assert!(!std::path::Path::new(&format!("{p}/newdir")).exists());
     }
 
     #[test]
