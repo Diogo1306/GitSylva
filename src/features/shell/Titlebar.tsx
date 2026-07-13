@@ -6,7 +6,7 @@ import { useThemeStore } from "../../state/themeStore";
 import { discardAll } from "../../lib/api";
 import { winMinimize, winToggleMaximize, winClose } from "../../lib/window";
 import { toast } from "../../state/toastStore";
-import { TreeLogo } from "../../components/TreeLogo";
+import { Wordmark } from "../../components/Wordmark";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
 
 const mono = "'JetBrains Mono', monospace";
