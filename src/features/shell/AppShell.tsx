@@ -10,6 +10,8 @@ import { CommandPalette } from "./CommandPalette";
 import { Modals } from "./Modals";
 import { Toaster } from "../../components/Toaster";
 import { ConflictBanner } from "../working-copy/ConflictBanner";
+import { openRepo } from "../../lib/api";
+import { toast } from "../../state/toastStore";
 
 // Each screen is a separate chunk; only the active one is fetched and parsed.
 const WorkingCopy = lazy(() => import("../working-copy/WorkingCopy").then((m) => ({ default: m.WorkingCopy })));
@@ -50,6 +52,20 @@ export function AppShell() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [setPaletteOpen]);
+
+  // Revalidate persisted repos once at startup: refresh branch/head for the
+  // ones still on disk, close (with a warning) the ones that no longer exist.
+  useEffect(() => {
+    const { repos } = useAppStore.getState();
+    for (const r of repos) {
+      openRepo(r.path)
+        .then((info) => useAppStore.getState().updateRepo(r.path, info))
+        .catch(() => {
+          useAppStore.getState().closeRepo(r.path);
+          toast(`O repositório ${r.path} já não existe no disco — separador fechado`, "error");
+        });
+    }
+  }, []);
 
   // Warm the other screens' chunks while the machine is idle, so the first
   // switch to Working/Stashes/Settings is instant. First paint still only pays

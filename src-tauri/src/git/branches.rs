@@ -59,15 +59,26 @@ pub fn checkout_branch(path: String, name: String) -> Result<(), GitError> {
     run_git(&path, &["checkout", &name]).map(|_| ())
 }
 
-/// Create a new branch from HEAD, optionally checking it out.
-#[tauri::command]
-pub fn create_branch(path: String, name: String, checkout: bool) -> Result<(), GitError> {
+/// A branch name git will accept. The refs/heads/ prefix also keeps a name
+/// beginning with "-" from being parsed as an option.
+fn validate_branch_name(path: &str, name: &str) -> Result<(), GitError> {
     if name.trim().is_empty() {
         return Err(GitError {
             code: "empty_name".into(),
             message: "o nome da branch está vazio".into(),
         });
     }
+    let refname = format!("refs/heads/{}", name.trim());
+    run_git(path, &["check-ref-format", &refname]).map(|_| ()).map_err(|_| GitError {
+        code: "invalid_name".into(),
+        message: format!("\"{}\" não é um nome de branch válido", name.trim()),
+    })
+}
+
+/// Create a new branch from HEAD, optionally checking it out.
+#[tauri::command]
+pub fn create_branch(path: String, name: String, checkout: bool) -> Result<(), GitError> {
+    validate_branch_name(&path, &name)?;
     if checkout {
         run_git(&path, &["checkout", "-b", &name]).map(|_| ())
     } else {
@@ -92,9 +103,7 @@ pub fn delete_branch(path: String, name: String, force: bool) -> Result<(), GitE
 /// Rename a branch.
 #[tauri::command]
 pub fn rename_branch(path: String, old: String, new: String) -> Result<(), GitError> {
-    if new.trim().is_empty() {
-        return Err(GitError { code: "empty_name".into(), message: "o novo nome está vazio".into() });
-    }
+    validate_branch_name(&path, &new)?;
     run_git(&path, &["branch", "-m", &old, new.trim()]).map(|_| ())
 }
 

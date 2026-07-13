@@ -2,7 +2,7 @@
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "GitSylva",
   "version": "0.1.0",
-  "identifier": "com.tauri.dev",
+  "identifier": "com.gitsylva.app",
   "build": {
     "frontendDist": "../dist",
     "devUrl": "http://localhost:6767",
@@ -23,7 +23,7 @@
       }
     ],
     "security": {
-      "csp": null
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src ipc: http://ipc.localhost"
     }
   },
   "bundle": {

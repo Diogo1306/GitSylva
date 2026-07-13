@@ -26,6 +26,8 @@ type AppState = {
   modal: Modal;
   // Open a repo (adds it if new, updates it if already open) and make it active.
   setRepo: (repo: RepoInfo | null) => void;
+  // Refresh an open repo's info in place (never changes which repo is active).
+  updateRepo: (oldPath: string, repo: RepoInfo) => void;
   switchRepo: (path: string) => void;
   closeRepo: (path: string) => void;
   addGroup: (name: string) => string;
@@ -60,6 +62,11 @@ export const useAppStore = create<AppState>()(
       const repos = exists ? s.repos.map((r) => (r.path === repo.path ? repo : r)) : [...s.repos, repo];
       return { repos, repo, selectedFile: null };
     }),
+  updateRepo: (oldPath, repo) =>
+    set((s) => ({
+      repos: s.repos.map((r) => (r.path === oldPath ? repo : r)),
+      repo: s.repo?.path === oldPath ? repo : s.repo,
+    })),
   switchRepo: (path) =>
     set((s) => {
       const found = s.repos.find((r) => r.path === path);

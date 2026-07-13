@@ -107,10 +107,12 @@ export function useBranchActions(path: string) {
       qc.invalidateQueries({ queryKey: [key, path] });
     }
   };
-  // Reflect the new HEAD branch in app state after a switch.
+  // Reflect the new HEAD branch on the repo THIS action belongs to — the user
+  // may have switched to another repo while the checkout was in flight.
   const setCurrent = (name: string) => {
     const s = useAppStore.getState();
-    if (s.repo) s.setRepo({ ...s.repo, current_branch: name });
+    const target = s.repos.find((r) => r.path === path);
+    if (target) s.updateRepo(path, { ...target, current_branch: name });
   };
   return {
     checkout: useMutation({
