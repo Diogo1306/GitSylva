@@ -4,7 +4,8 @@ import { useStatus, useBranches, useBranchActions, useStashes, useTags, useRewri
 import { toast } from "../../state/toastStore";
 import { ContextMenu, type MenuItem } from "../../components/ui/ContextMenu";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
-import { usePanelWidth, PanelHandle } from "../../components/ui/PanelResize";
+import { PanelHandle } from "../../components/ui/PanelResize";
+import { usePanelWidth } from "../../lib/usePanelWidth";
 import { Input } from "../../components/ui/Input";
 import type { View } from "../../state/appStore";
 
