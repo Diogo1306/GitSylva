@@ -149,7 +149,7 @@ export function Appearance() {
       <div onClick={() => t.savePrefs({ anims: !t.anims })} style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 4px", cursor: "pointer", borderBottom: "1px solid var(--bsoft)" }}>
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 13.5, fontWeight: 500 }}>Animações decorativas</div>
-          <Hint>Folhas a cair, floresta a balançar e flash na troca de tema</Hint>
+          <Hint>Folhas a cair, crescimento da árvore e flash na troca de tema</Hint>
         </div>
         <Toggle on={t.anims} />
       </div>

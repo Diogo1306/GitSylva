@@ -190,6 +190,8 @@ const CommitRow = memo(function CommitRow({
 }) {
   return (
     <div
+      // Keyboard navigation must keep the selected row visible.
+      ref={selected ? (el) => el?.scrollIntoView({ block: "nearest" }) : undefined}
       onClick={() => onSelect(commit.hash)}
       onContextMenu={(e) => {
         e.preventDefault();
