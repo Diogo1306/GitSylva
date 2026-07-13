@@ -6,7 +6,7 @@ import { DiffView } from "../../components/DiffView";
 import { BlameView } from "../../components/BlameView";
 import { ConflictBanner } from "./ConflictBanner";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
-import { statusStyle } from "../../lib/status";
+import { statusStyle, isConflict } from "../../lib/status";
 import type { FileChange } from "../../lib/types";
 
 const mono = "'JetBrains Mono', monospace";
@@ -24,6 +24,7 @@ function FileRow({
   letter,
   checked,
   selected,
+  conflicted,
   onToggle,
   onSelect,
 }: {
@@ -31,6 +32,7 @@ function FileRow({
   letter: string;
   checked: boolean;
   selected: boolean;
+  conflicted?: boolean;
   onToggle: () => void;
   onSelect: () => void;
 }) {
@@ -54,9 +56,9 @@ function FileRow({
       <div
         onClick={(e) => {
           e.stopPropagation();
-          onToggle();
+          if (!conflicted) onToggle();
         }}
-        title={checked ? "Retirar da preparação" : "Preparar"}
+        title={conflicted ? "Em conflito — resolve-o primeiro (painel acima)" : checked ? "Retirar da preparação" : "Preparar"}
         style={
           checked
             ? { width: 17, height: 17, borderRadius: 5, background: "var(--accent)", flexShrink: 0, display: "grid", placeItems: "center", color: "var(--accentT)", fontSize: 11, fontWeight: 800, cursor: "pointer" }
@@ -129,8 +131,10 @@ export function WorkingCopy() {
   if (error) return <div style={{ padding: 16, color: "var(--ddT)" }}>{String(error)}</div>;
 
   const files = data ?? [];
-  const unstaged = files.filter((f) => f.worktree_status !== ".");
-  const staged = files.filter((f) => f.index_status !== "." && f.index_status !== "?");
+  // Conflicted files show once (in the unstaged list, letter "U") — staging them
+  // would silently mark the conflict as resolved.
+  const unstaged = files.filter((f) => f.worktree_status !== "." || isConflict(f.index_status, f.worktree_status));
+  const staged = files.filter((f) => f.index_status !== "." && f.index_status !== "?" && !isConflict(f.index_status, f.worktree_status));
   const branch = repo.current_branch;
 
   function select(path: string, staged: boolean) {
@@ -204,9 +208,10 @@ export function WorkingCopy() {
             <FileRow
               key={"u" + f.path}
               file={f}
-              letter={f.worktree_status}
+              letter={isConflict(f.index_status, f.worktree_status) ? "U" : f.worktree_status}
               checked={false}
               selected={sel?.path === f.path && !sel.staged}
+              conflicted={isConflict(f.index_status, f.worktree_status)}
               onToggle={() => actions.stage.mutate(f.path)}
               onSelect={() => select(f.path, false)}
             />
