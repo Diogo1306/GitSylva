@@ -68,6 +68,7 @@ export const useThemeStore = create<ThemeState>()(
         }),
       resetPrefs: () => set({ ...DEFAULTS }),
     }),
-    { name: "gitsylva-prefs" },
+    // Version 0 = pre-versioning shape; bump with a migrate fn on changes.
+    { name: "gitsylva-prefs", version: 0 },
   ),
 );

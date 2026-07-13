@@ -50,6 +50,7 @@ pub fn run() {
       git::stashes::list_stashes,
       git::stashes::create_stash,
       git::stashes::apply_stash,
+      git::stashes::pop_stash,
       git::stashes::drop_stash,
       git::tags::list_tags,
       git::tags::create_tag,

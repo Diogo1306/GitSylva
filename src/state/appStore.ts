@@ -111,6 +111,9 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: "gitsylva-open-repos",
+      // Version 0 matches state persisted before versioning existed; bump it
+      // (with a migrate fn) whenever the persisted shape changes.
+      version: 0,
       // Only the open repos, grouping and the active one survive a restart;
       // transient UI state (view, selection, palette, modal) resets.
       partialize: (s) => ({ repos: s.repos, repo: s.repo, groups: s.groups, groupOf: s.groupOf }),

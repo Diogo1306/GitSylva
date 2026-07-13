@@ -82,6 +82,26 @@ pub fn apply_stash(path: String, index: u32) -> Result<(), GitError> {
     }
 }
 
+/// Apply a stash and, on clean apply, remove it. On conflict git KEEPS the
+/// stash (and the worktree has markers) — reported distinctly, like apply.
+#[tauri::command]
+pub fn pop_stash(path: String, index: u32) -> Result<(), GitError> {
+    match run_git(&path, &["stash", "pop", &format!("stash@{{{index}}}")]) {
+        Ok(_) => Ok(()),
+        Err(original) => {
+            let unmerged = run_git(&path, &["diff", "--name-only", "--diff-filter=U"]).unwrap_or_default();
+            if unmerged.lines().any(|l| !l.trim().is_empty()) {
+                Err(GitError {
+                    code: "conflict".into(),
+                    message: "o stash foi aplicado com conflitos e foi mantido — resolve os ficheiros marcados na Cópia de trabalho".into(),
+                })
+            } else {
+                Err(original)
+            }
+        }
+    }
+}
+
 /// Delete a stash.
 #[tauri::command]
 pub fn drop_stash(path: String, index: u32) -> Result<(), GitError> {
@@ -133,6 +153,19 @@ mod tests {
         assert_eq!(list_stashes(p.clone()).unwrap().len(), 1);
 
         drop_stash(p.clone(), 0).unwrap();
+        assert_eq!(list_stashes(p).unwrap().len(), 0);
+    }
+
+    #[test]
+    fn pop_applies_and_removes() {
+        let p = repo("pop");
+        fs::write(format!("{p}/a.txt"), "one\ntwo\n").unwrap();
+        create_stash(p.clone(), "WIP pop".into(), false, false).unwrap();
+        assert_eq!(list_stashes(p.clone()).unwrap().len(), 1);
+
+        pop_stash(p.clone(), 0).unwrap();
+        // Applied to the worktree AND removed from the stash list.
+        assert!(fs::read_to_string(format!("{p}/a.txt")).unwrap().contains("two"));
         assert_eq!(list_stashes(p).unwrap().len(), 0);
     }
 

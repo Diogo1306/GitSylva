@@ -25,6 +25,7 @@ import {
   listStashes,
   createStash,
   applyStash,
+  popStash,
   dropStash,
   listTags,
   createTag,
@@ -182,8 +183,9 @@ export function useStashActions(path: string) {
         createStash(path, v.message, v.keepIndex, v.includeUntracked),
       onSuccess: refresh,
     }),
-    // A conflicting apply still writes to the worktree — refresh on error too.
+    // A conflicting apply/pop still writes to the worktree — refresh on error too.
     apply: useMutation({ mutationFn: (index: number) => applyStash(path, index), onSettled: refresh }),
+    pop: useMutation({ mutationFn: (index: number) => popStash(path, index), onSettled: refresh }),
     drop: useMutation({ mutationFn: (index: number) => dropStash(path, index), onSuccess: refresh }),
   };
 }
