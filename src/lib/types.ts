@@ -30,6 +30,7 @@ export type CommitFile = {
 };
 
 export type CommitDetail = {
+  message: string;
   additions: number;
   deletions: number;
   files: CommitFile[];

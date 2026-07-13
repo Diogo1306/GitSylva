@@ -17,11 +17,22 @@ pub struct Commit {
 const FMT: &str = "%H%x1f%P%x1f%an%x1f%ae%x1f%aI%x1f%s%x1f%D%x1e";
 
 #[tauri::command]
-pub fn get_log(path: String, limit: u32) -> Result<Vec<Commit>, GitError> {
+pub fn get_log(path: String, limit: u32, skip: u32) -> Result<Vec<Commit>, GitError> {
     let arg = format!("--pretty=format:{FMT}");
     let n = format!("-{limit}");
-    let out = run_git(&path, &["log", &n, &arg])?;
-    Ok(parse_log(&out))
+    let sk = format!("--skip={skip}");
+    match run_git(&path, &["log", &n, &sk, &arg]) {
+        Ok(out) => Ok(parse_log(&out)),
+        Err(e) => {
+            // A repository with no commits yet has no HEAD; that's an empty
+            // log, not an error the user needs to see.
+            if run_git(&path, &["rev-parse", "--verify", "HEAD"]).is_err() {
+                Ok(Vec::new())
+            } else {
+                Err(e)
+            }
+        }
+    }
 }
 
 /// Commits in a revision range (e.g. "@{u}..HEAD"), newest first. Used by the
@@ -39,15 +50,18 @@ fn parse_log(out: &str) -> Vec<Commit> {
         .map(|r| r.trim_matches('\n'))
         .filter(|r| !r.is_empty())
         .map(|record| {
+            // Defensive indexing: a subject containing a stray separator byte
+            // must not panic the whole log.
             let f: Vec<&str> = record.split('\u{1f}').collect();
+            let get = |i: usize| f.get(i).copied().unwrap_or("");
             Commit {
-                hash: f[0].to_string(),
-                parents: f[1].split_whitespace().map(|s| s.to_string()).collect(),
-                author: f[2].to_string(),
-                email: f[3].to_string(),
-                date: f[4].to_string(),
-                subject: f[5].to_string(),
-                refs: f.get(6).unwrap_or(&"").to_string(),
+                hash: get(0).to_string(),
+                parents: get(1).split_whitespace().map(|s| s.to_string()).collect(),
+                author: get(2).to_string(),
+                email: get(3).to_string(),
+                date: get(4).to_string(),
+                subject: get(5).to_string(),
+                refs: get(6).to_string(),
             }
         })
         .collect()
@@ -73,9 +87,25 @@ mod tests {
         fs::write(format!("{p}/a.txt"), "2").unwrap();
         run_git(&p, &["add", "-A"]).unwrap();
         run_git(&p, &["commit", "-m", "two"]).unwrap();
-        let commits = get_log(p, 10).unwrap();
+        let commits = get_log(p.clone(), 10, 0).unwrap();
         assert_eq!(commits.len(), 2);
         assert_eq!(commits[0].subject, "two");
         assert_eq!(commits[1].parents.len(), 0);
+
+        // Pagination: skip past the newest commit.
+        let older = get_log(p, 10, 1).unwrap();
+        assert_eq!(older.len(), 1);
+        assert_eq!(older[0].subject, "one");
+    }
+
+    #[test]
+    fn empty_repo_yields_empty_log() {
+        let dir = std::env::temp_dir().join("gitsylva-log-test-empty");
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir).unwrap();
+        let p = dir.to_string_lossy().to_string();
+        run_git(&p, &["init"]).unwrap();
+        let commits = get_log(p, 10, 0).unwrap();
+        assert!(commits.is_empty());
     }
 }

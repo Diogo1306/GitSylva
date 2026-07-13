@@ -75,6 +75,8 @@ function Chips({ refs }: { refs: string }) {
 
 function DetailPanel({ repoPath, commit }: { repoPath: string; commit: Commit }) {
   const { data, isLoading } = useCommitDetail(repoPath, commit.hash);
+  // %B = subject + blank line + body; everything after the first line is the body.
+  const body = (data?.message ?? "").split("\n").slice(1).join("\n").trim();
 
   return (
     <div style={{ display: "flex", flexDirection: "column", minHeight: 0, height: "100%" }}>
@@ -100,6 +102,11 @@ function DetailPanel({ repoPath, commit }: { repoPath: string; commit: Commit })
           </div>
         </div>
         <div style={{ fontSize: 14.5, lineHeight: 1.45, color: "var(--text)" }}>{commit.subject}</div>
+        {body && (
+          <div style={{ fontSize: 12.5, lineHeight: 1.55, color: "var(--text2)", whiteSpace: "pre-wrap", wordBreak: "break-word", maxHeight: 110, overflowY: "auto" }}>
+            {body}
+          </div>
+        )}
         <div style={{ display: "flex", gap: 12, fontFamily: mono, fontSize: 12 }}>
           <span style={{ color: "var(--daT)" }}>+{data?.additions ?? 0}</span>
           <span style={{ color: "var(--ddT)" }}>−{data?.deletions ?? 0}</span>
@@ -221,7 +228,8 @@ const CommitRow = memo(function CommitRow({
 export function History() {
   const repo = useAppStore((s) => s.repo)!;
   const focusCommit = useAppStore((s) => s.focusCommit);
-  const { data, isLoading, error } = useLog(repo.path);
+  const [limit, setLimit] = useState(200);
+  const { data, isLoading, error, isFetching } = useLog(repo.path, limit);
   const rewrite = useRewriteActions(repo.path);
   const [selectedHash, setSelectedHash] = useState<string | null>(null);
   const [query, setQuery] = useState("");
@@ -327,6 +335,16 @@ export function History() {
               />
             ))}
           </div>
+          {/* When the log filled the window, there are probably older commits. */}
+          {!filtering && commits.length >= limit && (
+            <div
+              onClick={() => !isFetching && setLimit((l) => l + 200)}
+              className="gs-row"
+              style={{ padding: "12px 16px", textAlign: "center", fontSize: 12.5, color: "var(--l0)", cursor: "pointer", fontWeight: 600 }}
+            >
+              {isFetching ? "A carregar…" : "Carregar mais commits"}
+            </div>
+          )}
         </div>
       </div>
 

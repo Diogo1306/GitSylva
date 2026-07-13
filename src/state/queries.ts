@@ -68,8 +68,12 @@ export function useStatus(path: string) {
 
 export function useLog(path: string, limit = 200) {
   return useQuery({
-    queryKey: queryKeys.log(path),
+    // The limit is part of the key ("load more" grows it); invalidations use
+    // the ["log", path] prefix and still hit every limit.
+    queryKey: [...queryKeys.log(path), limit],
     queryFn: () => getLog(path, limit),
+    // Keep showing the previous page while a bigger one loads.
+    placeholderData: (prev) => prev,
   });
 }
 

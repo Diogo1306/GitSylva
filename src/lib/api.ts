@@ -63,8 +63,8 @@ export function renameBranch(path: string, old: string, name: string): Promise<v
   return invoke("rename_branch", { path, old, new: name });
 }
 
-export function getLog(path: string, limit: number): Promise<Commit[]> {
-  return invoke<Commit[]>("get_log", { path, limit });
+export function getLog(path: string, limit: number, skip = 0): Promise<Commit[]> {
+  return invoke<Commit[]>("get_log", { path, limit, skip });
 }
 
 export function getDiff(path: string, file: string, staged: boolean): Promise<string> {
