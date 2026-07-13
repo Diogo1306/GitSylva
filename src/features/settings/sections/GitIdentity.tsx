@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useAppStore } from "../../../state/appStore";
 import { useIdentity, useSetIdentity } from "../../../state/queries";
 import { toast } from "../../../state/toastStore";
@@ -10,16 +10,14 @@ export function GitIdentity() {
   const repo = useAppStore((s) => s.repo)!;
   const { data } = useIdentity(repo.path);
   const save = useSetIdentity(repo.path);
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-
-  // Load the current identity once it arrives.
-  useEffect(() => {
-    if (data) {
-      setName(data.name);
-      setEmail(data.email);
-    }
-  }, [data]);
+  // null = "not edited yet": the fields show the identity from git until the
+  // user types, so no effect is needed to sync server data into local state.
+  const [nameEdit, setNameEdit] = useState<string | null>(null);
+  const [emailEdit, setEmailEdit] = useState<string | null>(null);
+  const name = nameEdit ?? data?.name ?? "";
+  const email = emailEdit ?? data?.email ?? "";
+  const setName = setNameEdit;
+  const setEmail = setEmailEdit;
 
   const changed = !!data && (name !== data.name || email !== data.email);
 
@@ -39,7 +37,17 @@ export function GitIdentity() {
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
         <Button
           variant="primary"
-          onClick={() => changed && !save.isPending && save.mutate({ name, email }, { onSuccess: () => toast("Identidade guardada") })}
+          onClick={() =>
+            changed &&
+            !save.isPending &&
+            save.mutate(
+              { name, email },
+              {
+                onSuccess: () => { toast("Identidade guardada"); setNameEdit(null); setEmailEdit(null); },
+                onError: (e: unknown) => toast((e as { message?: string })?.message ?? "não foi possível guardar a identidade"),
+              },
+            )
+          }
           style={changed ? undefined : { opacity: 0.5, cursor: "default", background: "var(--btn)", color: "var(--muted)", border: "1px solid var(--btnB)" }}
         >
           {save.isPending ? "A guardar…" : "Guardar identidade"}

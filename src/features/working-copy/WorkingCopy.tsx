@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useAppStore } from "../../state/appStore";
 import { useStatus, useStageActions, useCommit, useDiff, useBlame, useHunkActions } from "../../state/queries";
 import { useThemeStore } from "../../state/themeStore";
@@ -114,18 +114,25 @@ export function WorkingCopy() {
   const [stacked, setStacked] = useState(false);
   const [blameOn, setBlameOn] = useState(false);
 
-  const diff = useDiff(repo.path, sel?.path ?? null, sel?.staged ?? false);
-  const blameQ = useBlame(repo.path, sel?.path ?? null, blameOn);
-
-  // Honor a file chosen from the command palette, then clear the request.
+  // Honor a file chosen from the command palette: it stays "selected" (derived,
+  // no effect/setState) until the user picks another file, which clears it.
   const paletteFile = useAppStore((s) => s.selectedFile);
-  const clearPaletteFile = useAppStore((s) => s.setSelectedFile);
-  useEffect(() => {
-    if (!paletteFile) return;
+  const paletteSel = useMemo<Sel>(() => {
+    if (!paletteFile) return null;
     const f = (data ?? []).find((x) => x.path === paletteFile);
-    if (f) setSel({ path: paletteFile, staged: f.index_status !== "." && f.index_status !== "?" });
-    clearPaletteFile(null);
-  }, [paletteFile, data, clearPaletteFile]);
+    return f ? { path: paletteFile, staged: f.index_status !== "." && f.index_status !== "?" } : null;
+  }, [paletteFile, data]);
+  const effSel = paletteSel ?? sel;
+
+  const diff = useDiff(repo.path, effSel?.path ?? null, effSel?.staged ?? false);
+  const blameQ = useBlame(repo.path, effSel?.path ?? null, blameOn);
+
+  // Stable so DiffLines' memoized rows survive re-renders of this screen.
+  const stagedSel = effSel?.staged ?? false;
+  const onStageHunk = useCallback(
+    (p: string) => hunk.mutate({ patch: p, cached: true, reverse: stagedSel }),
+    [hunk, stagedSel],
+  );
 
   if (isLoading) return <div style={{ padding: 16, color: "var(--muted)" }}>A carregar alterações…</div>;
   if (error) return <div style={{ padding: 16, color: "var(--ddT)" }}>{String(error)}</div>;
@@ -139,6 +146,7 @@ export function WorkingCopy() {
 
   function select(path: string, staged: boolean) {
     setSel({ path, staged });
+    if (useAppStore.getState().selectedFile) useAppStore.getState().setSelectedFile(null);
   }
 
   function doCommit() {
@@ -157,10 +165,10 @@ export function WorkingCopy() {
     setConfirmDiscardAll(false);
   }
 
-  const selStatus = sel
-    ? sel.staged
-      ? files.find((f) => f.path === sel.path)?.index_status ?? "M"
-      : files.find((f) => f.path === sel.path)?.worktree_status ?? "M"
+  const selStatus = effSel
+    ? effSel.staged
+      ? files.find((f) => f.path === effSel.path)?.index_status ?? "M"
+      : files.find((f) => f.path === effSel.path)?.worktree_status ?? "M"
     : "";
   const selSt = statusStyle(selStatus);
 
@@ -209,7 +217,7 @@ export function WorkingCopy() {
               file={f}
               letter={isConflict(f.index_status, f.worktree_status) ? "U" : f.worktree_status}
               checked={false}
-              selected={sel?.path === f.path && !sel.staged}
+              selected={effSel?.path === f.path && !effSel.staged}
               conflicted={isConflict(f.index_status, f.worktree_status)}
               onToggle={() => actions.stage.mutate(f.path)}
               onSelect={() => select(f.path, false)}
@@ -227,7 +235,7 @@ export function WorkingCopy() {
               file={f}
               letter={f.index_status}
               checked
-              selected={sel?.path === f.path && sel.staged}
+              selected={effSel?.path === f.path && effSel.staged}
               onToggle={() => actions.unstage.mutate(f.path)}
               onSelect={() => select(f.path, true)}
             />
@@ -288,23 +296,23 @@ export function WorkingCopy() {
       {/* Diff */}
       <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", order: stacked ? 1 : 2 }}>
         <div style={{ padding: "13px 20px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 10 }}>
-          {sel ? (
+          {effSel ? (
             <>
               <span style={{ width: 16, height: 16, borderRadius: 4, display: "grid", placeItems: "center", fontFamily: mono, fontSize: 10, fontWeight: 700, background: selSt.bg, color: selSt.color }}>
                 {selStatus}
               </span>
-              <span style={{ fontFamily: mono, fontSize: 13, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{sel.path}</span>
+              <span style={{ fontFamily: mono, fontSize: 13, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{effSel.path}</span>
             </>
           ) : (
             <span style={{ fontSize: 13, color: "var(--muted)" }}>Selecione um ficheiro para ver o diff</span>
           )}
           <div style={{ flex: 1 }} />
-          {sel && selStatus !== "?" && (
+          {effSel && selStatus !== "?" && (
             <div onClick={() => setBlameOn((v) => !v)} className="gs-lift" style={{ display: "flex", alignItems: "center", gap: 6, padding: "5px 11px", borderRadius: 7, background: blameOn ? "var(--sel)" : "var(--btn)", border: "1px solid var(--btnB)", fontSize: 12, color: "var(--btnT)", cursor: "pointer", whiteSpace: "nowrap" }}>
               Blame
             </div>
           )}
-          {!blameOn && <span style={{ fontSize: 12, color: "var(--muted)" }}>{sel?.staged ? "diff preparado" : "diff da cópia de trabalho"}</span>}
+          {!blameOn && <span style={{ fontSize: 12, color: "var(--muted)" }}>{effSel?.staged ? "diff preparado" : "diff da cópia de trabalho"}</span>}
           {!blameOn && (
             <div onClick={() => setStacked((v) => !v)} className="gs-lift" style={{ display: "flex", alignItems: "center", gap: 6, padding: "5px 11px", borderRadius: 7, background: "var(--btn)", border: "1px solid var(--btnB)", fontSize: 12, color: "var(--btnT)", cursor: "pointer", whiteSpace: "nowrap" }}>
               {stacked ? "Lado a lado" : "Empilhado"}
@@ -312,7 +320,7 @@ export function WorkingCopy() {
           )}
         </div>
         <div style={{ flex: 1, overflow: "auto", padding: "10px 0", background: "var(--panel2)" }}>
-          {!sel ? null : blameOn ? (
+          {!effSel ? null : blameOn ? (
             blameQ.isLoading ? (
               <div style={{ padding: 20, color: "var(--muted)" }}>A carregar blame…</div>
             ) : blameQ.data && blameQ.data.length ? (
@@ -326,12 +334,8 @@ export function WorkingCopy() {
             <DiffView
               patch={diff.data}
               fontSize={12.5}
-              stageLabel={sel.staged ? "Retirar" : "Preparar"}
-              onStageHunk={
-                selStatus === "?"
-                  ? undefined
-                  : (p) => hunk.mutate({ patch: p, cached: true, reverse: sel.staged })
-              }
+              stageLabel={effSel.staged ? "Retirar" : "Preparar"}
+              onStageHunk={selStatus === "?" ? undefined : onStageHunk}
             />
           ) : (
             <div style={{ padding: 20, color: "var(--muted)" }}>Sem alterações textuais.</div>

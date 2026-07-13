@@ -1,4 +1,4 @@
-import { memo, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAppStore } from "../../state/appStore";
 import { useLog, useCommitDetail, useRewriteActions } from "../../state/queries";
 import { ContextMenu, type MenuItem } from "../../components/ui/ContextMenu";
@@ -220,7 +220,6 @@ const CommitRow = memo(function CommitRow({
 export function History() {
   const repo = useAppStore((s) => s.repo)!;
   const focusCommit = useAppStore((s) => s.focusCommit);
-  const setFocusCommit = useAppStore((s) => s.setFocusCommit);
   const { data, isLoading, error } = useLog(repo.path);
   const rewrite = useRewriteActions(repo.path);
   const [selectedHash, setSelectedHash] = useState<string | null>(null);
@@ -228,13 +227,16 @@ export function History() {
   const [menu, setMenu] = useState<{ x: number; y: number; hash: string } | null>(null);
   const [confirmHardReset, setConfirmHardReset] = useState<string | null>(null);
 
-  // Honor a commit chosen from the command palette, then clear the request.
-  useEffect(() => {
-    if (focusCommit) {
-      setSelectedHash(focusCommit);
-      setFocusCommit(null);
-    }
-  }, [focusCommit, setFocusCommit]);
+  // Selecting a commit locally also clears any pending palette focus request.
+  const selectHash = useCallback((hash: string) => {
+    setSelectedHash(hash);
+    const st = useAppStore.getState();
+    if (st.focusCommit) st.setFocusCommit(null);
+  }, []);
+
+  // Stable handler so the memo() around CommitRow actually holds: without it,
+  // selecting a commit re-rendered every row in the list.
+  const onContext = useCallback((hash: string, x: number, y: number) => setMenu({ hash, x, y }), []);
 
   // Arrow-key navigation between commits (kept in a ref so the listener binds once).
   const navRef = useRef<{ hashes: string[]; selected: string | null }>({ hashes: [], selected: null });
@@ -249,17 +251,17 @@ export function History() {
       const idx = Math.max(0, hashes.indexOf(selected ?? hashes[0]));
       if (e.key === "ArrowDown") {
         e.preventDefault();
-        setSelectedHash(hashes[Math.min(hashes.length - 1, idx + 1)]);
+        selectHash(hashes[Math.min(hashes.length - 1, idx + 1)]);
       } else if (e.key === "ArrowUp") {
         e.preventDefault();
-        setSelectedHash(hashes[Math.max(0, idx - 1)]);
+        selectHash(hashes[Math.max(0, idx - 1)]);
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  }, [selectHash]);
 
-  const commits = data ?? [];
+  const commits = useMemo(() => data ?? [], [data]);
   const rows = useMemo(() => graphRows(commits), [commits]);
 
   const q = query.trim().toLowerCase();
@@ -268,12 +270,17 @@ export function History() {
     ? commits.filter((c) => (c.subject + " " + c.hash + " " + c.author).toLowerCase().includes(q))
     : commits;
 
+  // A palette pick (focusCommit) wins until the user selects something else.
+  const selected = commits.find((c) => c.hash === (focusCommit ?? selectedHash)) ?? commits[0];
+
+  // Refs must not be written during render; sync the key-nav snapshot after it.
+  useEffect(() => {
+    navRef.current = { hashes: filtered.map((c) => c.hash), selected: selected?.hash ?? null };
+  });
+
   if (isLoading) return <div style={{ padding: 16, color: "var(--muted)" }}>A carregar histórico…</div>;
   if (error) return <div style={{ padding: 16, color: "var(--ddT)" }}>{String(error)}</div>;
   if (commits.length === 0) return <div style={{ padding: 16, color: "var(--muted)" }}>Sem commits ainda.</div>;
-
-  const selected = commits.find((c) => c.hash === selectedHash) ?? commits[0];
-  navRef.current = { hashes: filtered.map((c) => c.hash), selected: selected.hash };
 
   return (
     <div style={{ flex: 1, display: "flex", minWidth: 0, animation: "fadeIn 0.25s ease both" }}>
@@ -314,8 +321,8 @@ export function History() {
                 commit={c}
                 selected={selected.hash === c.hash}
                 filtering={filtering}
-                onSelect={setSelectedHash}
-                onContext={(hash, x, y) => setMenu({ hash, x, y })}
+                onSelect={selectHash}
+                onContext={onContext}
               />
             ))}
           </div>

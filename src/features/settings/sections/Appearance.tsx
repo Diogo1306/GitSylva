@@ -4,7 +4,8 @@ import { toast } from "../../../state/toastStore";
 import { PALETTES, FONTS, TREE_META, BRANCH_COLOR_META, type ThemeKey, type TreeStyleKey, type FontKey } from "../../../theme/themes";
 import { Toggle } from "../../../components/ui/misc";
 import { Button } from "../../../components/ui/Button";
-import { SectionTitle, FieldLabel, Hint, pillStyle } from "./_shared";
+import { SectionTitle, FieldLabel, Hint } from "./_shared";
+import { pillStyle } from "./pill";
 
 const THEME_KEYS = ["theme", "treeStyle", "branchColor", "accentIdx", "fontKey", "anims"] as const;
 
