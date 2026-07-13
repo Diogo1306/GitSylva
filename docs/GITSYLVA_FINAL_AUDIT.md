@@ -73,14 +73,83 @@ S1 diacríticos na pesquisa · S2 grupo AÇÕES na paleta · S11/L6 Escape em Mo
 ### P3 — Visual e polimento
 B1/B2 Wordmark partilhado · B7/B8 glifos duplicados + sway morto · O4/O5/O8 onboarding (voltar/saltar/replay) · T3/T4/T5 hardcoded menores + sombras tokenizáveis · H17-H25 detalhes do histórico/diff · R6-R17 detalhes de repos · S3-S5/S8-S10 detalhes de settings/palette · G13-G18 detalhes de git ops · W15-W21 detalhes de working copy · X19-X21 higiene (App.css, layoutGraph, keyframes/prefs mortos, assets template).
 
-## 3. Comparação visual por ecrã
+## 3. Comparação visual por ecrã (fase 5)
 
-_(fase 5 — após correções funcionais; base = anexo 00)_
+Base de comparação: `docs/audit/00-inventario-handoff.md`. Estado após as correções:
 
-## 4. Correções aplicadas
+| Ecrã | Diferenças encontradas | Ação |
+|---|---|---|
+| Splash | Fiel (Space Grotesk 52px, letterL/R + letterHop, 2.05s) | ✅ sem alterações |
+| Login (onboarding) | Wordmark era texto simples sem a árvore-S; OAuth honesto (melhor que o protótipo, que fingia login) | Corrigido: `Wordmark` partilhado |
+| Setup (onboarding) | **Faltava o passo NOVIDADES** (3 cartas ±3.5° + dots + "próximo →"); "Saltar" idêntico a "Plantar" | Corrigido: deck implementado; Saltar entra com defaults |
+| Histórico | Grafo/estilos/chips/avatares fiéis; painel de detalhe fixo (design: arrastável 300–560); sem corpo da mensagem | Corrigido: divisor arrastável persistido; corpo multi-linha no painel; "Carregar mais" |
+| Detalhe/diff | Sem números de linha (pendente, ver §6); merges e renames errados | Corrigidos merges/renames/mensagem |
+| Cópia de trabalho | Painel fixo (design: 320–540 arrastável); sem menu de contexto de ficheiro | Corrigidos ambos |
+| Stashes | Fiel; faltava confirmação no drop e opção untracked | Corrigidos |
+| Pesquisa ⌘K | Fiel; sem diacríticos; sem grupo de ações | Corrigidos |
+| Definições | Scroll-spy fiel; faltavam Notificações/Idioma | Corrigidas (Notificações com preview real; Idioma stub honesto) |
+| Sidebar | Fixa (design: 180–340 arrastável) | Corrigido |
+| Temas | 4 temas fiéis às paletas exatas; `--muted` desviado de propósito p/ AA (documentado); ConfirmDialog ilegível no Batman | Corrigidos (`--danger` novo, valores documentados nos comentários) |
+| Ícone/favicon | Placeholders do template | Favicon = árvore-S real; ícones Tauri pendentes (ver §6) |
+| Traffic lights | macOS à esquerda, cores fixas — **fiel ao design** (o protótipo é assim); mantido como decisão de design | ✅ mantido |
+| Notificação com vinha | O design define um cartão de notificação com vinha decorativa (além dos toasts) | Não implementado (ver §6) |
 
-_(um registo por commit — a preencher durante a fase de correções)_
+## 4. Correções aplicadas (um registo por commit)
+
+| Commit | Findings | Descrição |
+|---|---|---|
+| `166801b` | — | support.js do handoff para os protótipos renderizarem |
+| `196f9fd` | — | Matriz de auditoria + anexos 00-09 |
+| `ddbf9fc` | **W2 (P0)** | Parser de status trata entradas `u`: conflitos visíveis na working copy (letra U, checkbox bloqueado) + teste |
+| `cc8c686` | **G2/W4 (P0)**, G3/G6 | Deteção de cherry-pick/revert (CHERRY_PICK_HEAD/REVERT_HEAD) com continue/abort; stash apply em conflito reporta `code:"conflict"` honestamente; invalidação em `onSettled` + query `conflict` nos refresh; banner suporta conflitos sem operação (stash) + testes |
+| `36c5a8a` | **W1 (P0)**, W5/W6 | `discard_file` preserva staged (`restore --worktree`); `clean -fd` remove dirs untracked; WorkingCopy usa o `discard_all` único; confirmações enumeram untracked + 2 testes |
+| `eccefe1` | **G1/W3 (P0)** | ConfirmDialog antes de `reset --hard` e de drop de stash |
+| `b903e17` | **R1 (P0), G4 (P0)** | `key={repo.path}` no ecrã (amend/msg não vazam entre repos); PullModal mostra falha de fetch em vez de "Estás em dia" |
+| `4878dea` | lint×7, H2, H3 | Zero erros de lint; estado derivado em vez de setState-em-effect; diff memoizado (highlight 1× por patch); callbacks estáveis → memo das 200 rows real |
+| `69916c6` | A7, R2, S12-14, S11/L6, X10 | ErrorBoundary; `errMsg` (fim do `[object Object]`); toasts com variantes + dismiss + 8s para erros + aria-live; Escape fecha Modal/ConfirmDialog; useApplyTheme com seletores |
+| `ecb819f` | G7, G11 | Guards de duplo-submit; checkout da paleta reporta erros |
+| `e4cebba` | H6/H7/H8/H15, H14, H12, H1 | `commit_detail`: merges via `-m --first-parent`, renames via `-z`, mensagem completa, patch em thread paralela; `parse_log` seguro; repo vazio → log vazio; paginação `skip` + "Carregar mais" + 3 testes |
+| `595ccab` | S6, S8, S10 | Secção Notificações real (preview) + stub Idioma; secção órfã no nav; prefs mortas removidas |
+| `f8cf168` | S1, S2, S4 | Pesquisa sem acentos com highlight alinhado; grupo AÇÕES; empty state neutro |
+| `ca9a7c7` | T1, T2, G9, G10, G13 | Token `--danger`; `--muted` AA nos 4 temas; confirmação apagar branch (+ caminho -D com aviso); confirmação rebase; validação `check-ref-format` |
+| `545a04a` | W7/W8/W9/W10/W11/W12, G5 | Menu de contexto de ficheiro (abrir/explorador/copiar/descartar); diff de untracked sintetizado; amend pré-carrega mensagem e avisa se pushed; stash `-u`; banner de conflito global + 2 testes |
+| `5166362`+`e5325f3` | R4, R10, A3, A4, B5, R3/A8, R6, R11 | `open_repo` → toplevel + bare detection; `clone --`; CSP estrita; `com.gitsylva.app`; revalidação de repos no arranque (fecha os inexistentes com aviso); `setCurrent` por path + teste |
+| `9aa0226` | N1, B8, N5, T6, X19/X20, H13, N3 | Toggle de animações é interruptor mestre real; copy corrigida; 10 keyframes + App.css + assets + layoutGraph mortos removidos; scroll-into-view nas setas; cap de animação do grafo >120 rows; teste octopus |
+| `3184074` | A9, A10, A2/G17, T3, T4, X13, R7, L5 | Estados de erro em Stashes/detalhe; hints PT para erros de auth/lock; pétala sakura e knob tematizados; TreeLogo memo; tabs e ActionBar com scroll |
+| `0f63fa2`+`e2c5242` | **L1** | Divisores arrastáveis persistidos: sidebar 180-340, detalhe 300-560, working copy 320-540 (spec do design) |
+| `26fec50` | B4, O3, O5 | Favicon árvore-S real; passo NOVIDADES; "Saltar" com semântica real |
+| `f616d67`+`0bea54f` | B1, B2 | Componente `Wordmark` partilhado (titlebar, welcome, onboarding) |
+| `9caa22e` | X1, X2, + | Testes: renames/deletes com paths unicode, isConflict, fold, themeStore |
 
 ## 5. Validação final
 
-_(a preencher no fim)_
+Executada em 2026-07-13 no fecho da branch `feature/final-audit`, com exit codes explícitos
+(nota de método: pipes bash mascaram exit codes — dois falsos "verdes" foram apanhados e
+corrigidos durante a sessão por esta via):
+
+| Validação | Comando | Resultado |
+|---|---|---|
+| Typecheck | `npx tsc -b` | ✅ exit 0 |
+| Lint | `npx eslint .` | ✅ exit 0 (baseline: 7 erros + 1 warning) |
+| Testes frontend | `npm test` | ✅ exit 0 — **43/43** em 9 ficheiros (baseline: 33/33 em 7) |
+| Build produção | `npm run build` | ✅ exit 0 — 771ms; vendor 222KB (gzip 69.5KB), index 104KB (gzip 28.5KB), screens code-split |
+| Testes Rust | `cargo test` | ✅ exit 0 — **42/42** (baseline: 29/29), todos com repositórios git temporários REAIS (init/commit/merge/conflito/stash/remote bare+clones) |
+| Build release Rust | `cargo build --release` | ✅ exit 0 em 3m19s |
+| Packaging (`tauri build` bundle) | — | Não executado nesta passagem (instalador NSIS/MSI); o binário release compila. Antes de empacotar, gerar os ícones reais (§6). |
+
+Cobertura nova de testes nesta passagem (+13 Rust, +10 frontend): conflitos no parser de status,
+cherry-pick conflict/abort, stash apply em conflito, stash com untracked, discard parcial-staged,
+discard de dir untracked, diff de untracked, renames/merges/mensagem no commit_detail, log de repo
+vazio + paginação, toplevel normalization, renames/deletes com paths unicode, isConflict, fold de
+acentos, themeStore, octopus merges.
+
+## 6. Dívida restante (fora do escopo desta passagem, documentada)
+
+- **Ícones Tauri** (`src-tauri/icons/`) continuam os do template — gerar com `npm run tauri icon <png 1024²>` a partir da marca (precisa de um raster; o favicon SVG novo serve de base). O `identifier` novo (`com.gitsylva.app`) **muda a pasta de dados do WebView2**: na primeira execução após esta mudança, as preferências/tabs guardadas localmente reiniciam (uma vez).
+- **Números de linha no diff** (H9) e alinhamento LCS no split (H11) — melhorias de diff pendentes.
+- **Virtualização real** de listas/grafo para históricos ≥1000 e working copies ≥1000 ficheiros (mitigado com memo + content-visibility + cap de animação + paginação).
+- **i18n** (S17): sem infraestrutura; ~120+ strings PT hardcoded; Idioma marcado "Em breve". Não fazer traduções parciais.
+- **Contas/OAuth, SSH, terminal integrado, editor 3-way** — grandes, dependem de decisões externas (apps OAuth, keyring — usar Windows Credential Manager, nunca localStorage).
+- **Lock de escrita por repo** (G8) — operações concorrentes podem colidir em `index.lock` (o erro agora traz hint acionável).
+- **Notificação com vinha decorativa** (design 6.16) e preview de stash (W16), `git stash pop` (W16), gatilho de apagar tag na UI (G15), Gravatar/email (H20), pesquisa de definições (S9), DnD de grupos (R14).
+- Stores persistidos sem `version`/`migrate` (R12); caminho longo Windows >260 sem `\\?\` (R13).
