@@ -36,6 +36,7 @@ function Screen() {
 
 export function AppShell() {
   const setPaletteOpen = useAppStore((s) => s.setPaletteOpen);
+  const repoPath = useAppStore((s) => s.repo?.path);
   const rail = useThemeStore((s) => s.repoLayout) === "rail";
 
   useEffect(() => {
@@ -75,7 +76,9 @@ export function AppShell() {
         <Sidebar />
         <div style={{ flex: 1, display: "flex", minWidth: 0, overflow: "hidden" }}>
           <Suspense fallback={<div style={{ flex: 1, display: "grid", placeItems: "center", color: "var(--muted)", fontSize: 13 }}>A carregar…</div>}>
-            <Screen />
+            {/* Keyed by repo so per-screen state (commit message, amend flag,
+                selected file/commit) never leaks across repositories. */}
+            <Screen key={repoPath ?? "none"} />
           </Suspense>
         </div>
       </div>

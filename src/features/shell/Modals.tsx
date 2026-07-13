@@ -207,20 +207,29 @@ function PullModal({ onClose }: { onClose: () => void }) {
   const { data: status } = useSyncStatus(repo.path);
   const inc = useIncoming(repo.path, true);
   const [error, setError] = useState<string | null>(null);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
-  // Fetch on open so the preview reflects the remote.
+  // Fetch on open so the preview reflects the remote. A failed fetch must NOT
+  // read as "up to date" — surface it and mark the preview as stale.
   useEffect(() => {
-    sync.fetch.mutate();
+    sync.fetch.mutate(undefined, {
+      onError: (e: unknown) => setFetchError((e as { message?: string })?.message ?? "não foi possível contactar o remoto"),
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const commits = inc.data ?? [];
   return (
     <Modal title="Pull de origin" onClose={onClose} width={520}>
-      <div style={{ fontSize: 13, color: "var(--text2)" }}>
-        {sync.fetch.isPending ? "A verificar origin…" : `${status?.behind ?? commits.length} commit(s) para integrar em ${repo.current_branch}.`}
+      <div style={{ fontSize: 13, color: fetchError ? "var(--ddT)" : "var(--text2)" }}>
+        {sync.fetch.isPending
+          ? "A verificar origin…"
+          : fetchError
+            ? "Não foi possível verificar o remoto — a lista pode estar desatualizada."
+            : `${status?.behind ?? commits.length} commit(s) para integrar em ${repo.current_branch}.`}
       </div>
-      <CommitList commits={commits} empty="Nada para integrar. Estás em dia." />
+      {fetchError && <Err msg={fetchError} />}
+      <CommitList commits={commits} empty={fetchError ? "Sem ligação ao remoto." : "Nada para integrar. Estás em dia."} />
       <Err msg={error} />
       <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
         <Button onClick={onClose}>Fechar</Button>
