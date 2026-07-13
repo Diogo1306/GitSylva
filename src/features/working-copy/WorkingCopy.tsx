@@ -6,6 +6,7 @@ import { DiffView } from "../../components/DiffView";
 import { BlameView } from "../../components/BlameView";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
 import { ContextMenu, type MenuItem } from "../../components/ui/ContextMenu";
+import { usePanelWidth, PanelHandle } from "../../components/ui/PanelResize";
 import { statusStyle, isConflict } from "../../lib/status";
 import { errMsg } from "../../lib/errors";
 import { headMessage, openPath, revealPath } from "../../lib/api";
@@ -125,6 +126,8 @@ export function WorkingCopy() {
   const [fileMenu, setFileMenu] = useState<{ x: number; y: number; file: FileChange } | null>(null);
   const [stacked, setStacked] = useState(false);
   const [blameOn, setBlameOn] = useState(false);
+  // Design: files panel resizable 320–540, persisted.
+  const filesW = usePanelWidth("gitsylva-w-working", 400, 320, 540, "right");
 
   // Honor a file chosen from the command palette: it stays "selected" (derived,
   // no effect/setState) until the user picks another file, which clears it.
@@ -240,7 +243,7 @@ export function WorkingCopy() {
       {/* Files + commit */}
       <div
         style={{
-          width: stacked ? "auto" : "42%",
+          width: stacked ? "auto" : filesW.width,
           flexShrink: 0,
           borderRight: stacked ? "none" : "1px solid var(--border)",
           borderTop: stacked ? "1px solid var(--border)" : "none",
@@ -249,8 +252,10 @@ export function WorkingCopy() {
           flexDirection: "column",
           minHeight: 0,
           boxSizing: "border-box",
+          position: "relative",
         }}
       >
+        {!stacked && <PanelHandle edge="right" handleProps={filesW.handleProps} />}
         <div style={{ padding: "12px 16px 8px", display: "flex", alignItems: "center" }}>
           <SectionHead>NÃO PREPARADAS · {unstaged.length}</SectionHead>
           <div onClick={() => actions.stageAll.mutate()} className="gs-row" style={{ fontSize: 12, color: "var(--l0)", cursor: "pointer", padding: "3px 8px", borderRadius: 6, fontWeight: 600 }}>

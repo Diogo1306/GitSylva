@@ -17,6 +17,13 @@
   background: var(--hover);
 }
 
+/* Panel resize grab area: invisible until hovered/dragged. */
+.gs-resize:hover,
+.gs-resize:active {
+  background: var(--accent);
+  opacity: 0.35;
+}
+
 .gs-press {
   transition: transform 0.12s ease;
 }

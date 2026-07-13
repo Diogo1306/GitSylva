@@ -3,6 +3,7 @@ import { useAppStore } from "../../state/appStore";
 import { useLog, useCommitDetail, useRewriteActions } from "../../state/queries";
 import { ContextMenu, type MenuItem } from "../../components/ui/ContextMenu";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
+import { usePanelWidth, PanelHandle } from "../../components/ui/PanelResize";
 import { toast } from "../../state/toastStore";
 import { graphRows } from "../../graph/layout";
 import { CommitGraphSvg } from "../../components/CommitGraphSvg";
@@ -240,6 +241,8 @@ export function History() {
   const [menu, setMenu] = useState<{ x: number; y: number; hash: string } | null>(null);
   const [confirmHardReset, setConfirmHardReset] = useState<string | null>(null);
   const [confirmRebase, setConfirmRebase] = useState<string | null>(null);
+  // Design: detail panel resizable 300–560, persisted.
+  const detailW = usePanelWidth("gitsylva-w-detail", 372, 300, 560, "left");
 
   // Selecting a commit locally also clears any pending palette focus request.
   const selectHash = useCallback((hash: string) => {
@@ -353,7 +356,8 @@ export function History() {
         </div>
       </div>
 
-      <div style={{ width: 360, flexShrink: 0, background: "var(--panel)", minHeight: 0 }}>
+      <div style={{ width: detailW.width, flexShrink: 0, background: "var(--panel)", minHeight: 0, position: "relative" }}>
+        <PanelHandle edge="left" handleProps={detailW.handleProps} />
         <DetailPanel repoPath={repo.path} commit={selected} />
       </div>
 

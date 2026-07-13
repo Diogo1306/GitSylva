@@ -4,6 +4,7 @@ import { useStatus, useBranches, useBranchActions, useStashes, useTags, useRewri
 import { toast } from "../../state/toastStore";
 import { ContextMenu, type MenuItem } from "../../components/ui/ContextMenu";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
+import { usePanelWidth, PanelHandle } from "../../components/ui/PanelResize";
 import { Input } from "../../components/ui/Input";
 import type { View } from "../../state/appStore";
 
@@ -32,6 +33,8 @@ export function Sidebar() {
   const [renameVal, setRenameVal] = useState("");
   const [confirmDelete, setConfirmDelete] = useState<{ name: string; force: boolean } | null>(null);
   const [confirmRebase, setConfirmRebase] = useState<string | null>(null);
+  // Design: sidebar resizable 180–340, persisted.
+  const sidebarW = usePanelWidth("gitsylva-w-sidebar", 232, 180, 340, "right");
 
   // Delete asks first; if git refuses because the branch isn't merged, a second
   // dialog offers the forced (-D) path with a clear data-loss warning.
@@ -92,7 +95,7 @@ export function Sidebar() {
   return (
     <div
       style={{
-        width: 230,
+        width: sidebarW.width,
         flexShrink: 0,
         borderRight: "1px solid var(--border)",
         background: "var(--panel)",
@@ -102,8 +105,10 @@ export function Sidebar() {
         flexDirection: "column",
         gap: 20,
         boxSizing: "border-box",
+        position: "relative",
       }}
     >
+      <PanelHandle edge="right" handleProps={sidebarW.handleProps} />
       <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
         <SectionLabel>ESPAÇO DE TRABALHO</SectionLabel>
         {navRow(
