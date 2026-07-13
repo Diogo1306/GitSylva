@@ -3,13 +3,14 @@ import { useAppStore } from "../../state/appStore";
 import { useStashes, useStashActions } from "../../state/queries";
 import { toast } from "../../state/toastStore";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
+import { errMsg } from "../../lib/errors";
 
 const mono = "'JetBrains Mono', monospace";
 
 export function Stashes() {
   const repo = useAppStore((s) => s.repo)!;
   const setModal = useAppStore((s) => s.setModal);
-  const { data, isLoading } = useStashes(repo.path);
+  const { data, isLoading, error } = useStashes(repo.path);
   const { apply, drop } = useStashActions(repo.path);
   const [confirmDrop, setConfirmDrop] = useState<number | null>(null);
   const stashes = data ?? [];
@@ -25,6 +26,8 @@ export function Stashes() {
 
       {isLoading ? (
         <div style={{ color: "var(--muted)", fontSize: 13 }}>A carregar…</div>
+      ) : error ? (
+        <div style={{ color: "var(--ddT)", fontSize: 13 }}>{errMsg(error, "não foi possível ler os stashes")}</div>
       ) : stashes.length === 0 ? (
         <div style={{ maxWidth: 620, border: "1px dashed var(--btnB)", borderRadius: 12, padding: "28px 20px", textAlign: "center", color: "var(--muted)", fontSize: 13.5 }}>
           Sem stashes. Use "Guardar stash" ou o botão Stash na barra inferior para guardar alterações em curso.

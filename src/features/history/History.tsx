@@ -74,7 +74,7 @@ function Chips({ refs }: { refs: string }) {
 }
 
 function DetailPanel({ repoPath, commit }: { repoPath: string; commit: Commit }) {
-  const { data, isLoading } = useCommitDetail(repoPath, commit.hash);
+  const { data, isLoading, error: detailError } = useCommitDetail(repoPath, commit.hash);
   // %B = subject + blank line + body; everything after the first line is the body.
   const body = (data?.message ?? "").split("\n").slice(1).join("\n").trim();
 
@@ -163,6 +163,8 @@ function DetailPanel({ repoPath, commit }: { repoPath: string; commit: Commit })
       <div style={{ flex: 1, overflow: "auto", margin: "0 12px 12px", border: "1px solid var(--border)", borderRadius: 10, background: "var(--panel2)", padding: "8px 0" }}>
         {isLoading ? (
           <div style={{ padding: 12, color: "var(--muted)", fontSize: 12 }}>A carregar diff…</div>
+        ) : detailError ? (
+          <div style={{ padding: 12, color: "var(--ddT)", fontSize: 12 }}>{errMsg(detailError, "não foi possível ler o commit")}</div>
         ) : data && data.diff.trim() ? (
           <DiffView patch={data.diff} />
         ) : (

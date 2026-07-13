@@ -19,6 +19,27 @@ use crate::error::GitError;
 use std::io::Write;
 use std::process::{Command, Stdio};
 
+/// Prefix well-known raw git failures with an actionable Portuguese hint.
+/// The original stderr is kept below the hint — never hidden.
+fn friendly(stderr: &str) -> String {
+    let lower = stderr.to_lowercase();
+    let hint = if lower.contains("terminal prompts disabled") || lower.contains("could not read username") || lower.contains("authentication failed") {
+        Some("Autenticação necessária: configura credenciais git (credential manager) ou usa um URL SSH com chave carregada.")
+    } else if lower.contains("permission denied (publickey)") {
+        Some("O remoto recusou a chave SSH: confirma que a chave está no ssh-agent e registada na conta.")
+    } else if lower.contains("could not resolve host") || lower.contains("unable to access") && lower.contains("could not") {
+        Some("Sem ligação ao remoto: verifica a internet ou o URL do remoto.")
+    } else if lower.contains("index.lock") {
+        Some("Outra operação git está (ou ficou) em curso neste repositório. Tenta de novo; se persistir, apaga .git/index.lock.")
+    } else {
+        None
+    };
+    match hint {
+        Some(h) => format!("{h}\n{}", stderr.trim()),
+        None => stderr.trim().to_owned(),
+    }
+}
+
 /// Run the system git in `repo` with `args`. Returns stdout on success.
 ///
 /// GIT_TERMINAL_PROMPT=0 makes network operations fail fast instead of hanging
@@ -41,7 +62,7 @@ pub fn run_git(repo: &str, args: &[&str]) -> Result<String, GitError> {
     } else {
         Err(GitError {
             code: "git_failed".into(),
-            message: String::from_utf8_lossy(&output.stderr).trim().to_owned(),
+            message: friendly(&String::from_utf8_lossy(&output.stderr)),
         })
     }
 }

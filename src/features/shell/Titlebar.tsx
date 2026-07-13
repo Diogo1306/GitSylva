@@ -166,8 +166,9 @@ export function Titlebar({ rail = false }: { rail?: boolean }) {
           <span style={{ fontFamily: mono, fontSize: 12, color: "var(--l0)", fontWeight: 600 }}>{repo.current_branch}</span>
         </div>
       ) : (
-      /* Repo tabs: one per open repository, switch on click, ✕ to close. */
-      <div style={{ display: "flex", alignItems: "center", gap: 5, minWidth: 0, flex: 1, overflow: "hidden" }}>
+      /* Repo tabs: one per open repository, switch on click, ✕ to close.
+         Horizontal scroll keeps every tab reachable with many repos open. */
+      <div style={{ display: "flex", alignItems: "center", gap: 5, minWidth: 0, flex: 1, overflowX: "auto", overflowY: "hidden", scrollbarWidth: "thin" }}>
         {repos.map((r, i) => {
           const active = r.path === repo.path;
           const name = r.path.replace(/[/\\]$/, "").split(/[/\\]/).pop() ?? r.path;
