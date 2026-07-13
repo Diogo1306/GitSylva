@@ -102,14 +102,15 @@ mod tests {
 
     #[test]
     fn open_repo_normalizes_subfolder_to_toplevel() {
-        let dir = std::env::temp_dir().join("gitsylva-openrepo-test-sub");
+        let dir = std::env::temp_dir().join("gitsylva-openrepo-toplevel-test");
         let _ = fs::remove_dir_all(&dir);
-        fs::create_dir_all(dir.join("sub")).unwrap();
+        fs::create_dir_all(dir.join("inner")).unwrap();
         let p = dir.to_string_lossy().to_string();
         run_git(&p, &["init", "-b", "main"]).unwrap();
-        let info = open_repo(dir.join("sub").to_string_lossy().to_string()).unwrap();
+        let info = open_repo(dir.join("inner").to_string_lossy().to_string()).unwrap();
         // The stored path is the repo root, not the subfolder.
-        assert!(!info.path.ends_with("sub"));
+        assert!(!info.path.ends_with("inner"));
+        assert!(info.path.ends_with("gitsylva-openrepo-toplevel-test"));
     }
 
     #[test]
