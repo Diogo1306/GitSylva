@@ -2,28 +2,13 @@ import { useMemo, useState } from "react";
 import { useAppStore } from "../../state/appStore";
 import { useLog, useBranches, useBranchActions, useStatus, useSyncActions } from "../../state/queries";
 import { toast } from "../../state/toastStore";
+import { fold, foldChars } from "../../lib/fold";
 import type { View } from "../../state/appStore";
 
 const mono = "'JetBrains Mono', monospace";
 
 type Item = { label: string; sub: string; dot: string; dotR: string; run: () => void };
 type Group = { title: string; items: Item[] };
-
-// Case- and accent-insensitive fold ("Histórico" matches "historico").
-function fold(s: string): string {
-  return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-}
-
-// Char-wise fold that keeps indexes aligned with the original code points, so
-// the match highlight lands on the right characters even with diacritics.
-function foldChars(text: string): string {
-  return Array.from(text)
-    .map((c) => {
-      const f = fold(c);
-      return f.length === 1 ? f : c.toLowerCase();
-    })
-    .join("");
-}
 
 // Bold the matched portion of a result label.
 function markMatch(text: string, q: string) {

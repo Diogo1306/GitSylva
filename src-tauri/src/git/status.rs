@@ -128,4 +128,32 @@ mod tests {
         let changes = get_status(p).unwrap();
         assert_eq!(changes[0].index_status, "A");
     }
+
+    #[test]
+    fn detects_rename_with_orig_path() {
+        let p = repo("rename");
+        fs::write(format!("{p}/old name.txt"), "same content kept intact\n").unwrap();
+        run_git(&p, &["add", "-A"]).unwrap();
+        run_git(&p, &["commit", "-m", "init"]).unwrap();
+        run_git(&p, &["mv", "old name.txt", "novo çãõ.txt"]).unwrap();
+
+        let changes = get_status(p).unwrap();
+        assert_eq!(changes.len(), 1);
+        assert_eq!(changes[0].index_status, "R");
+        assert_eq!(changes[0].path, "novo çãõ.txt");
+        assert_eq!(changes[0].orig_path.as_deref(), Some("old name.txt"));
+    }
+
+    #[test]
+    fn detects_deleted_file() {
+        let p = repo("delete");
+        fs::write(format!("{p}/a.txt"), "x").unwrap();
+        run_git(&p, &["add", "-A"]).unwrap();
+        run_git(&p, &["commit", "-m", "init"]).unwrap();
+        fs::remove_file(format!("{p}/a.txt")).unwrap();
+
+        let changes = get_status(p).unwrap();
+        assert_eq!(changes.len(), 1);
+        assert_eq!(changes[0].worktree_status, "D");
+    }
 }
