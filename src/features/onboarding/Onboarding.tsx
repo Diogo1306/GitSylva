@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { OnboardTree } from "../../components/TreeLogo";
+import { Wordmark } from "../../components/Wordmark";
 import { FallingLeaves } from "../../components/FallingLeaves";
 import { useThemeStore } from "../../state/themeStore";
 import { useOnboardStore } from "../../state/onboardStore";
@@ -95,7 +96,9 @@ export function Onboarding() {
           <div style={{ width: TREE_W[stage], height: TREE_H[stage], transition: "width 0.9s cubic-bezier(0.2,0.9,0.3,1), height 0.9s cubic-bezier(0.2,0.9,0.3,1)" }}>
             <OnboardTree stage={stage} />
           </div>
-          <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: 20, letterSpacing: "0.4px", marginTop: 4 }}>gitsylva</div>
+          <div style={{ marginTop: 4 }}>
+            <Wordmark size={20} />
+          </div>
           <div style={{ fontSize: 11, color: "var(--muted)", letterSpacing: "1.8px", textTransform: "uppercase" }}>{caption}</div>
         </div>
 

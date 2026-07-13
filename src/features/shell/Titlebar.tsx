@@ -138,22 +138,8 @@ export function Titlebar({ rail = false }: { rail?: boolean }) {
     >
       <TrafficLights />
 
-      <div
-        style={{
-          display: "flex",
-          alignItems: "baseline",
-          flexShrink: 0,
-          fontFamily: "'Space Grotesk', sans-serif",
-          fontWeight: 600,
-          fontSize: 17,
-          letterSpacing: "0.3px",
-        }}
-      >
-        <span>git</span>
-        <span style={{ display: "inline-block", margin: "0 1px", transform: "translateY(2px)" }}>
-          <TreeLogo size={14} crop xScale={1.22} />
-        </span>
-        <span>ylva</span>
+      <div style={{ flexShrink: 0 }}>
+        <Wordmark size={17} />
       </div>
 
       {/* Rail mode: the tabs live in the left rail, so show repo/branch inline. */}
