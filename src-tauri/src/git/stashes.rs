@@ -57,10 +57,25 @@ pub fn create_stash(path: String, message: String, keep_index: bool) -> Result<(
     Ok(())
 }
 
-/// Apply a stash without removing it.
+/// Apply a stash without removing it. A conflicting apply DOES write the
+/// changes (with conflict markers), so that case is reported distinctly
+/// instead of pretending nothing happened.
 #[tauri::command]
 pub fn apply_stash(path: String, index: u32) -> Result<(), GitError> {
-    run_git(&path, &["stash", "apply", &format!("stash@{{{index}}}")]).map(|_| ())
+    match run_git(&path, &["stash", "apply", &format!("stash@{{{index}}}")]) {
+        Ok(_) => Ok(()),
+        Err(original) => {
+            let unmerged = run_git(&path, &["diff", "--name-only", "--diff-filter=U"]).unwrap_or_default();
+            if unmerged.lines().any(|l| !l.trim().is_empty()) {
+                Err(GitError {
+                    code: "conflict".into(),
+                    message: "o stash foi aplicado com conflitos — resolve os ficheiros marcados na Cópia de trabalho".into(),
+                })
+            } else {
+                Err(original)
+            }
+        }
+    }
 }
 
 /// Delete a stash.
@@ -110,5 +125,21 @@ mod tests {
         let p = repo("empty");
         let err = create_stash(p, "nada".into(), false).unwrap_err();
         assert_eq!(err.code, "nothing_to_stash");
+    }
+
+    #[test]
+    fn conflicting_apply_reports_conflict() {
+        let p = repo("conflict");
+        // Stash an edit, then commit a different edit to the same line.
+        fs::write(format!("{p}/a.txt"), "stashed\n").unwrap();
+        create_stash(p.clone(), "WIP".into(), false).unwrap();
+        fs::write(format!("{p}/a.txt"), "committed\n").unwrap();
+        run_git(&p, &["commit", "-am", "diverge"]).unwrap();
+
+        let err = apply_stash(p.clone(), 0).unwrap_err();
+        assert_eq!(err.code, "conflict");
+        // The apply really did write conflict markers.
+        let content = fs::read_to_string(format!("{p}/a.txt")).unwrap();
+        assert!(content.contains("<<<<<<<"));
     }
 }

@@ -76,5 +76,9 @@ export type BlameLine = {
 export type ConflictState = {
   in_merge: boolean;
   in_rebase: boolean;
+  in_cherry_pick: boolean;
+  in_revert: boolean;
   files: string[];
 };
+
+export type ConflictKind = "merge" | "rebase" | "cherry-pick" | "revert";

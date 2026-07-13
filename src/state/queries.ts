@@ -43,6 +43,7 @@ import {
   continueOp,
   abortOp,
 } from "../lib/api";
+import type { ConflictKind } from "../lib/types";
 
 export const queryKeys = {
   status: (path: string) => ["status", path] as const,
@@ -97,9 +98,9 @@ export function useBranches(path: string) {
 export function useBranchActions(path: string) {
   const qc = useQueryClient();
   const refresh = () => {
-    qc.invalidateQueries({ queryKey: queryKeys.branches(path) });
-    qc.invalidateQueries({ queryKey: queryKeys.status(path) });
-    qc.invalidateQueries({ queryKey: queryKeys.log(path) });
+    for (const key of ["branches", "status", "log", "conflict"]) {
+      qc.invalidateQueries({ queryKey: [key, path] });
+    }
   };
   // Reflect the new HEAD branch in app state after a switch.
   const setCurrent = (name: string) => {
@@ -121,7 +122,8 @@ export function useBranchActions(path: string) {
         refresh();
       },
     }),
-    merge: useMutation({ mutationFn: (name: string) => mergeBranch(path, name), onSuccess: refresh }),
+    // A failed merge can still leave the repo mid-conflict, so refresh on error too.
+    merge: useMutation({ mutationFn: (name: string) => mergeBranch(path, name), onSettled: refresh }),
     remove: useMutation({
       mutationFn: (v: { name: string; force: boolean }) => deleteBranch(path, v.name, v.force),
       onSuccess: refresh,
@@ -133,21 +135,23 @@ export function useBranchActions(path: string) {
   };
 }
 
-// History rewrite operations (reset/cherry-pick) refresh status, log and branches.
+// History rewrite operations (reset/cherry-pick/rebase). They refresh on
+// settle (not just success): a conflicting cherry-pick/rebase leaves the repo
+// mid-operation and the UI must reflect that.
 export function useRewriteActions(path: string) {
   const qc = useQueryClient();
   const refresh = () => {
-    qc.invalidateQueries({ queryKey: queryKeys.status(path) });
-    qc.invalidateQueries({ queryKey: queryKeys.log(path) });
-    qc.invalidateQueries({ queryKey: queryKeys.branches(path) });
+    for (const key of ["status", "log", "branches", "conflict"]) {
+      qc.invalidateQueries({ queryKey: [key, path] });
+    }
   };
   return {
     reset: useMutation({
       mutationFn: (v: { target: string; mode: "soft" | "mixed" | "hard" }) => resetTo(path, v.target, v.mode),
-      onSuccess: refresh,
+      onSettled: refresh,
     }),
-    cherryPick: useMutation({ mutationFn: (hash: string) => cherryPick(path, hash), onSuccess: refresh }),
-    rebase: useMutation({ mutationFn: (onto: string) => rebase(path, onto), onSuccess: refresh }),
+    cherryPick: useMutation({ mutationFn: (hash: string) => cherryPick(path, hash), onSettled: refresh }),
+    rebase: useMutation({ mutationFn: (onto: string) => rebase(path, onto), onSettled: refresh }),
   };
 }
 
@@ -161,15 +165,17 @@ export function useStashes(path: string) {
 export function useStashActions(path: string) {
   const qc = useQueryClient();
   const refresh = () => {
-    qc.invalidateQueries({ queryKey: queryKeys.stashes(path) });
-    qc.invalidateQueries({ queryKey: queryKeys.status(path) });
+    for (const key of ["stashes", "status", "conflict"]) {
+      qc.invalidateQueries({ queryKey: [key, path] });
+    }
   };
   return {
     create: useMutation({
       mutationFn: (v: { message: string; keepIndex: boolean }) => createStash(path, v.message, v.keepIndex),
       onSuccess: refresh,
     }),
-    apply: useMutation({ mutationFn: (index: number) => applyStash(path, index), onSuccess: refresh }),
+    // A conflicting apply still writes to the worktree — refresh on error too.
+    apply: useMutation({ mutationFn: (index: number) => applyStash(path, index), onSettled: refresh }),
     drop: useMutation({ mutationFn: (index: number) => dropStash(path, index), onSuccess: refresh }),
   };
 }
@@ -209,8 +215,8 @@ export function useConflictActions(path: string) {
   return {
     resolve: useMutation({ mutationFn: (v: { file: string; side: "ours" | "theirs" }) => resolveUse(path, v.file, v.side), onSuccess: refresh }),
     markResolved: useMutation({ mutationFn: (file: string) => markResolved(path, file), onSuccess: refresh }),
-    continue: useMutation({ mutationFn: (kind: "merge" | "rebase") => continueOp(path, kind), onSuccess: refresh }),
-    abort: useMutation({ mutationFn: (kind: "merge" | "rebase") => abortOp(path, kind), onSuccess: refresh }),
+    continue: useMutation({ mutationFn: (kind: ConflictKind) => continueOp(path, kind), onSettled: refresh }),
+    abort: useMutation({ mutationFn: (kind: ConflictKind) => abortOp(path, kind), onSettled: refresh }),
   };
 }
 
@@ -242,14 +248,15 @@ export function useSyncActions(path: string) {
   const qc = useQueryClient();
   // After a network op, everything local may have moved.
   const refresh = () => {
-    for (const key of ["status", "log", "branches", "sync", "tags", "outgoing", "incoming"]) {
+    for (const key of ["status", "log", "branches", "sync", "tags", "outgoing", "incoming", "conflict"]) {
       qc.invalidateQueries({ queryKey: [key, path] });
     }
   };
   return {
     fetch: useMutation({ mutationFn: () => fetchRemote(path), onSuccess: refresh }),
-    // Pull uses the mode chosen in Settings (read at call time).
-    pull: useMutation({ mutationFn: () => pull(path, useThemeStore.getState().pullMode), onSuccess: refresh }),
+    // Pull uses the mode chosen in Settings (read at call time). A conflicting
+    // pull (merge/rebase mode) leaves the repo mid-operation: refresh on error too.
+    pull: useMutation({ mutationFn: () => pull(path, useThemeStore.getState().pullMode), onSettled: refresh }),
     push: useMutation({ mutationFn: () => push(path), onSuccess: refresh }),
   };
 }

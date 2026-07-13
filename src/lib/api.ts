@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
-import type { RepoInfo, FileChange, Commit, CommitDetail, BranchInfo, StashInfo, TagInfo, SyncStatus, GitIdentity, BlameLine, ConflictState } from "./types";
+import type { RepoInfo, FileChange, Commit, CommitDetail, BranchInfo, StashInfo, TagInfo, SyncStatus, GitIdentity, BlameLine, ConflictState, ConflictKind } from "./types";
 
 export async function pickFolder(): Promise<string | null> {
   const picked = await openDialog({ directory: true, multiple: false });
@@ -175,10 +175,10 @@ export function markResolved(path: string, file: string): Promise<void> {
   return invoke("mark_resolved", { path, file });
 }
 
-export function continueOp(path: string, kind: "merge" | "rebase"): Promise<void> {
+export function continueOp(path: string, kind: ConflictKind): Promise<void> {
   return invoke("continue_op", { path, kind });
 }
 
-export function abortOp(path: string, kind: "merge" | "rebase"): Promise<void> {
+export function abortOp(path: string, kind: ConflictKind): Promise<void> {
   return invoke("abort_op", { path, kind });
 }
