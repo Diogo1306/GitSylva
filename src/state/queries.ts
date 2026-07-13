@@ -77,10 +77,10 @@ export function useLog(path: string, limit = 200) {
   });
 }
 
-export function useDiff(path: string, file: string | null, staged: boolean) {
+export function useDiff(path: string, file: string | null, staged: boolean, untracked = false) {
   return useQuery({
-    queryKey: queryKeys.diff(path, file ?? "", staged),
-    queryFn: () => getDiff(path, file as string, staged),
+    queryKey: [...queryKeys.diff(path, file ?? "", staged), untracked],
+    queryFn: () => getDiff(path, file as string, staged, untracked),
     enabled: file !== null,
   });
 }
@@ -176,7 +176,8 @@ export function useStashActions(path: string) {
   };
   return {
     create: useMutation({
-      mutationFn: (v: { message: string; keepIndex: boolean }) => createStash(path, v.message, v.keepIndex),
+      mutationFn: (v: { message: string; keepIndex: boolean; includeUntracked: boolean }) =>
+        createStash(path, v.message, v.keepIndex, v.includeUntracked),
       onSuccess: refresh,
     }),
     // A conflicting apply still writes to the worktree — refresh on error too.

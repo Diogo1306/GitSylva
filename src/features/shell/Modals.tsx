@@ -88,13 +88,14 @@ function StashModal({ onClose }: { onClose: () => void }) {
   const { create } = useStashActions(repo.path);
   const [message, setMessage] = useState("");
   const [includeStaged, setIncludeStaged] = useState(true);
+  const [includeUntracked, setIncludeUntracked] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   function submit() {
     if (create.isPending) return;
     setError(null);
     create.mutate(
-      { message, keepIndex: !includeStaged },
+      { message, keepIndex: !includeStaged, includeUntracked },
       {
         onSuccess: () => { toast("Alterações guardadas no stash"); onClose(); setView("stashes"); },
         onError: (e: unknown) => setError((e as { message?: string })?.message ?? "não foi possível guardar"),
@@ -108,6 +109,7 @@ function StashModal({ onClose }: { onClose: () => void }) {
         <Input autoFocus value={message} onChange={(e) => setMessage(e.target.value)} onKeyDown={(e) => e.key === "Enter" && submit()} placeholder={`WIP em ${repo.current_branch}`} />
       </Field>
       <Check on={includeStaged} onToggle={() => setIncludeStaged((v) => !v)}>Incluir alterações preparadas</Check>
+      <Check on={includeUntracked} onToggle={() => setIncludeUntracked((v) => !v)}>Incluir ficheiros não rastreados</Check>
       <Err msg={error} />
       <Actions onClose={onClose} onConfirm={submit} busy={create.isPending} label={create.isPending ? "A guardar…" : "Guardar"} />
     </Modal>

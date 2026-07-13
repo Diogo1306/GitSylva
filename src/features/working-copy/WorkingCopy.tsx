@@ -1,13 +1,15 @@
 import { useCallback, useMemo, useState } from "react";
 import { useAppStore } from "../../state/appStore";
-import { useStatus, useStageActions, useCommit, useDiff, useBlame, useHunkActions } from "../../state/queries";
+import { useStatus, useStageActions, useCommit, useDiff, useBlame, useHunkActions, useSyncStatus } from "../../state/queries";
 import { useThemeStore } from "../../state/themeStore";
 import { DiffView } from "../../components/DiffView";
 import { BlameView } from "../../components/BlameView";
-import { ConflictBanner } from "./ConflictBanner";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
+import { ContextMenu, type MenuItem } from "../../components/ui/ContextMenu";
 import { statusStyle, isConflict } from "../../lib/status";
 import { errMsg } from "../../lib/errors";
+import { headMessage, openPath, revealPath } from "../../lib/api";
+import { toast } from "../../state/toastStore";
 import type { FileChange } from "../../lib/types";
 
 const mono = "'JetBrains Mono', monospace";
@@ -28,6 +30,7 @@ function FileRow({
   conflicted,
   onToggle,
   onSelect,
+  onContext,
 }: {
   file: FileChange;
   letter: string;
@@ -36,12 +39,17 @@ function FileRow({
   conflicted?: boolean;
   onToggle: () => void;
   onSelect: () => void;
+  onContext?: (x: number, y: number) => void;
 }) {
   const st = statusStyle(letter);
   const { name, dir } = splitPath(file.path);
   return (
     <div
       onClick={onSelect}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        onContext?.(e.clientX, e.clientY);
+      }}
       className="gs-row"
       style={{
         display: "flex",
@@ -107,11 +115,14 @@ export function WorkingCopy() {
   const actions = useStageActions(repo.path);
   const hunk = useHunkActions(repo.path);
   const commit = useCommit(repo.path);
+  const syncQ = useSyncStatus(repo.path);
   const [sel, setSel] = useState<Sel>(null);
   const [msg, setMsg] = useState("");
   const [amend, setAmend] = useState(false);
   const [commitErr, setCommitErr] = useState<string | null>(null);
   const [confirmDiscardAll, setConfirmDiscardAll] = useState(false);
+  const [confirmDiscardFile, setConfirmDiscardFile] = useState<FileChange | null>(null);
+  const [fileMenu, setFileMenu] = useState<{ x: number; y: number; file: FileChange } | null>(null);
   const [stacked, setStacked] = useState(false);
   const [blameOn, setBlameOn] = useState(false);
 
@@ -125,7 +136,10 @@ export function WorkingCopy() {
   }, [paletteFile, data]);
   const effSel = paletteSel ?? sel;
 
-  const diff = useDiff(repo.path, effSel?.path ?? null, effSel?.staged ?? false);
+  // New files aren't in the index yet, so their preview is synthesized backend-side.
+  const selUntracked =
+    !!effSel && !effSel.staged && (data ?? []).find((f) => f.path === effSel.path)?.worktree_status === "?";
+  const diff = useDiff(repo.path, effSel?.path ?? null, effSel?.staged ?? false, selUntracked);
   const blameQ = useBlame(repo.path, effSel?.path ?? null, blameOn);
 
   // Stable so DiffLines' memoized rows survive re-renders of this screen.
@@ -175,10 +189,53 @@ export function WorkingCopy() {
 
   const commitReady = msg.trim() !== "" && (staged.length > 0 || amend);
   const untrackedCount = unstaged.filter((f) => f.worktree_status === "?").length;
+  // Amending a commit that's already on the upstream rewrites published history.
+  const amendPushed = amend && !!syncQ.data?.upstream && (syncQ.data?.ahead ?? 0) === 0;
+
+  function toggleAmend() {
+    setAmend((v) => !v);
+    // Prefill with HEAD's message so amending doesn't silently drop the body.
+    if (!amend && !msg.trim()) {
+      headMessage(repo.path)
+        .then((m) => setMsg((cur) => (cur.trim() ? cur : m)))
+        .catch(() => {});
+    }
+  }
+
+  function fileMenuItems(f: FileChange): MenuItem[] {
+    const untracked = f.worktree_status === "?";
+    const items: MenuItem[] = [
+      { label: "Abrir", onClick: () => void openPath(repo.path, f.path).catch((e: unknown) => toast(errMsg(e, "não foi possível abrir"), "error")) },
+      { label: "Mostrar no explorador", onClick: () => void revealPath(repo.path, f.path).catch((e: unknown) => toast(errMsg(e, "não foi possível abrir o explorador"), "error")) },
+      { label: "Copiar caminho", onClick: () => void navigator.clipboard?.writeText(f.path).then(() => toast("Caminho copiado")) },
+    ];
+    if (f.worktree_status !== "." && !isConflict(f.index_status, f.worktree_status)) {
+      items.push({ label: "", onClick: () => {}, divider: true });
+      items.push({
+        label: untracked ? "Apagar do disco…" : "Descartar alterações…",
+        danger: true,
+        onClick: () => {
+          if (useThemeStore.getState().confirmDiscard) setConfirmDiscardFile(f);
+          else discardFileNow(f);
+        },
+      });
+    }
+    return items;
+  }
+
+  function discardFileNow(f: FileChange) {
+    setConfirmDiscardFile(null);
+    actions.discard.mutate(
+      { file: f.path, untracked: f.worktree_status === "?" },
+      {
+        onSuccess: () => toast(f.worktree_status === "?" ? `${f.path} apagado` : `Alterações de ${f.path} descartadas`),
+        onError: (e: unknown) => toast(errMsg(e, "não foi possível descartar"), "error"),
+      },
+    );
+  }
 
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, minHeight: 0, animation: "fadeIn 0.25s ease both" }}>
-      <ConflictBanner />
       <div style={{ flex: 1, display: "flex", flexDirection: stacked ? "column" : "row", minWidth: 0, minHeight: 0 }}>
       {/* Files + commit */}
       <div
@@ -222,6 +279,7 @@ export function WorkingCopy() {
               conflicted={isConflict(f.index_status, f.worktree_status)}
               onToggle={() => actions.stage.mutate(f.path)}
               onSelect={() => select(f.path, false)}
+              onContext={(x, y) => setFileMenu({ x, y, file: f })}
             />
           ))}
         </div>
@@ -239,6 +297,7 @@ export function WorkingCopy() {
               selected={effSel?.path === f.path && effSel.staged}
               onToggle={() => actions.unstage.mutate(f.path)}
               onSelect={() => select(f.path, true)}
+              onContext={(x, y) => setFileMenu({ x, y, file: f })}
             />
           ))}
         </div>
@@ -263,12 +322,17 @@ export function WorkingCopy() {
             }}
           />
           {commitErr && <div style={{ color: "var(--ddT)", fontSize: 12.5 }}>{commitErr}</div>}
-          <div onClick={() => setAmend((v) => !v)} style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 12.5, color: "var(--text2)" }}>
+          <div onClick={toggleAmend} style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 12.5, color: "var(--text2)" }}>
             <span style={{ width: 15, height: 15, borderRadius: 4, border: "1.5px solid var(--btnB)", boxSizing: "border-box", display: "grid", placeItems: "center", background: amend ? "var(--accent)" : "transparent", color: "var(--accentT)", fontSize: 10, fontWeight: 800 }}>
               {amend ? "✓" : ""}
             </span>
             <span>Emendar último commit (amend)</span>
           </div>
+          {amendPushed && (
+            <div style={{ fontSize: 11.5, color: "var(--stMT)", lineHeight: 1.4 }}>
+              O último commit já está no remoto — emendá-lo reescreve história publicada e vai exigir force push.
+            </div>
+          )}
           <div
             onClick={() => commitReady && !commit.isPending && doCommit()}
             className="gs-press"
@@ -353,6 +417,22 @@ export function WorkingCopy() {
           onCancel={() => setConfirmDiscardAll(false)}
           onConfirm={discardAll}
         />
+      )}
+
+      {confirmDiscardFile && (
+        <ConfirmDialog
+          message={
+            confirmDiscardFile.worktree_status === "?"
+              ? `Apagar ${confirmDiscardFile.path} do disco? Não pode ser desfeito.`
+              : `Descartar as alterações não preparadas de ${confirmDiscardFile.path}? As preparadas mantêm-se.`
+          }
+          onCancel={() => setConfirmDiscardFile(null)}
+          onConfirm={() => discardFileNow(confirmDiscardFile)}
+        />
+      )}
+
+      {fileMenu && (
+        <ContextMenu x={fileMenu.x} y={fileMenu.y} items={fileMenuItems(fileMenu.file)} onClose={() => setFileMenu(null)} />
       )}
     </div>
   );

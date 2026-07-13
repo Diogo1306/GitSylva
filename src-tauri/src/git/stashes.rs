@@ -35,12 +35,16 @@ pub fn list_stashes(path: String) -> Result<Vec<StashInfo>, GitError> {
     Ok(stashes)
 }
 
-/// Stash current changes. `keep_index` leaves staged changes in the index.
+/// Stash current changes. `keep_index` leaves staged changes in the index;
+/// `include_untracked` also stashes new (untracked) files.
 #[tauri::command]
-pub fn create_stash(path: String, message: String, keep_index: bool) -> Result<(), GitError> {
+pub fn create_stash(path: String, message: String, keep_index: bool, include_untracked: bool) -> Result<(), GitError> {
     let mut args = vec!["stash", "push"];
     if keep_index {
         args.push("--keep-index");
+    }
+    if include_untracked {
+        args.push("--include-untracked");
     }
     let msg = message.trim();
     if !msg.is_empty() {
@@ -104,10 +108,22 @@ mod tests {
     }
 
     #[test]
+    fn stash_includes_untracked_when_asked() {
+        let p = repo("untracked");
+        fs::write(format!("{p}/novo.txt"), "x").unwrap();
+        create_stash(p.clone(), "WIP".into(), false, true).unwrap();
+        // The untracked file was stashed away…
+        assert!(!std::path::Path::new(&format!("{p}/novo.txt")).exists());
+        // …and comes back on apply.
+        apply_stash(p.clone(), 0).unwrap();
+        assert!(std::path::Path::new(&format!("{p}/novo.txt")).exists());
+    }
+
+    #[test]
     fn create_list_apply_drop() {
         let p = repo("cycle");
         fs::write(format!("{p}/a.txt"), "one\ntwo\n").unwrap();
-        create_stash(p.clone(), "WIP teste".into(), false).unwrap();
+        create_stash(p.clone(), "WIP teste".into(), false, false).unwrap();
         let stashes = list_stashes(p.clone()).unwrap();
         assert_eq!(stashes.len(), 1);
         assert!(stashes[0].message.contains("WIP teste"));
@@ -123,7 +139,7 @@ mod tests {
     #[test]
     fn stash_without_changes_errors() {
         let p = repo("empty");
-        let err = create_stash(p, "nada".into(), false).unwrap_err();
+        let err = create_stash(p, "nada".into(), false, false).unwrap_err();
         assert_eq!(err.code, "nothing_to_stash");
     }
 
@@ -132,7 +148,7 @@ mod tests {
         let p = repo("conflict");
         // Stash an edit, then commit a different edit to the same line.
         fs::write(format!("{p}/a.txt"), "stashed\n").unwrap();
-        create_stash(p.clone(), "WIP".into(), false).unwrap();
+        create_stash(p.clone(), "WIP".into(), false, false).unwrap();
         fs::write(format!("{p}/a.txt"), "committed\n").unwrap();
         run_git(&p, &["commit", "-am", "diverge"]).unwrap();
 

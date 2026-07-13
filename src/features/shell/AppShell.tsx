@@ -9,6 +9,7 @@ import { ActionBar } from "./ActionBar";
 import { CommandPalette } from "./CommandPalette";
 import { Modals } from "./Modals";
 import { Toaster } from "../../components/Toaster";
+import { ConflictBanner } from "../working-copy/ConflictBanner";
 
 // Each screen is a separate chunk; only the active one is fetched and parsed.
 const WorkingCopy = lazy(() => import("../working-copy/WorkingCopy").then((m) => ({ default: m.WorkingCopy })));
@@ -74,12 +75,17 @@ export function AppShell() {
       <div style={{ flex: 1, display: "flex", minHeight: 0 }}>
         {rail && <RepoRail />}
         <Sidebar />
-        <div style={{ flex: 1, display: "flex", minWidth: 0, overflow: "hidden" }}>
-          <Suspense fallback={<div style={{ flex: 1, display: "grid", placeItems: "center", color: "var(--muted)", fontSize: 13 }}>A carregar…</div>}>
-            {/* Keyed by repo so per-screen state (commit message, amend flag,
-                selected file/commit) never leaks across repositories. */}
-            <Screen key={repoPath ?? "none"} />
-          </Suspense>
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, overflow: "hidden" }}>
+          {/* Global: an in-progress merge/rebase/cherry-pick must be visible
+              from every screen, not just the working copy. */}
+          <ConflictBanner />
+          <div style={{ flex: 1, display: "flex", minWidth: 0, overflow: "hidden" }}>
+            <Suspense fallback={<div style={{ flex: 1, display: "grid", placeItems: "center", color: "var(--muted)", fontSize: 13 }}>A carregar…</div>}>
+              {/* Keyed by repo so per-screen state (commit message, amend flag,
+                  selected file/commit) never leaks across repositories. */}
+              <Screen key={repoPath ?? "none"} />
+            </Suspense>
+          </div>
         </div>
       </div>
       <ActionBar />

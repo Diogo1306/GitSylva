@@ -1,5 +1,6 @@
 mod error;
 mod git;
+mod sys;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -26,6 +27,7 @@ pub fn run() {
       git::stage::discard_file,
       git::stage::discard_all,
       git::commit::commit,
+      git::commit::head_message,
       git::log::get_log,
       git::diff::get_diff,
       git::hunk::apply_hunk,
@@ -59,7 +61,9 @@ pub fn run() {
       git::sync::outgoing,
       git::sync::incoming,
       git::config::get_identity,
-      git::config::set_identity
+      git::config::set_identity,
+      sys::open_path,
+      sys::reveal_path
     ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");

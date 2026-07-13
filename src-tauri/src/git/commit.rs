@@ -1,6 +1,12 @@
 use crate::error::GitError;
 use crate::git::run_git;
 
+/// Full message (%B) of HEAD — used to prefill the box when amending.
+#[tauri::command]
+pub fn head_message(path: String) -> Result<String, GitError> {
+    run_git(&path, &["log", "-1", "--format=%B"]).map(|s| s.trim().to_string())
+}
+
 #[tauri::command]
 pub fn commit(path: String, message: String, amend: bool) -> Result<String, GitError> {
     if message.trim().is_empty() {
