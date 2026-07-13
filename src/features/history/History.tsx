@@ -8,6 +8,7 @@ import { graphRows } from "../../graph/layout";
 import { CommitGraphSvg } from "../../components/CommitGraphSvg";
 import { DiffView } from "../../components/DiffView";
 import { statusStyle } from "../../lib/status";
+import { errMsg } from "../../lib/errors";
 import {
   relativeTime,
   fullDate,
@@ -279,7 +280,7 @@ export function History() {
   });
 
   if (isLoading) return <div style={{ padding: 16, color: "var(--muted)" }}>A carregar histórico…</div>;
-  if (error) return <div style={{ padding: 16, color: "var(--ddT)" }}>{String(error)}</div>;
+  if (error) return <div style={{ padding: 16, color: "var(--ddT)" }}>{errMsg(error, "não foi possível ler o histórico")}</div>;
   if (commits.length === 0) return <div style={{ padding: 16, color: "var(--muted)" }}>Sem commits ainda.</div>;
 
   return (
@@ -338,14 +339,14 @@ export function History() {
           const h = menu.hash;
           const short = h.slice(0, 7);
           const reset = (mode: "soft" | "mixed" | "hard") => () =>
-            rewrite.reset.mutate({ target: h, mode }, { onSuccess: () => toast(`Reset ${mode} para ${short}`), onError: (e: unknown) => toast((e as { message?: string })?.message ?? "erro no reset") });
+            rewrite.reset.mutate({ target: h, mode }, { onSuccess: () => toast(`Reset ${mode} para ${short}`), onError: (e: unknown) => toast((e as { message?: string })?.message ?? "erro no reset", "error") });
           const items: MenuItem[] = [
             { label: `Reset suave para ${short}`, onClick: reset("soft") },
             { label: `Reset misto para ${short}`, onClick: reset("mixed") },
             { label: `Reset forçado (hard) para ${short}…`, onClick: () => setConfirmHardReset(h), danger: true },
             { label: "", onClick: () => {}, divider: true },
-            { label: "Cherry-pick para a branch atual", onClick: () => rewrite.cherryPick.mutate(h, { onSuccess: () => toast("Cherry-pick aplicado"), onError: (e: unknown) => toast((e as { message?: string })?.message ?? "conflito no cherry-pick") }) },
-            { label: "Rebase da atual sobre este commit", onClick: () => rewrite.rebase.mutate(h, { onSuccess: () => toast("Rebase concluído"), onError: (e: unknown) => toast((e as { message?: string })?.message ?? "conflito no rebase") }) },
+            { label: "Cherry-pick para a branch atual", onClick: () => rewrite.cherryPick.mutate(h, { onSuccess: () => toast("Cherry-pick aplicado"), onError: (e: unknown) => toast((e as { message?: string })?.message ?? "conflito no cherry-pick", "error") }) },
+            { label: "Rebase da atual sobre este commit", onClick: () => rewrite.rebase.mutate(h, { onSuccess: () => toast("Rebase concluído"), onError: (e: unknown) => toast((e as { message?: string })?.message ?? "conflito no rebase", "error") }) },
             { label: "Copiar hash", onClick: () => navigator.clipboard?.writeText(h).then(() => toast("Hash copiado")) },
           ];
           return <ContextMenu x={menu.x} y={menu.y} items={items} onClose={() => setMenu(null)} />;
@@ -361,7 +362,7 @@ export function History() {
             setConfirmHardReset(null);
             rewrite.reset.mutate(
               { target, mode: "hard" },
-              { onSuccess: () => toast(`Reset hard para ${target.slice(0, 7)}`), onError: (e: unknown) => toast((e as { message?: string })?.message ?? "erro no reset") },
+              { onSuccess: () => toast(`Reset hard para ${target.slice(0, 7)}`), onError: (e: unknown) => toast((e as { message?: string })?.message ?? "erro no reset", "error") },
             );
           }}
         />

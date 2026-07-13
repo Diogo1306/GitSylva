@@ -49,7 +49,7 @@ export function ConflictBanner() {
             size="sm"
             onClick={() =>
               remaining === 0 &&
-              actions.continue.mutate(kind, { onSuccess: () => toast(`${KIND_LABEL[kind]} concluído`), onError: (e: unknown) => toast((e as { message?: string })?.message ?? "ainda há conflitos") })
+              actions.continue.mutate(kind, { onSuccess: () => toast(`${KIND_LABEL[kind]} concluído`), onError: (e: unknown) => toast((e as { message?: string })?.message ?? "ainda há conflitos", "error") })
             }
             style={remaining > 0 ? { opacity: 0.5, cursor: "default" } : undefined}
           >

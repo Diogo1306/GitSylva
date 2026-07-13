@@ -43,7 +43,7 @@ export function Stashes() {
                 onClick={() =>
                   apply.mutate(s.index, {
                     onSuccess: () => toast("Stash aplicado"),
-                    onError: (e: unknown) => toast((e as { message?: string })?.message ?? "não foi possível aplicar"),
+                    onError: (e: unknown) => toast((e as { message?: string })?.message ?? "não foi possível aplicar", "error"),
                   })
                 }
                 className="gs-press"
@@ -72,7 +72,7 @@ export function Stashes() {
             setConfirmDrop(null);
             drop.mutate(idx, {
               onSuccess: () => toast("Stash descartado"),
-              onError: (e: unknown) => toast((e as { message?: string })?.message ?? "não foi possível descartar"),
+              onError: (e: unknown) => toast((e as { message?: string })?.message ?? "não foi possível descartar", "error"),
             });
           }}
         />

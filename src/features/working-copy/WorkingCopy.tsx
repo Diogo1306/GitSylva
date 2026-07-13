@@ -7,6 +7,7 @@ import { BlameView } from "../../components/BlameView";
 import { ConflictBanner } from "./ConflictBanner";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
 import { statusStyle, isConflict } from "../../lib/status";
+import { errMsg } from "../../lib/errors";
 import type { FileChange } from "../../lib/types";
 
 const mono = "'JetBrains Mono', monospace";
@@ -135,7 +136,7 @@ export function WorkingCopy() {
   );
 
   if (isLoading) return <div style={{ padding: 16, color: "var(--muted)" }}>A carregar alterações…</div>;
-  if (error) return <div style={{ padding: 16, color: "var(--ddT)" }}>{String(error)}</div>;
+  if (error) return <div style={{ padding: 16, color: "var(--ddT)" }}>{errMsg(error, "não foi possível ler o estado do repositório")}</div>;
 
   const files = data ?? [];
   // Conflicted files show once (in the unstaged list, letter "U") — staging them

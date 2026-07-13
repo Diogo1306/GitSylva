@@ -44,7 +44,7 @@ export function GitIdentity() {
               { name, email },
               {
                 onSuccess: () => { toast("Identidade guardada"); setNameEdit(null); setEmailEdit(null); },
-                onError: (e: unknown) => toast((e as { message?: string })?.message ?? "não foi possível guardar a identidade"),
+                onError: (e: unknown) => toast((e as { message?: string })?.message ?? "não foi possível guardar a identidade", "error"),
               },
             )
           }

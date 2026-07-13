@@ -125,7 +125,7 @@ export function Sidebar() {
               if (b.is_current || renaming === b.name) return;
               checkout.mutate(b.name, {
                 onSuccess: () => toast(`Em ${b.name}`),
-                onError: (e: unknown) => toast((e as { message?: string })?.message ?? "não foi possível mudar de branch"),
+                onError: (e: unknown) => toast((e as { message?: string })?.message ?? "não foi possível mudar de branch", "error"),
               });
             }}
             onContextMenu={(e) => {
@@ -170,7 +170,7 @@ export function Sidebar() {
                   if (e.key === "Enter" && renameVal.trim()) {
                     rename.mutate(
                       { old: b.name, name: renameVal.trim() },
-                      { onSuccess: () => { toast(`Renomeada para ${renameVal.trim()}`); setRenaming(null); }, onError: (err: unknown) => toast((err as { message?: string })?.message ?? "não foi possível renomear") },
+                      { onSuccess: () => { toast(`Renomeada para ${renameVal.trim()}`); setRenaming(null); }, onError: (err: unknown) => toast((err as { message?: string })?.message ?? "não foi possível renomear", "error") },
                     );
                   }
                 }}
@@ -188,7 +188,7 @@ export function Sidebar() {
                     { name: b.name, force: false },
                     {
                       onSuccess: () => toast(`Branch ${b.name} apagada`),
-                      onError: (err: unknown) => toast((err as { message?: string })?.message ?? "não foi possível apagar"),
+                      onError: (err: unknown) => toast((err as { message?: string })?.message ?? "não foi possível apagar", "error"),
                     },
                   );
                 }}
@@ -227,7 +227,7 @@ export function Sidebar() {
                       onClick={() =>
                         checkout.mutate(shortName, {
                           onSuccess: () => toast(`Em ${shortName}`),
-                          onError: (e: unknown) => toast((e as { message?: string })?.message ?? "não foi possível fazer checkout"),
+                          onError: (e: unknown) => toast((e as { message?: string })?.message ?? "não foi possível fazer checkout", "error"),
                         })
                       }
                       className="gs-row"
@@ -287,8 +287,8 @@ export function Sidebar() {
             { label: "Renomear", onClick: () => { setRenaming(name); setRenameVal(name); } },
           ];
           if (!isCurrent) {
-            items.push({ label: `Rebase da atual sobre ${name}`, onClick: () => rebase.mutate(name, { onSuccess: () => toast("Rebase concluído"), onError: (e: unknown) => toast((e as { message?: string })?.message ?? "conflito no rebase") }) });
-            items.push({ label: "Apagar branch", danger: true, onClick: () => remove.mutate({ name, force: false }, { onSuccess: () => toast(`Branch ${name} apagada`), onError: (e: unknown) => toast((e as { message?: string })?.message ?? "não foi possível apagar") }) });
+            items.push({ label: `Rebase da atual sobre ${name}`, onClick: () => rebase.mutate(name, { onSuccess: () => toast("Rebase concluído"), onError: (e: unknown) => toast((e as { message?: string })?.message ?? "conflito no rebase", "error") }) });
+            items.push({ label: "Apagar branch", danger: true, onClick: () => remove.mutate({ name, force: false }, { onSuccess: () => toast(`Branch ${name} apagada`), onError: (e: unknown) => toast((e as { message?: string })?.message ?? "não foi possível apagar", "error") }) });
           }
           return <ContextMenu x={menu.x} y={menu.y} items={items} onClose={() => setMenu(null)} />;
         })()}

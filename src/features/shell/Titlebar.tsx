@@ -97,7 +97,7 @@ export function Titlebar({ rail = false }: { rail?: boolean }) {
       onError: (e: unknown) => {
         qc.invalidateQueries({ queryKey: queryKeys.status(repo.path) });
         qc.invalidateQueries({ queryKey: queryKeys.log(repo.path) });
-        toast((e as { message?: string })?.message ?? "não foi possível fazer fetch");
+        toast((e as { message?: string })?.message ?? "não foi possível fazer fetch", "error");
       },
     });
   }
@@ -118,7 +118,7 @@ export function Titlebar({ rail = false }: { rail?: boolean }) {
       qc.invalidateQueries({ queryKey: queryKeys.status(repo.path) });
       toast("Alterações não preparadas descartadas");
     } catch (e: unknown) {
-      toast((e as { message?: string })?.message ?? "não foi possível descartar");
+      toast((e as { message?: string })?.message ?? "não foi possível descartar", "error");
     }
   }
 
