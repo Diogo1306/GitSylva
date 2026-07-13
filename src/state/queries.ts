@@ -7,6 +7,7 @@ import {
   unstageFile,
   stageAll,
   discardFile,
+  discardAll as discardAllApi,
   commit,
   getLog,
   getDiff,
@@ -278,15 +279,21 @@ export function useTagActions(path: string) {
 
 export function useStageActions(path: string) {
   const qc = useQueryClient();
-  const invalidate = () => qc.invalidateQueries({ queryKey: queryKeys.status(path) });
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: queryKeys.status(path) });
+    qc.invalidateQueries({ queryKey: ["diff", path] });
+  };
   return {
     stage: useMutation({ mutationFn: (file: string) => stageFile(path, file), onSuccess: invalidate }),
     unstage: useMutation({ mutationFn: (file: string) => unstageFile(path, file), onSuccess: invalidate }),
     stageAll: useMutation({ mutationFn: () => stageAll(path), onSuccess: invalidate }),
     discard: useMutation({
       mutationFn: (v: { file: string; untracked: boolean }) => discardFile(path, v.file, v.untracked),
-      onSuccess: invalidate,
+      onSettled: invalidate,
     }),
+    // One backend call: reverts tracked worktree edits (keeps staged) and
+    // removes untracked files/dirs. Never touches the index.
+    discardAll: useMutation({ mutationFn: () => discardAllApi(path), onSettled: invalidate }),
   };
 }
 

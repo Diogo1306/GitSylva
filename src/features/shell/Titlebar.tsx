@@ -309,7 +309,11 @@ export function Titlebar({ rail = false }: { rail?: boolean }) {
 
       {confirmDiscard && (
         <ConfirmDialog
-          message={`Descartar ${unstaged} alteração(ões) não preparada(s)? Esta ação não pode ser desfeita.`}
+          message={`Descartar ${unstaged} alteração(ões) não preparada(s)?${
+            files.filter((f) => f.worktree_status === "?").length > 0
+              ? ` ${files.filter((f) => f.worktree_status === "?").length} ficheiro(s) não rastreado(s) serão apagados do disco.`
+              : ""
+          } As alterações preparadas mantêm-se. Esta ação não pode ser desfeita.`}
           onCancel={() => setConfirmDiscard(false)}
           onConfirm={doDiscardAll}
         />

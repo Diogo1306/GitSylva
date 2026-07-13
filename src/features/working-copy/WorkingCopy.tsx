@@ -153,9 +153,7 @@ export function WorkingCopy() {
   }
 
   function discardAll() {
-    for (const f of unstaged) {
-      actions.discard.mutate({ file: f.path, untracked: f.worktree_status === "?" });
-    }
+    actions.discardAll.mutate();
     setConfirmDiscardAll(false);
   }
 
@@ -167,6 +165,7 @@ export function WorkingCopy() {
   const selSt = statusStyle(selStatus);
 
   const commitReady = msg.trim() !== "" && (staged.length > 0 || amend);
+  const untrackedCount = unstaged.filter((f) => f.worktree_status === "?").length;
 
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, minHeight: 0, animation: "fadeIn 0.25s ease both" }}>
@@ -343,7 +342,9 @@ export function WorkingCopy() {
 
       {confirmDiscardAll && (
         <ConfirmDialog
-          message={`Descartar ${unstaged.length} alteração(ões) não preparada(s)? Esta ação não pode ser desfeita.`}
+          message={`Descartar ${unstaged.length} alteração(ões) não preparada(s)?${
+            untrackedCount > 0 ? ` ${untrackedCount} ficheiro(s) não rastreado(s) serão apagados do disco.` : ""
+          } As alterações preparadas mantêm-se. Esta ação não pode ser desfeita.`}
           onCancel={() => setConfirmDiscardAll(false)}
           onConfirm={discardAll}
         />
