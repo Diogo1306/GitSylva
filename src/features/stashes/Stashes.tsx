@@ -1,17 +1,29 @@
 import { useState } from "react";
 import { useAppStore } from "../../state/appStore";
-import { useStashes, useStashActions } from "../../state/queries";
+import { useStashes, useStashFiles, useStashActions } from "../../state/queries";
 import { toast } from "../../state/toastStore";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
 import { errMsg } from "../../lib/errors";
 
 const mono = "'JetBrains Mono', monospace";
 
+// The design's card meta line: "{n} arquivos · a, b, …".
+function StashMeta({ path, index }: { path: string; index: number }) {
+  const { data } = useStashFiles(path, index);
+  if (!data || data.length === 0) return null;
+  return (
+    <div style={{ fontFamily: mono, fontSize: 12, color: "var(--muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+      {data.length} ficheiro(s) · {data.slice(0, 3).join(", ")}
+      {data.length > 3 ? "…" : ""}
+    </div>
+  );
+}
+
 export function Stashes() {
   const repo = useAppStore((s) => s.repo)!;
   const setModal = useAppStore((s) => s.setModal);
   const { data, isLoading, error } = useStashes(repo.path);
-  const { apply, drop } = useStashActions(repo.path);
+  const { apply, pop, drop } = useStashActions(repo.path);
   const [confirmDrop, setConfirmDrop] = useState<number | null>(null);
   const stashes = data ?? [];
 
@@ -41,6 +53,7 @@ export function Stashes() {
               <span style={{ fontSize: 12, color: "var(--muted)" }}>{s.relative_date}</span>
             </div>
             <div style={{ fontFamily: mono, fontSize: 12, color: "var(--text2)" }}>stash@{`{${s.index}}`}</div>
+            <StashMeta path={repo.path} index={s.index} />
             <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
               <div
                 onClick={() =>
@@ -53,6 +66,19 @@ export function Stashes() {
                 style={{ padding: "7px 14px", borderRadius: 8, background: "var(--accent)", color: "var(--accentT)", fontSize: 13, fontWeight: 700, cursor: "pointer" }}
               >
                 Aplicar
+              </div>
+              <div
+                onClick={() =>
+                  pop.mutate(s.index, {
+                    onSuccess: () => toast("Stash aplicado e removido"),
+                    onError: (e: unknown) => toast((e as { message?: string })?.message ?? "não foi possível fazer pop", "error"),
+                  })
+                }
+                title="git stash pop — aplica e, se não houver conflitos, remove o stash"
+                className="gs-lift"
+                style={{ padding: "7px 14px", borderRadius: 8, background: "var(--btn)", border: "1px solid var(--btnB)", color: "var(--btnT)", fontSize: 13, cursor: "pointer" }}
+              >
+                Aplicar e remover
               </div>
               <div
                 onClick={() => setConfirmDrop(s.index)}
