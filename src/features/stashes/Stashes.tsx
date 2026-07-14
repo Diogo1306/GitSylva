@@ -26,6 +26,9 @@ export function Stashes() {
   const { apply, pop, drop } = useStashActions(repo.path);
   const [confirmDrop, setConfirmDrop] = useState<number | null>(null);
   const stashes = data ?? [];
+  // One stash mutation at a time: indices shift after pop/drop, so a second
+  // click mid-flight could hit the wrong stash.
+  const busy = apply.isPending || pop.isPending || drop.isPending;
 
   return (
     <div style={{ flex: 1, padding: 28, display: "flex", flexDirection: "column", gap: 14, overflowY: "auto", animation: "fadeUp 0.3s ease both" }}>
@@ -57,18 +60,22 @@ export function Stashes() {
             <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
               <div
                 onClick={() =>
+                  // apply/pop/drop on the same stash list are incompatible in
+                  // flight — one at a time (double-click included).
+                  !busy &&
                   apply.mutate(s.index, {
                     onSuccess: () => toast("Stash aplicado"),
                     onError: (e: unknown) => toast((e as { message?: string })?.message ?? "não foi possível aplicar", "error"),
                   })
                 }
                 className="gs-press"
-                style={{ padding: "7px 14px", borderRadius: 8, background: "var(--accent)", color: "var(--accentT)", fontSize: 13, fontWeight: 700, cursor: "pointer" }}
+                style={{ padding: "7px 14px", borderRadius: 8, background: "var(--accent)", color: "var(--accentT)", fontSize: 13, fontWeight: 700, cursor: busy ? "default" : "pointer", opacity: busy ? 0.6 : 1 }}
               >
-                Aplicar
+                {apply.isPending ? "A aplicar…" : "Aplicar"}
               </div>
               <div
                 onClick={() =>
+                  !busy &&
                   pop.mutate(s.index, {
                     onSuccess: () => toast("Stash aplicado e removido"),
                     onError: (e: unknown) => toast((e as { message?: string })?.message ?? "não foi possível fazer pop", "error"),
@@ -76,9 +83,9 @@ export function Stashes() {
                 }
                 title="git stash pop — aplica e, se não houver conflitos, remove o stash"
                 className="gs-lift"
-                style={{ padding: "7px 14px", borderRadius: 8, background: "var(--btn)", border: "1px solid var(--btnB)", color: "var(--btnT)", fontSize: 13, cursor: "pointer" }}
+                style={{ padding: "7px 14px", borderRadius: 8, background: "var(--btn)", border: "1px solid var(--btnB)", color: "var(--btnT)", fontSize: 13, cursor: busy ? "default" : "pointer", opacity: busy ? 0.6 : 1 }}
               >
-                Aplicar e remover
+                {pop.isPending ? "A aplicar…" : "Aplicar e remover"}
               </div>
               <div
                 onClick={() => setConfirmDrop(s.index)}

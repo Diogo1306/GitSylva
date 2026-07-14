@@ -147,6 +147,7 @@ export function CommandPalette() {
       ["Pull…", "integrar do remoto", () => { setModal("pull"); setOpen(false); }],
       ["Push…", "enviar para o remoto", () => { setModal("push"); setOpen(false); }],
       ["Fetch", "atualizar do remoto", () => {
+        if (sync.fetch.isPending) { setOpen(false); return; }
         sync.fetch.mutate(undefined, {
           onSuccess: () => {
             spawnLeaf();

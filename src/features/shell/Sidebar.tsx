@@ -150,7 +150,9 @@ export function Sidebar() {
           <div
             key={b.name}
             onClick={() => {
-              if (b.is_current || renaming === b.name) return;
+              // One checkout at a time: clicking two branches quickly must not
+              // queue a second switch behind the first.
+              if (b.is_current || renaming === b.name || checkout.isPending) return;
               checkout.mutate(b.name, {
                 onSuccess: () => toast(`Em ${b.name}`),
                 onError: (e: unknown) => toast((e as { message?: string })?.message ?? "não foi possível mudar de branch", "error"),
@@ -247,6 +249,7 @@ export function Sidebar() {
                     <div
                       key={b.name}
                       onClick={() =>
+                        !checkout.isPending &&
                         checkout.mutate(shortName, {
                           onSuccess: () => toast(`Em ${shortName}`),
                           onError: (e: unknown) => toast((e as { message?: string })?.message ?? "não foi possível fazer checkout", "error"),

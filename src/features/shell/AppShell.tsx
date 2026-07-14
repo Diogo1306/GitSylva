@@ -1,5 +1,5 @@
 import "./shell.css";
-import { Suspense, lazy, useEffect } from "react";
+import { Suspense, lazy, useEffect, useRef } from "react";
 import { useAppStore } from "../../state/appStore";
 import { useThemeStore } from "../../state/themeStore";
 import { Titlebar } from "./Titlebar";
@@ -50,6 +50,9 @@ export function AppShell() {
   const bindings = useShortcutsStore((s) => s.bindings);
   const sync = useSyncActions(repoPath ?? "");
   const fetchMutate = sync.fetch.mutate;
+  // Ref (not isPending): the keydown closure below only re-binds when the
+  // bindings change, so a state read would be stale.
+  const fetchInFlight = useRef(false);
 
   // Global, rebindable shortcuts (Settings → Atalhos). All combos carry the
   // mod key, so typing never triggers them; ⌘Enter is allowed inside the
@@ -86,6 +89,9 @@ export function AppShell() {
           st.setModal("stash");
           break;
         case "fetch":
+          // Holding the shortcut must not queue a fetch per keypress.
+          if (fetchInFlight.current) break;
+          fetchInFlight.current = true;
           fetchMutate(undefined, {
             onSuccess: () => {
               spawnLeaf();
@@ -93,6 +99,9 @@ export function AppShell() {
             },
             onError: (err: unknown) =>
               notify("Fetch falhou", (err as { message?: string })?.message ?? "não foi possível fazer fetch", "error", "fetch"),
+            onSettled: () => {
+              fetchInFlight.current = false;
+            },
           });
           break;
       }

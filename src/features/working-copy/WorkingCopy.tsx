@@ -185,7 +185,11 @@ export function WorkingCopy() {
   // Stable so DiffLines' memoized rows survive re-renders of this screen.
   const stagedSel = effSel?.staged ?? false;
   const onStageHunk = useCallback(
-    (p: string) => hunk.mutate({ patch: p, cached: true, reverse: stagedSel }),
+    (p: string) =>
+      hunk.mutate(
+        { patch: p, cached: true, reverse: stagedSel },
+        { onError: (e: unknown) => toast(errMsg(e, "não foi possível aplicar o hunk"), "error") },
+      ),
     [hunk, stagedSel],
   );
 
@@ -236,7 +240,10 @@ export function WorkingCopy() {
   }
 
   function discardAll() {
-    actions.discardAll.mutate();
+    // A failed discard must never look like it worked.
+    actions.discardAll.mutate(undefined, {
+      onError: (e: unknown) => toast(errMsg(e, "não foi possível descartar as alterações"), "error"),
+    });
     setConfirmDiscardAll(false);
   }
 
@@ -319,8 +326,19 @@ export function WorkingCopy() {
         {!isStacked && <PanelHandle edge="right" handleProps={filesW.handleProps} />}
         <div style={{ padding: "12px 16px 8px", display: "flex", alignItems: "center" }}>
           <SectionHead>NÃO PREPARADAS · {unstaged.length}</SectionHead>
-          <div onClick={() => actions.stageAll.mutate()} className="gs-row" style={{ fontSize: 12, color: "var(--l0)", cursor: "pointer", padding: "3px 8px", borderRadius: 6, fontWeight: 600 }}>
-            Preparar tudo
+          <div
+            onClick={() =>
+              // Double-click must not queue the same operation twice, and a
+              // failure has to surface (it was silent before).
+              !actions.stageAll.isPending &&
+              actions.stageAll.mutate(undefined, {
+                onError: (e: unknown) => toast(errMsg(e, "não foi possível preparar tudo"), "error"),
+              })
+            }
+            className="gs-row"
+            style={{ fontSize: 12, color: "var(--l0)", cursor: actions.stageAll.isPending ? "default" : "pointer", opacity: actions.stageAll.isPending ? 0.6 : 1, padding: "3px 8px", borderRadius: 6, fontWeight: 600 }}
+          >
+            {actions.stageAll.isPending ? "A preparar…" : "Preparar tudo"}
           </div>
           <div
             onClick={() => {
@@ -347,8 +365,14 @@ export function WorkingCopy() {
                   selected={effSel?.path === f.path && !effSel.staged}
                   conflicted={isConflict(f.index_status, f.worktree_status)}
                   onToggle={() => {
+                    // Already animating out of this list — a second click would
+                    // queue a duplicate stage and a duplicate ghost.
+                    if (hiddenPaths.has(f.path)) return;
                     const idx = unstaged.indexOf(f);
-                    actions.stage.mutate(f.path, { onSuccess: () => exitRow(f, "u", f.worktree_status, idx) });
+                    actions.stage.mutate(f.path, {
+                      onSuccess: () => exitRow(f, "u", f.worktree_status, idx),
+                      onError: (e: unknown) => toast(errMsg(e, `não foi possível preparar ${f.path}`), "error"),
+                    });
                   }}
                   onSelect={() => select(f.path, false)}
                   onContext={(x, y) => setFileMenu({ x, y, file: f })}
@@ -382,8 +406,12 @@ export function WorkingCopy() {
                   checked
                   selected={effSel?.path === f.path && effSel.staged}
                   onToggle={() => {
+                    if (hiddenPaths.has(f.path)) return;
                     const idx = staged.indexOf(f);
-                    actions.unstage.mutate(f.path, { onSuccess: () => exitRow(f, "s", f.index_status, idx) });
+                    actions.unstage.mutate(f.path, {
+                      onSuccess: () => exitRow(f, "s", f.index_status, idx),
+                      onError: (e: unknown) => toast(errMsg(e, `não foi possível retirar ${f.path}`), "error"),
+                    });
                   }}
                   onSelect={() => select(f.path, true)}
                   onContext={(x, y) => setFileMenu({ x, y, file: f })}
