@@ -305,3 +305,26 @@ scroll do histórico, ⌘K ×50, Settings ×20, tema ×20, heap antes/depois (De
 
 `tsc` ✅ · `eslint` ✅ · vitest **63/63** ✅ · `cargo test` **43/43** ✅ · build normal ✅
 (mock ausente do dist, verificado) · `tauri build --no-bundle` ✅ (exe medido acima).
+
+### F. Aceleração de hardware (hipótese do utilizador, medida)
+
+Comparação no exe de produção, ~20s no ecrã com folhas ambientais, processos filtrados por
+linha de comando (app.exe + msedgewebview2 do `com.gitsylva.app`):
+
+| | HW accel ON (default) | HW accel OFF (`--disable-gpu`) |
+|---|---:|---:|
+| CPU média / máx | 0,51% / 2,26% | 0,18% / 1,68% |
+| GPU média / máx | 0,21% / 1,33% | 0,01% / 0,1% |
+| RAM | 421 MB | 396 MB |
+
+**Nesta máquina** a aceleração não é a causa de peso (ambos os modos ≈ idle). A hipótese
+mantém-se válida para máquinas com drivers de GPU problemáticos — o WebView2 respeita:
+
+```powershell
+# Diagnóstico noutro PC: correr a app sem aceleração de hardware
+$env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS = "--disable-gpu"
+.\app.exe
+```
+
+Se com o flag o "estranho/pesado" desaparecer nesse PC, o problema é o driver/GPU — atualizar
+o driver ou considerar expor `additionalBrowserArgs` na config Tauri por instalação.
