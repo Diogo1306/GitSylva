@@ -508,3 +508,26 @@ sem matar o momento. Guarda de modo janela: no fim da entrada (1,6s) todos os ha
 "vistos", para o scroll (que remonta elementos) nunca a repetir; a troca é invisível porque
 todos os keyframes terminam na pose estática. vitest 69/69 (novo teste: row 0 anima, row
 150 estática num log de 200). develop @ d9d4287.
+
+Verificado AO VIVO no exe (CDP no WebView2, amostragem 300ms desde o arranque): aos ~0,9s o
+grafo monta com **129 vinhas em vineDraw + 120 nós em nodePop**; a 2,5s a limpeza pós-entrada
+troca os estilos para estático sem alteração visual; sem re-animações em scroll. Também
+verificado ao vivo: reduced-motion=false, data-anims=on, path do repo ativo estável.
+
+### K. R4.3 — sweep completo do spec de animações (animations.md linha a linha)
+
+A pedido do utilizador ("mete todas as outras animações que faltam"), cada linha da tabela do
+handoff foi confrontada com o código. Já implementado e confirmado: splash/onboarding/S-tree,
+news deck, modais, palette, context menu, notifications (com vinha), botões hover/press,
+spinner do fetch (+fxFall), commit→nó incremental, folha efémera, sway/leafFall ambiente,
+theme swap, winMinimize, scroll-spy, recPulse, caret do rail, saídas de rows. Lacunas
+encontradas e fechadas:
+
+| Spec | Estava | Agora |
+|---|---|---|
+| Screen switch = `fadeUp` 250ms | History/WorkingCopy/Settings/RepoPicker usavam `fadeIn` | `fadeUp` em todos (Stashes já estava) |
+| Toast: "small vine flourish frames it" | toast sem vinha (só as notifications tinham) | `Vine` partilhada do Notifications, gated por anims |
+| File stage/unstage: "small per-row stagger" | todas as rows entravam ao mesmo tempo | stagger 22ms/row (cap 220ms), congelado no mount — o delay não pode seguir o índice vivo ou remover uma row reiniciava a entrada das seguintes |
+| Tab bar appear = `fadeUp` | barra de tabs montava sem entrada | `fadeUp` 250ms |
+
+vitest 69/69, tsc+eslint limpos, exe reconstruído e árvore re-verificada ao vivo via CDP.

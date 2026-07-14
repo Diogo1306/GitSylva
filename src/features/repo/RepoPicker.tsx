@@ -92,7 +92,7 @@ export function RepoPicker() {
   };
 
   return (
-    <div data-screen-label="Adicionar repositório" style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0, animation: "fadeIn 0.25s ease both" }}>
+    <div data-screen-label="Adicionar repositório" style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0, animation: "fadeUp 0.25s ease both" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 4, padding: "10px 16px", borderBottom: "1px solid var(--border)", background: "var(--panel)" }}>
         {tabs.map(([key, name]) => (
           <div

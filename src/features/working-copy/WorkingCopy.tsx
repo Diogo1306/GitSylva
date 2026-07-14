@@ -33,6 +33,7 @@ function FileRow({
   checked,
   selected,
   conflicted,
+  stagger = 0,
   onToggle,
   onSelect,
   onContext,
@@ -42,12 +43,17 @@ function FileRow({
   checked: boolean;
   selected: boolean;
   conflicted?: boolean;
+  /** Row index for the entrance stagger (animation spec §File stage/unstage). */
+  stagger?: number;
   onToggle: () => void;
   onSelect: () => void;
   onContext?: (x: number, y: number) => void;
 }) {
   const st = statusStyle(letter);
   const { name, dir } = splitPath(file.path);
+  // Frozen at mount: if the delay tracked the live index, staging a row above
+  // would change this style and RESTART the entrance of every row below it.
+  const [entranceDelay] = useState(() => Math.min(stagger * 22, 220));
   return (
     <div
       onClick={onSelect}
@@ -64,7 +70,8 @@ function FileRow({
         borderRadius: 8,
         cursor: "pointer",
         background: selected ? "var(--sel)" : "transparent",
-        animation: "fileIn 0.22s cubic-bezier(0.2, 0.9, 0.3, 1) both",
+        // Small per-row stagger, capped so long lists never feel sluggish.
+        animation: `fileIn 0.22s cubic-bezier(0.2, 0.9, 0.3, 1) ${entranceDelay}ms both`,
       }}
     >
       <div
@@ -314,7 +321,7 @@ export function WorkingCopy() {
   }
 
   return (
-    <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, minHeight: 0, animation: "fadeIn 0.25s ease both" }}>
+    <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, minHeight: 0, animation: "fadeUp 0.25s ease both" }}>
       <div style={{ flex: 1, display: "flex", flexDirection: isStacked ? "column" : "row", minWidth: 0, minHeight: 0 }}>
       {/* Files + commit */}
       <div
@@ -364,7 +371,7 @@ export function WorkingCopy() {
           {(() => {
             const items = unstaged
               .filter((f) => !hiddenPaths.has(f.path))
-              .map((f) => (
+              .map((f, rowIdx) => (
                 <FileRow
                   key={"u" + f.path}
                   file={f}
@@ -372,6 +379,7 @@ export function WorkingCopy() {
                   checked={false}
                   selected={effSel?.path === f.path && !effSel.staged}
                   conflicted={isConflict(f.index_status, f.worktree_status)}
+                  stagger={rowIdx}
                   onToggle={() => {
                     // Already animating out of this list — a second click would
                     // queue a duplicate stage and a duplicate ghost.
@@ -406,13 +414,14 @@ export function WorkingCopy() {
           {(() => {
             const items = staged
               .filter((f) => !hiddenPaths.has(f.path))
-              .map((f) => (
+              .map((f, rowIdx) => (
                 <FileRow
                   key={"s" + f.path}
                   file={f}
                   letter={f.index_status}
                   checked
                   selected={effSel?.path === f.path && effSel.staged}
+                  stagger={rowIdx}
                   onToggle={() => {
                     if (hiddenPaths.has(f.path)) return;
                     const idx = staged.indexOf(f);

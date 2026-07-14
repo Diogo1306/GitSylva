@@ -1,4 +1,6 @@
 import { useToastStore, type ToastKind } from "../state/toastStore";
+import { useThemeStore } from "../state/themeStore";
+import { Vine } from "./Notifications";
 
 const DOT: Record<ToastKind, string> = {
   info: "var(--accent)",
@@ -7,10 +9,13 @@ const DOT: Record<ToastKind, string> = {
 };
 
 // Bottom-centered toasts. Click a toast to dismiss it; errors also stay longer.
-// Announced politely to screen readers via aria-live.
+// Announced politely to screen readers via aria-live. A small vine flourish
+// hugs the corner (animation spec §Toast), gated by the anims preference.
 export function Toaster() {
   const toasts = useToastStore((s) => s.toasts);
   const dismiss = useToastStore((s) => s.dismiss);
+  const anims = useThemeStore((s) => s.anims);
+  const treeStyle = useThemeStore((s) => s.treeStyle);
   return (
     <div
       role="status"
@@ -24,6 +29,7 @@ export function Toaster() {
           title="Fechar"
           role={t.kind === "error" ? "alert" : undefined}
           style={{
+            position: "relative",
             display: "flex",
             alignItems: "center",
             gap: 9,
@@ -41,6 +47,7 @@ export function Toaster() {
               : "toastIn var(--motion-normal) var(--ease-pop) both",
           }}
         >
+          {anims && <Vine treeStyle={treeStyle} />}
           <span style={{ width: 8, height: 8, borderRadius: "50%", background: DOT[t.kind], flexShrink: 0 }} />
           <span style={{ overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical" }}>{t.text}</span>
         </div>

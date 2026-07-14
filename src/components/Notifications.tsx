@@ -12,7 +12,8 @@ const DOT: Record<NotifKind, string> = {
   error: "var(--ddT)",
 };
 
-function Vine({ treeStyle }: { treeStyle: string }) {
+// Shared with the Toaster (spec §Toast: "small vine flourish frames it").
+export function Vine({ treeStyle }: { treeStyle: string }) {
   // Static flourish — one curved stem plus a leaf/blossom, no animation loops.
   return (
     <svg

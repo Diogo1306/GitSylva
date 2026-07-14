@@ -257,8 +257,9 @@ export function Titlebar({ rail = false }: { rail?: boolean }) {
       ) : (
       /* Repo tabs, grouped exactly like the rail (spec: groups work
          identically): chip toggles collapse, right-click closes the group.
-         Horizontal scroll keeps every tab reachable with many repos open. */
-      <div style={{ display: "flex", alignItems: "center", gap: 5, minWidth: 0, flex: 1, overflowX: "auto", overflowY: "hidden", scrollbarWidth: "thin" }}>
+         Horizontal scroll keeps every tab reachable with many repos open.
+         fadeUp on appear = animation spec §"Tab bar appear". */
+      <div style={{ display: "flex", alignItems: "center", gap: 5, minWidth: 0, flex: 1, overflowX: "auto", overflowY: "hidden", scrollbarWidth: "thin", animation: "fadeUp 0.25s ease both" }}>
         {groups.map((g) => {
           const members = repos.filter((r) => groupOf[r.path] === g.id);
           if (members.length === 0) return null;
