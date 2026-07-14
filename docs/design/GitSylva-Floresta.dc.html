@@ -42,6 +42,7 @@
     @keyframes letterR { from { opacity: 0; transform: translateX(-16px) scale(0.85); } to { opacity: 1; transform: none; } }
     @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
     @keyframes notifIn { from { opacity: 0; transform: translateX(28px) scale(0.97); } to { opacity: 1; transform: none; } }
+    @keyframes notifOut { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateX(36px) scale(0.94); } }
     @keyframes sway { from { transform: rotate(-1.1deg); } to { transform: rotate(1.4deg); } }
     @keyframes leafFall {
       0% { transform: translate(0, -6vh) rotate(0deg); opacity: 0; }
@@ -50,6 +51,7 @@
       88% { opacity: 0.65; }
       100% { transform: translate(-14px, 106vh) rotate(330deg); opacity: 0; }
     }
+    @keyframes winMinimize { 0% { transform: none; opacity: 1; } 45% { transform: translateY(64px) scale(0.86); opacity: 0; } 60% { transform: translateY(64px) scale(0.86); opacity: 0; } 100% { transform: none; opacity: 1; } }
     :root {
       --desk: radial-gradient(120% 90% at 50% 0%, #F7F7F3 0%, #E8E8E3 70%);
       --win: #FFFFFF; --winB: rgba(0,0,0,0.12);
@@ -80,11 +82,9 @@
 </helmet>
 
 <div style="{{ themeVars }}">
-<div onClick="{{ closeMenu }}" style="min-height: 100vh; display: grid; place-items: center; padding: 32px; box-sizing: border-box; background: var(--desk); font-family: var(--font); color: var(--text); position: relative; overflow: hidden;">
+<div onClick="{{ closeMenu }}" style="height: 100vh; display: flex; box-sizing: border-box; background: var(--win); font-family: var(--font); color: var(--text); position: relative; overflow: hidden;">
 
-  {{ deskArt }}
-
-  <div style="position: relative; z-index: 1; width: {{ winW }}px; height: {{ winH }}px; border-radius: 14px; overflow: hidden; display: flex; flex-direction: column; background: var(--win); border: 1px solid var(--winB); box-shadow: var(--shadow); animation: winIn 0.5s cubic-bezier(0.2, 0.9, 0.25, 1) both;">
+  <div style="position: relative; z-index: 1; flex: 1; min-width: 0; height: 100vh; overflow: hidden; display: flex; flex-direction: column; background: var(--win); animation: {{ winAnim }};">
 
     <!-- folhas efémeras dentro da janela: troca de aba, fetch, commit -->
     <sc-for list="{{ fxLeaves }}" as="fx" hint-placeholder-count="0">
@@ -95,11 +95,13 @@
 
     <!-- ══ Titlebar ══ -->
     <div style="height: 50px; flex-shrink: 0; display: flex; align-items: center; gap: 16px; padding: 0 16px; border-bottom: 1px solid var(--border); background: var(--panel);">
+      <sc-if value="{{ isMac }}" hint-placeholder-val="{{ true }}">
       <div style="display: flex; gap: 8px; flex-shrink: 0;">
-        <div style="width: 12px; height: 12px; border-radius: 50%; background: #FF5F57;"></div>
-        <div style="width: 12px; height: 12px; border-radius: 50%; background: #FEBC2E;"></div>
-        <div style="width: 12px; height: 12px; border-radius: 50%; background: #28C840;"></div>
+        <div onClick="{{ winClose }}" title="Fechar" style="width: 12px; height: 12px; border-radius: 50%; background: #FF5F57; cursor: pointer; transition: filter 0.12s ease;" style-hover="filter: brightness(0.88)"></div>
+        <div onClick="{{ winMin }}" title="Minimizar" style="width: 12px; height: 12px; border-radius: 50%; background: #FEBC2E; cursor: pointer; transition: filter 0.12s ease;" style-hover="filter: brightness(0.88)"></div>
+        <div onClick="{{ winMax }}" title="Zoom" style="width: 12px; height: 12px; border-radius: 50%; background: #28C840; cursor: pointer; transition: filter 0.12s ease;" style-hover="filter: brightness(0.88)"></div>
       </div>
+      </sc-if>
       <div style="display: flex; align-items: baseline; flex-shrink: 0; font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 17px; letter-spacing: 0.3px;">
         <span>git</span>
         <span style="display: inline-block; margin: 0 1px;">{{ logoSTiny }}</span>
@@ -155,6 +157,24 @@
           <span style="width: 11px; height: 11px; border-radius: 50%; border: 2.5px dotted currentColor; box-sizing: border-box;"></span>
         </div>
       </div>
+      <sc-if value="{{ isWin }}" hint-placeholder-val="{{ false }}">
+      <div style="display: flex; align-self: stretch; margin: 0 -16px 0 -6px; flex-shrink: 0;">
+        <div onClick="{{ winMin }}" title="Minimizar" style="width: 46px; display: grid; place-items: center; cursor: pointer; color: var(--text2); transition: background 0.12s ease;" style-hover="background: var(--hover)">
+          <svg width="11" height="11" viewBox="0 0 11 11"><path d="M1 5.5 H10" style="stroke: currentColor; stroke-width: 1;"></path></svg>
+        </div>
+        <div onClick="{{ winMax }}" title="{{ winMaxTitle }}" style="width: 46px; display: grid; place-items: center; cursor: pointer; color: var(--text2); transition: background 0.12s ease;" style-hover="background: var(--hover)">
+          <sc-if value="{{ maximized }}" hint-placeholder-val="{{ false }}">
+            <svg width="12" height="12" viewBox="0 0 12 12"><rect x="2.5" y="0.5" width="8.5" height="8.5" rx="0.7" style="fill: none; stroke: currentColor; stroke-width: 1;"></rect><rect x="0.5" y="2.5" width="8.5" height="8.5" rx="0.7" style="fill: var(--panel); stroke: currentColor; stroke-width: 1;"></rect></svg>
+          </sc-if>
+          <sc-if value="{{ notMaximized }}" hint-placeholder-val="{{ true }}">
+            <svg width="11" height="11" viewBox="0 0 11 11"><rect x="1" y="1" width="9" height="9" rx="0.7" style="fill: none; stroke: currentColor; stroke-width: 1;"></rect></svg>
+          </sc-if>
+        </div>
+        <div onClick="{{ winClose }}" title="Fechar" style="width: 46px; display: grid; place-items: center; cursor: pointer; color: var(--text2); transition: background 0.12s ease, color 0.12s ease;" style-hover="background: #E81123; color: #FFFFFF">
+          <svg width="11" height="11" viewBox="0 0 11 11"><path d="M1 1 L10 10 M10 1 L1 10" style="stroke: currentColor; stroke-width: 1.1;"></path></svg>
+        </div>
+      </div>
+      </sc-if>
     </div>
 
     <!-- ══ Body ══ -->
@@ -385,8 +405,9 @@
 
       <!-- ── ADICIONAR REPOSITÓRIO (estilo SourceTree) ── -->
       <sc-if value="{{ isPicker }}" hint-placeholder-val="{{ false }}">
-        <div data-screen-label="Adicionar repositório" style="flex: 1; display: flex; flex-direction: column; min-height: 0; animation: fadeIn 0.25s ease both;">
-          <div style="display: flex; align-items: center; gap: 4px; padding: 10px 16px; border-bottom: 1px solid var(--border); background: var(--panel);">
+        <div data-screen-label="Adicionar repositório" style="flex: 1; display: flex; flex-direction: column; min-height: 0; position: relative; overflow: hidden; animation: fadeIn 0.25s ease both;">
+          {{ deskArt }}
+          <div style="position: relative; z-index: 1; display: flex; align-items: center; gap: 4px; padding: 10px 16px; border-bottom: 1px solid var(--border); background: var(--panel);">
             <sc-for list="{{ pickerTabs }}" as="pt" hint-placeholder-count="5">
               <div onClick="{{ pt.go }}" style="padding: 7px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; color: {{ pt.color }}; background: {{ pt.bg }}; cursor: pointer; transition: background 0.15s ease;" style-hover="background: var(--hover)">{{ pt.name }}</div>
             </sc-for>
@@ -394,7 +415,7 @@
             <div onClick="{{ closePicker }}" style="padding: 6px 12px; border-radius: 8px; border: 1px solid var(--btnB); background: var(--btn); color: var(--btnT); font-size: 12.5px; cursor: pointer; transition: background 0.15s ease;" style-hover="background: var(--hover)">✕ Fechar</div>
           </div>
 
-          <div style="flex: 1; overflow-y: auto;">
+          <div style="position: relative; z-index: 1; flex: 1; overflow-y: auto;">
             <div style="max-width: 720px; margin: 0 auto; padding: 30px 28px 40px; display: flex; flex-direction: column; gap: 16px;">
 
               <sc-if value="{{ isPkLocal }}" hint-placeholder-val="{{ true }}">
@@ -1148,8 +1169,9 @@
 
   <!-- ── Splash ── -->
   <sc-if value="{{ splashOn }}" hint-placeholder-val="{{ false }}">
-    <div style="position: fixed; inset: 0; z-index: 90; background: var(--desk); display: grid; place-items: center; animation: splashSeq 2.05s ease both; pointer-events: none;">
-      <div style="display: flex; flex-direction: column; align-items: center; animation: logoIn 0.4s cubic-bezier(0.2, 0.9, 0.3, 1) both;">
+    <div style="position: fixed; inset: 0; z-index: 90; background: var(--desk); display: grid; place-items: center; animation: splashSeq 2.05s ease both; pointer-events: none; overflow: hidden;">
+      {{ deskArt }}
+      <div style="position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; animation: logoIn 0.4s cubic-bezier(0.2, 0.9, 0.3, 1) both;">
         <div style="display: flex; align-items: baseline; font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 52px; color: var(--text); letter-spacing: 0.5px;">
           <span style="display: inline-block; animation: letterL 0.32s ease 0.88s both, letterHop 0.42s ease 1.62s both;">g</span>
           <span style="display: inline-block; animation: letterL 0.32s ease 0.78s both, letterHop 0.42s ease 1.56s both;">i</span>
@@ -1327,7 +1349,7 @@
 
   <!-- ── Notificação ── -->
   <sc-if value="{{ notifOpen }}" hint-placeholder-val="{{ false }}">
-    <div style="position: fixed; bottom: 88px; right: 44px; z-index: 72; width: 310px; background: var(--win); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 16px 50px rgba(0,0,0,0.3); padding: 13px 15px; display: flex; gap: 11px; align-items: flex-start; font-family: var(--font); animation: notifIn 0.35s cubic-bezier(0.2, 0.9, 0.3, 1) both;">
+    <div style="position: fixed; bottom: 88px; right: 44px; z-index: 72; width: 310px; background: var(--win); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 16px 50px rgba(0,0,0,0.3); padding: 13px 15px; display: flex; gap: 11px; align-items: flex-start; font-family: var(--font); animation: {{ notifAnim }};">
       {{ notifVine }}
       <span style="width: 9px; height: 9px; border-radius: 50%; background: {{ notifDot }}; margin-top: 4px; flex-shrink: 0;"></span>
       <div style="flex: 1; min-width: 0;">
@@ -1356,9 +1378,7 @@
 </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props="{
-  &quot;theme&quot;: { &quot;editor&quot;: &quot;enum&quot;, &quot;default&quot;: &quot;escuro&quot;, &quot;options&quot;: [&quot;escuro&quot;, &quot;claro&quot;, &quot;harbor&quot;, &quot;nipon&quot;], &quot;tsType&quot;: &quot;string&quot;, &quot;section&quot;: &quot;Aparência&quot; }
-}">
+<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;: {&quot;editor&quot;: &quot;enum&quot;, &quot;default&quot;: &quot;escuro&quot;, &quot;options&quot;: [&quot;escuro&quot;, &quot;claro&quot;, &quot;gitclassic&quot;, &quot;nipon&quot;]}, &quot;os&quot;: {&quot;editor&quot;: &quot;enum&quot;, &quot;default&quot;: &quot;auto&quot;, &quot;options&quot;: [&quot;auto&quot;, &quot;mac&quot;, &quot;windows&quot;]}}">
 class Component extends DCLogic {
   constructor(props) {
     super(props);
@@ -1372,6 +1392,7 @@ class Component extends DCLogic {
       treeStyle: saved.treeStyle || 'normal',
       branchColor: saved.branchColor || 'auto',
       anims: saved.anims !== false, fxLeaves: [],
+      maximized: saved.maximized || false, minimizing: false,
       vw: typeof window !== 'undefined' ? window.innerWidth : 1600,
       vh: typeof window !== 'undefined' ? window.innerHeight : 1000,
       sbW: saved.sbW || 232, detailW: saved.detailW || 372, wcW: saved.wcW || 400,
@@ -1435,7 +1456,7 @@ class Component extends DCLogic {
           theme: s.theme, fontKey: s.fontKey, density: s.density, accentIdx: s.accentIdx, git: s.git, accounts: s.accounts, repoLayout: s.repoLayout, treeStyle: s.treeStyle, branchColor: s.branchColor, anims: s.anims, pullMode: s.pullMode,
           sbW: s.sbW, detailW: s.detailW, wcW: s.wcW, wcLayout: s.wcLayout, editorKey: s.editorKey,
           shortcuts: s.shortcuts, sshKeys: s.sshKeys, notifPrefs: s.notifPrefs, notifWhere: s.notifWhere, lang: s.lang, lfs: s.lfs,
-          onboarded: s.onboard === 'done',
+          onboarded: s.onboard === 'done', maximized: s.maximized,
         }));
       } catch (e) {}
     });
@@ -1486,6 +1507,7 @@ class Component extends DCLogic {
     clearTimeout(this._obT2);
     clearTimeout(this._obC);
     clearTimeout(this._clT);
+    clearTimeout(this._minT);
     if (this._rs) window.removeEventListener('resize', this._rs);
     if (this._rsT) cancelAnimationFrame(this._rsT);
   }
@@ -1498,8 +1520,16 @@ class Component extends DCLogic {
 
   notify(title, sub, dot) {
     clearTimeout(this._nt);
-    this.setState({ notif: { title, sub, dot: dot || 'var(--leaf)' } });
-    this._nt = setTimeout(() => this.setState({ notif: null }), 3800);
+    clearTimeout(this._ntClose);
+    this.setState({ notif: { title, sub, dot: dot || 'var(--leaf)' }, notifClosing: false });
+    this._nt = setTimeout(() => this.dismissNotif(), 3800);
+  }
+
+  dismissNotif() {
+    clearTimeout(this._nt);
+    if (!this.state.notif || this.state.notifClosing) return;
+    this.setState({ notifClosing: true });
+    this._ntClose = setTimeout(() => this.setState({ notif: null, notifClosing: false }), 340);
   }
 
   // arrasto de painéis (barra lateral, detalhe, cópia de trabalho) com mínimos aceitáveis
@@ -2538,8 +2568,18 @@ class Component extends DCLogic {
 
   hexAlpha(hex, a) { return hex + Math.round(a * 255).toString(16).padStart(2, '0'); }
 
+  resolveOS() {
+    const p = this.props && this.props.os;
+    if (p === 'mac') return 'mac';
+    if (p === 'windows') return 'win';
+    let s = '';
+    try { s = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || navigator.userAgent || ''; } catch (e) {}
+    return /mac|iphone|ipad|ipod/i.test(s) ? 'mac' : 'win';
+  }
+
   renderVals() {
     const st = this.state;
+    const osk = this.resolveOS();
     const themeKey = st.theme || this.props.theme || 'escuro';
     const pal = this.palettes[themeKey] || this.palettes.escuro;
     const accents = pal.accents;
@@ -2878,7 +2918,8 @@ class Component extends DCLogic {
       notifSub: st.notif ? st.notif.sub : '',
       notifDot: st.notif ? st.notif.dot : 'var(--leaf)',
       notifVine: st.notif ? this.buildNotifVine() : null,
-      closeNotif: () => this.setState({ notif: null }),
+      notifAnim: st.notifClosing ? 'notifOut 0.32s cubic-bezier(0.4, 0, 0.7, 0.2) both' : 'notifIn 0.35s cubic-bezier(0.2, 0.9, 0.3, 1) both',
+      closeNotif: () => this.dismissNotif(),
       isModalAccount: st.modal === 'account',
       providerChips: ['GitHub', 'GitLab', 'Bitbucket'].map((name) => ({
         name,
@@ -2983,8 +3024,8 @@ class Component extends DCLogic {
       // responsivo: a janela encolhe com o ecrã e esconde o que não cabe
       ...(() => {
         const vw = st.vw || 1600, vh = st.vh || 1000;
-        const winW = Math.min(1440, Math.max(700, vw - 76));
-        const winH = Math.min(880, Math.max(540, vh - 76));
+        const winW = vw;
+        const winH = vh;
         const narrow = winW < 1180, tiny = winW < 980, micro = winW < 880;
         const wcN = st.staged.length + st.unstaged.length;
         const wcVisible = wcN > 0 && !tiny;
@@ -3027,6 +3068,17 @@ class Component extends DCLogic {
       animTrack: st.anims ? 'var(--accent)' : 'var(--btnB)',
       animKnob: st.anims ? 18 : 2,
       animFlip: () => this.savePrefs({ anims: !this.state.anims }),
+      // ── controlos de janela (mac / windows) ──
+      isMac: osk === 'mac',
+      isWin: osk === 'win',
+      maximized: !!st.maximized,
+      notMaximized: !st.maximized,
+      winMaxTitle: st.maximized ? 'Restaurar' : 'Maximizar',
+      winRadius: st.maximized ? 8 : 14,
+      winAnim: st.minimizing ? 'winMinimize 0.8s ease both' : 'winIn 0.5s cubic-bezier(0.2, 0.9, 0.25, 1) both',
+      winMin: (e) => { if (e && e.stopPropagation) e.stopPropagation(); if (this.state.minimizing) return; this.setState({ minimizing: true }); clearTimeout(this._minT); this._minT = setTimeout(() => this.setState({ minimizing: false }), 820); },
+      winMax: (e) => { if (e && e.stopPropagation) e.stopPropagation(); this.savePrefs({ maximized: !this.state.maximized }); },
+      winClose: (e) => { if (e && e.stopPropagation) e.stopPropagation(); clearTimeout(this._st); this.setState({ splash: true }); this._st = setTimeout(() => this.setState({ splash: false }), 2100); },
       // ── ecrã Adicionar repositório ──
       isPicker: st.view === 'picker',
       addRepo: () => this.setState({ view: 'picker', pickerMode: 'local', pickerQ: '' }),

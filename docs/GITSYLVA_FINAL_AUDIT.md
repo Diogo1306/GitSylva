@@ -1,5 +1,10 @@
 # GitSylva — Auditoria Final
 
+> **Ronda 2 (2026-07-14):** chegou um handoff atualizado com specs formais
+> (`docs/design/handoff/`: animations.md, interactions.md, tokens/themes.{css,json},
+> references/*.png e protótipo novo com notificações + winMinimize). Matriz delta em §7,
+> execução na branch `feature/design-v2-motion`.
+
 > Auditoria completa do produto contra o handoff de design (`docs/design/GitSylva-Floresta.dc.html`,
 > `GitSylva-Logos.dc.html`, `README.md`), realizada em 2026-07-13 na branch `feature/final-audit`.
 > Detalhe por área nos anexos `docs/audit/00-09`. O inventário exaustivo do handoff (tokens,
@@ -153,3 +158,35 @@ acentos, themeStore, octopus merges.
 - **Lock de escrita por repo** (G8) — operações concorrentes podem colidir em `index.lock` (o erro agora traz hint acionável).
 - **Notificação com vinha decorativa** (design 6.16) e preview de stash (W16), `git stash pop` (W16), gatilho de apagar tag na UI (G15), Gravatar/email (H20), pesquisa de definições (S9), DnD de grupos (R14).
 - Stores persistidos sem `version`/`migrate` (R12); caminho longo Windows >260 sem `\\?\` (R13).
+
+## 7. Ronda 2 — matriz delta contra o handoff v2 (2026-07-14)
+
+Tokens de cor (`handoff/tokens/themes.{css,json}`) conferidos valor a valor contra
+`src/theme/themes.ts`: **CORRETO** (mantém-se o desvio deliberado de `--muted` para AA e o
+token extra `--danger`, ambos documentados). O delta é sobretudo **motion, overlays e desktop**:
+
+| Área | Esperado no handoff v2 | Estado | Prioridade | Ação |
+|---|---|---|---|---|
+| Tokens de motion | `--motion-*`/`--ease-*` centrais | EM FALTA | P1 | Criar |
+| Notifications | Top-right stack, severidade, ~4s, hover-pausa, saída `notifOut`, vinha, aria | EM FALTA | P1 | Criar |
+| Toasts | Saída animada, limpeza de timer no dismiss, vinha opcional | PARCIAL | P1 | Corrigir |
+| Modal | Focus trap, autofocus, devolver foco, saída animada | PARCIAL (Esc/scrim/danger ok) | P1 | Corrigir |
+| Command Palette | Saída animada | PARCIAL | P2 | Corrigir |
+| Atalhos globais | ⌘Enter/⌘P/⌘⇧L/⌘R/⌘B/⌘S + regravação com `recPulse` | EM FALTA (só ⌘K) | P1 | Implementar |
+| Controlos de janela | Windows: min/max/✕ à direita, ✕ hover `#E81123`; mac: traffic lights | INCORRETO (mac sempre) | P1 | Corrigir |
+| Fechar último repo | Bloquear com toast | INCORRETO (fecha p/ welcome) | P1 | Corrigir |
+| Grupos nas tabs | Idênticos a rail (chip, collapse, right-click fecha grupo) | EM FALTA (só rail) | P1 | Implementar |
+| Folha efémera | `fxFall` em fetch/commit/switch | EM FALTA (keyframe removido na R1 como morto) | P1 | Repor+ligar |
+| Pausa de ambiente | Parar loops em blur/hidden | EM FALTA | P1 | Implementar |
+| winMinimize | Animação ~600ms no minimizar | EM FALTA | P2 | Implementar |
+| Min janela | ~900×560 | PARCIAL (880) | P3 | Ajustar |
+| Densidade | Segmented conforto/compacta (rowH 52/40) | EM FALTA (removida na R1 por morta; v2 torna-a real) | P2 | Implementar |
+| NewsCardDeck | translateX ±30, y9, rot ±3.5°, scale .96, op .5, 450ms | PARCIAL | P2 | Ajustar |
+| Onboarding exit | `obFade` antes de desmontar | EM FALTA | P2 | Implementar |
+| Detalhe→ficheiro | Clique no ficheiro foca o seu diff | EM FALTA | P2 | Implementar |
+| Working Copy <980px | Stacked automático | PARCIAL (toggle manual) | P2 | Auto via ResizeObserver |
+| Settings Notificações | Toggles a gatear emissão + onde + preview | PARCIAL (preview) | P2 | Implementar |
+| Terminal (toolbar) | Botão com mock honesto | EM FALTA | P3 | Adicionar |
+| Saída de rows do StageList | fade+shift ao remover | EM FALTA | P3 | Documentado (não implementado) |
+| Commit→node único anima | só o novo nó | PARCIAL (grafo ≤120 re-anima inteiro) | P3 | Documentado |
+| Splash/screen-switch/tema/scroll-spy/context menu/fileIn/spinner/graph growth/resizable/truncation | conforme spec | CORRETO | — | Preservar |
