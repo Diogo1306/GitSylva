@@ -80,6 +80,19 @@ function DetailPanel({ repoPath, commit }: { repoPath: string; commit: Commit })
   const { data, isLoading, error: detailError } = useCommitDetail(repoPath, commit.hash);
   // %B = subject + blank line + body; everything after the first line is the body.
   const body = (data?.message ?? "").split("\n").slice(1).join("\n").trim();
+  const diffRef = useRef<HTMLDivElement>(null);
+
+  // Clicking a changed file focuses its section of the diff (spec §History).
+  // Rows are ~20.1px (11.5px × 1.75 line-height); +34px for the view toggle.
+  function scrollToFile(path: string) {
+    const el = diffRef.current;
+    const patch = data?.diff;
+    if (!el || !patch) return;
+    const lines = patch.replace(/\n$/, "").split("\n");
+    const idx = lines.findIndex((l) => l.startsWith("diff --git ") && l.includes(` b/${path}`));
+    if (idx < 0) return;
+    el.scrollTo({ top: Math.max(0, idx * 20.1 + 34 - 6), behavior: "smooth" });
+  }
 
   return (
     <div style={{ display: "flex", flexDirection: "column", minHeight: 0, height: "100%" }}>
@@ -124,7 +137,7 @@ function DetailPanel({ repoPath, commit }: { repoPath: string; commit: Commit })
         {(data?.files ?? []).map((f) => {
           const st = statusStyle(f.status);
           return (
-            <div key={f.path} className="gs-row" style={{ display: "flex", alignItems: "center", gap: 9, padding: "6px 8px", borderRadius: 7 }}>
+            <div key={f.path} onClick={() => scrollToFile(f.path)} title="Ver o diff deste ficheiro" className="gs-row" style={{ display: "flex", alignItems: "center", gap: 9, padding: "6px 8px", borderRadius: 7, cursor: "pointer" }}>
               <span
                 style={{
                   width: 16,
@@ -163,7 +176,7 @@ function DetailPanel({ repoPath, commit }: { repoPath: string; commit: Commit })
       </div>
 
       <div style={{ padding: "14px 20px 8px", fontSize: 10.5, fontWeight: 600, letterSpacing: "1.2px", color: "var(--muted)" }}>DIFF</div>
-      <div style={{ flex: 1, overflow: "auto", margin: "0 12px 12px", border: "1px solid var(--border)", borderRadius: 10, background: "var(--panel2)", padding: "8px 0" }}>
+      <div ref={diffRef} style={{ flex: 1, overflow: "auto", margin: "0 12px 12px", border: "1px solid var(--border)", borderRadius: 10, background: "var(--panel2)", padding: "8px 0" }}>
         {isLoading ? (
           <div style={{ padding: 12, color: "var(--muted)", fontSize: 12 }}>A carregar diff…</div>
         ) : detailError ? (
