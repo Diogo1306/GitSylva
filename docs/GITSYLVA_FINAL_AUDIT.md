@@ -235,3 +235,73 @@ Todos os P1 e P2 da matriz acima foram implementados e validados; os dois P3 mar
 
 Validação final R2: `tsc` ✅ · `eslint` ✅ · vitest **61/61** ✅ · `cargo test` **43/43** ✅ ·
 `vite build` ✅.
+
+## 8. Ronda 3 — validação de performance em produção (2026-07-14, branch `perf/runtime-audit-r3`)
+
+**Build testada:** `npx tauri build --no-bundle` → `src-tauri/target/release/app.exe`
+(frontend Vite em produção embebido via tauri-codegen; sem servidor dev, sem devtools, React
+em produção). Medições por `scripts`-PS (árvore de processos completa incl. WebView2, 9
+processos; CPU normalizada a 16 cores; janela minimizada via `ShowWindow`).
+
+### A. Métricas antes (exe @ 6c7ea7a) / depois (exe com fixes R3)
+
+| Cenário | Antes | Depois | Objetivo |
+|---|---:|---:|---:|
+| Janela visível | 523 ms | 424 ms | sem atraso claro ✅ |
+| CPU arranque (5s, máx) | 0,98% | 0,98% | sem pico ✅ |
+| CPU idle 60s (média) | **0,04%** | **0,04%** | ~0 ✅ |
+| CPU idle 60s (máx) | 0,98% | 1,27% | ~0 ✅ |
+| CPU minimizado 30s (média) | 0,08% | 0,18% | ~0 ✅ |
+| GPU (soma engines) | 0% | 0% | ~0 ✅ |
+| RAM estabilizada | 384 MB | 374 MB | estável ✅ |
+| RAM após 60s idle | 390 MB | 380 MB | estável ✅ |
+
+**Conclusão central e honesta:** a app de produção **não está pesada em idle** — CPU ~0 com
+as animações ambientais visíveis, GPU 0%. A sensação de peso reportada vinha (a) do modo dev
+(`tauri dev`: Rust debug + JS sem minificar, 3-10× mais pesado) e (b) dos problemas de
+re-render corrigidos na R1/R2 (memo do CommitRow quebrado, highlight por render, subscrição
+total da store no tema). Nota: a RAM sobe ~55 MB ao minimizar em AMBAS as runs (contabilidade
+do WebView2/processo utilitário — consistente, não é fuga introduzida).
+
+### B. Causas encontradas (com evidência)
+
+1. **Nenhum trabalho contínuo**: grep + medição — 0 `setInterval`, 0 `requestAnimationFrame`,
+   0 `backdrop-filter`/`blur()`/`will-change`; sombras estáticas tokenizadas.
+2. **Listeners equilibrados**: add/removeEventListener 1:1 nos 9 ficheiros com listeners; o
+   único observer (scroll-spy) desliga no cleanup.
+3. **setTimeout**: todos os repetíveis têm clear; os 5 sem clear são one-shots ≤400ms de
+   stores singleton (remoção pós-animação de toast/notificação; minimize) — sem órfãos.
+4. **DOM no History** (bundle prod + harness, capturado antes de parar os testes de browser a
+   pedido do utilizador): 26 904 nós com 200 commits+grafo; heap JS 21,7 MB.
+
+### C. Correções aplicadas nesta ronda
+
+- **Grafo incremental** (`CommitGraphSvg.tsx`): keys por hash (antes por índice) + conjunto
+  de hashes "vistos" — nós existentes mantêm o MESMO nó DOM e `animation: none`; só o commit
+  novo anima. Teste `CommitGraphSvg.test.tsx` prova identidade do DOM e a não-reanimação.
+- **StageList exit** (`WorkingCopy.tsx` + keyframe `fileOut`): a row sai com fade/translate
+  APÓS o sucesso real da operação (ghost em posição, sweeper único com cleanup); erro não
+  esconde nada; reduced-motion colapsa para remoção quase-imediata.
+- **"Sistema" nas notificações**: continua indisponível de forma explícita (desativado,
+  "em breve", tooltip a documentar a dependência: `tauri-plugin-notification` oficial + no
+  Windows identidade de app instalada). Sem toggle enganador.
+- **Harness de perf** (`src/perf/mockGit.ts`): só com `VITE_PERF_MOCK=1` (dead-code no build
+  normal — verificado no dist); 2 000 commits/200 ficheiros/diff ~3 000 linhas.
+
+### D. Deixado para o teste manual do utilizador (a pedido)
+
+Interações (React Profiler, scroll, seleção, ciclos de memória) ficam para a passagem manual.
+Harness pronto:
+
+```bash
+VITE_PERF_MOCK=1 npm run build && npm run preview   # bundle de PRODUÇÃO com dados grandes
+# abre http://localhost:4173 — arranca direto no History com 2000 commits
+```
+
+Cenários sugeridos: seleção rápida de commits (Profiler: só 2 rows + painel devem commitar),
+scroll do histórico, ⌘K ×50, Settings ×20, tema ×20, heap antes/depois (DevTools → Memory).
+
+### E. Validação R3
+
+`tsc` ✅ · `eslint` ✅ · vitest **63/63** ✅ · `cargo test` **43/43** ✅ · build normal ✅
+(mock ausente do dist, verificado) · `tauri build --no-bundle` ✅ (exe medido acima).

@@ -17,6 +17,8 @@ import type { FileChange } from "../../lib/types";
 
 const mono = "'JetBrains Mono', monospace";
 
+let ghostSeq = 0;
+
 type Sel = { path: string; staged: boolean } | null;
 
 function splitPath(p: string): { name: string; dir: string } {
@@ -141,6 +143,29 @@ export function WorkingCopy() {
   // Design: files panel resizable 320–540, persisted.
   const filesW = usePanelWidth("gitsylva-w-working", 400, 320, 540, "right");
 
+  // Exit animation for rows leaving a list (R3 §9): AFTER the git operation
+  // succeeds, the real row is hidden and a non-interactive ghost plays a short
+  // fileOut at the same position, then both are dropped. Errors never hide
+  // anything — the row simply stays.
+  type Ghost = { id: number; file: FileChange; letter: string; list: "u" | "s"; idx: number };
+  const [ghosts, setGhosts] = useState<Ghost[]>([]);
+  const [hiddenPaths, setHiddenPaths] = useState<ReadonlySet<string>>(new Set());
+  // One sweeper timer clears finished ghosts; the effect cleanup guarantees no
+  // orphan timeout survives unmount.
+  useEffect(() => {
+    if (ghosts.length === 0) return;
+    const t = window.setTimeout(() => {
+      setGhosts([]);
+      setHiddenPaths(new Set());
+    }, 220);
+    return () => window.clearTimeout(t);
+  }, [ghosts]);
+  function exitRow(f: FileChange, list: "u" | "s", letter: string, idx: number) {
+    const id = ++ghostSeq;
+    setGhosts((g) => [...g, { id, file: f, letter, list, idx }]);
+    setHiddenPaths((s) => new Set(s).add(f.path));
+  }
+
   // Honor a file chosen from the command palette: it stays "selected" (derived,
   // no effect/setState) until the user picks another file, which clears it.
   const paletteFile = useAppStore((s) => s.selectedFile);
@@ -260,10 +285,14 @@ export function WorkingCopy() {
 
   function discardFileNow(f: FileChange) {
     setConfirmDiscardFile(null);
+    const idx = unstaged.indexOf(f);
     actions.discard.mutate(
       { file: f.path, untracked: f.worktree_status === "?" },
       {
-        onSuccess: () => toast(f.worktree_status === "?" ? `${f.path} apagado` : `Alterações de ${f.path} descartadas`),
+        onSuccess: () => {
+          exitRow(f, "u", f.worktree_status, Math.max(0, idx));
+          toast(f.worktree_status === "?" ? `${f.path} apagado` : `Alterações de ${f.path} descartadas`);
+        },
         onError: (e: unknown) => toast(errMsg(e, "não foi possível descartar"), "error"),
       },
     );
@@ -306,37 +335,71 @@ export function WorkingCopy() {
           </div>
         </div>
         <div style={{ padding: "0 10px", display: "flex", flexDirection: "column", gap: 1 }}>
-          {unstaged.map((f) => (
-            <FileRow
-              key={"u" + f.path}
-              file={f}
-              letter={isConflict(f.index_status, f.worktree_status) ? "U" : f.worktree_status}
-              checked={false}
-              selected={effSel?.path === f.path && !effSel.staged}
-              conflicted={isConflict(f.index_status, f.worktree_status)}
-              onToggle={() => actions.stage.mutate(f.path)}
-              onSelect={() => select(f.path, false)}
-              onContext={(x, y) => setFileMenu({ x, y, file: f })}
-            />
-          ))}
+          {(() => {
+            const items = unstaged
+              .filter((f) => !hiddenPaths.has(f.path))
+              .map((f) => (
+                <FileRow
+                  key={"u" + f.path}
+                  file={f}
+                  letter={isConflict(f.index_status, f.worktree_status) ? "U" : f.worktree_status}
+                  checked={false}
+                  selected={effSel?.path === f.path && !effSel.staged}
+                  conflicted={isConflict(f.index_status, f.worktree_status)}
+                  onToggle={() => {
+                    const idx = unstaged.indexOf(f);
+                    actions.stage.mutate(f.path, { onSuccess: () => exitRow(f, "u", f.worktree_status, idx) });
+                  }}
+                  onSelect={() => select(f.path, false)}
+                  onContext={(x, y) => setFileMenu({ x, y, file: f })}
+                />
+              ));
+            for (const g of ghosts.filter((x) => x.list === "u")) {
+              items.splice(
+                Math.min(g.idx, items.length),
+                0,
+                <div key={`ghost${g.id}`} style={{ animation: "fileOut 200ms var(--ease-out) both", pointerEvents: "none" }}>
+                  <FileRow file={g.file} letter={g.letter} checked={false} selected={false} onToggle={() => {}} onSelect={() => {}} />
+                </div>,
+              );
+            }
+            return items;
+          })()}
         </div>
 
         <div style={{ padding: "16px 16px 8px", display: "flex", alignItems: "center" }}>
           <SectionHead>PREPARADAS · {staged.length}</SectionHead>
         </div>
         <div style={{ padding: "0 10px", display: "flex", flexDirection: "column", gap: 1, flex: 1, overflowY: "auto" }}>
-          {staged.map((f) => (
-            <FileRow
-              key={"s" + f.path}
-              file={f}
-              letter={f.index_status}
-              checked
-              selected={effSel?.path === f.path && effSel.staged}
-              onToggle={() => actions.unstage.mutate(f.path)}
-              onSelect={() => select(f.path, true)}
-              onContext={(x, y) => setFileMenu({ x, y, file: f })}
-            />
-          ))}
+          {(() => {
+            const items = staged
+              .filter((f) => !hiddenPaths.has(f.path))
+              .map((f) => (
+                <FileRow
+                  key={"s" + f.path}
+                  file={f}
+                  letter={f.index_status}
+                  checked
+                  selected={effSel?.path === f.path && effSel.staged}
+                  onToggle={() => {
+                    const idx = staged.indexOf(f);
+                    actions.unstage.mutate(f.path, { onSuccess: () => exitRow(f, "s", f.index_status, idx) });
+                  }}
+                  onSelect={() => select(f.path, true)}
+                  onContext={(x, y) => setFileMenu({ x, y, file: f })}
+                />
+              ));
+            for (const g of ghosts.filter((x) => x.list === "s")) {
+              items.splice(
+                Math.min(g.idx, items.length),
+                0,
+                <div key={`ghost${g.id}`} style={{ animation: "fileOut 200ms var(--ease-out) both", pointerEvents: "none" }}>
+                  <FileRow file={g.file} letter={g.letter} checked selected={false} onToggle={() => {}} onSelect={() => {}} />
+                </div>,
+              );
+            }
+            return items;
+          })()}
         </div>
 
         <div style={{ padding: 14, borderTop: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 10, background: "var(--panel)" }}>
