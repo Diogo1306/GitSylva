@@ -40,7 +40,7 @@ export function FallingLeaves() {
   const treeStyle = useThemeStore((s) => s.treeStyle);
   if (!anims) return null;
   return (
-    <div style={{ position: "absolute", inset: 0, overflow: "hidden", pointerEvents: "none", zIndex: 0 }}>
+    <div className="gs-ambient" style={{ position: "absolute", inset: 0, overflow: "hidden", pointerEvents: "none", zIndex: 0 }}>
       {DROPS.map((d, i) => (
         <div
           key={i}
