@@ -17,6 +17,19 @@
   background: var(--hover);
 }
 
+/* Responsive rules from the handoff (§8): relative times hide under 1180px,
+ * tab branch labels hide under 980px. The window IS the viewport in Tauri. */
+@media (max-width: 1180px) {
+  .gs-resp-time {
+    display: none !important;
+  }
+}
+@media (max-width: 980px) {
+  .gs-resp-tabbr {
+    display: none !important;
+  }
+}
+
 /* Windows window controls: subtle hover; close turns red per the spec. */
 .gs-winbtn:hover {
   background: var(--hover);

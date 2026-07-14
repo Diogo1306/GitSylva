@@ -128,6 +128,16 @@ export function WorkingCopy() {
   const [fileMenu, setFileMenu] = useState<{ x: number; y: number; file: FileChange } | null>(null);
   const [stacked, setStacked] = useState(false);
   const [blameOn, setBlameOn] = useState(false);
+  // Below ~980px the working copy stacks automatically (handoff §8); the
+  // manual toggle still works on wide windows.
+  const [narrow, setNarrow] = useState(() => window.matchMedia("(max-width: 980px)").matches);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 980px)");
+    const onChange = () => setNarrow(mq.matches);
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
+  const isStacked = stacked || narrow;
   // Design: files panel resizable 320–540, persisted.
   const filesW = usePanelWidth("gitsylva-w-working", 400, 320, 540, "right");
 
@@ -261,15 +271,15 @@ export function WorkingCopy() {
 
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, minHeight: 0, animation: "fadeIn 0.25s ease both" }}>
-      <div style={{ flex: 1, display: "flex", flexDirection: stacked ? "column" : "row", minWidth: 0, minHeight: 0 }}>
+      <div style={{ flex: 1, display: "flex", flexDirection: isStacked ? "column" : "row", minWidth: 0, minHeight: 0 }}>
       {/* Files + commit */}
       <div
         style={{
-          width: stacked ? "auto" : filesW.width,
+          width: isStacked ? "auto" : filesW.width,
           flexShrink: 0,
-          borderRight: stacked ? "none" : "1px solid var(--border)",
-          borderTop: stacked ? "1px solid var(--border)" : "none",
-          order: stacked ? 2 : 1,
+          borderRight: isStacked ? "none" : "1px solid var(--border)",
+          borderTop: isStacked ? "1px solid var(--border)" : "none",
+          order: isStacked ? 2 : 1,
           display: "flex",
           flexDirection: "column",
           minHeight: 0,
@@ -277,7 +287,7 @@ export function WorkingCopy() {
           position: "relative",
         }}
       >
-        {!stacked && <PanelHandle edge="right" handleProps={filesW.handleProps} />}
+        {!isStacked && <PanelHandle edge="right" handleProps={filesW.handleProps} />}
         <div style={{ padding: "12px 16px 8px", display: "flex", alignItems: "center" }}>
           <SectionHead>NÃO PREPARADAS · {unstaged.length}</SectionHead>
           <div onClick={() => actions.stageAll.mutate()} className="gs-row" style={{ fontSize: 12, color: "var(--l0)", cursor: "pointer", padding: "3px 8px", borderRadius: 6, fontWeight: 600 }}>
@@ -386,7 +396,7 @@ export function WorkingCopy() {
       </div>
 
       {/* Diff */}
-      <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", order: stacked ? 1 : 2 }}>
+      <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", order: isStacked ? 1 : 2 }}>
         <div style={{ padding: "13px 20px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 10 }}>
           {effSel ? (
             <>
@@ -407,7 +417,7 @@ export function WorkingCopy() {
           {!blameOn && <span style={{ fontSize: 12, color: "var(--muted)" }}>{effSel?.staged ? "diff preparado" : "diff da cópia de trabalho"}</span>}
           {!blameOn && (
             <div onClick={() => setStacked((v) => !v)} className="gs-lift" style={{ display: "flex", alignItems: "center", gap: 6, padding: "5px 11px", borderRadius: 7, background: "var(--btn)", border: "1px solid var(--btnB)", fontSize: 12, color: "var(--btnT)", cursor: "pointer", whiteSpace: "nowrap" }}>
-              {stacked ? "Lado a lado" : "Empilhado"}
+              {isStacked ? "Lado a lado" : "Empilhado"}
             </div>
           )}
         </div>
