@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAppStore } from "../../state/appStore";
 import { useStatus, useStageActions, useCommit, useDiff, useBlame, useHunkActions, useSyncStatus } from "../../state/queries";
 import { useThemeStore } from "../../state/themeStore";
@@ -150,25 +150,20 @@ export function WorkingCopy() {
   type Ghost = { id: number; file: FileChange; letter: string; list: "u" | "s"; idx: number };
   const [ghosts, setGhosts] = useState<Ghost[]>([]);
   const [hiddenPaths, setHiddenPaths] = useState<ReadonlySet<string>>(new Set());
-  const ghostTimers = useRef<number[]>([]);
+  // One sweeper timer clears finished ghosts; the effect cleanup guarantees no
+  // orphan timeout survives unmount.
   useEffect(() => {
-    const pending = ghostTimers.current;
-    return () => pending.forEach((t) => window.clearTimeout(t));
-  }, []);
+    if (ghosts.length === 0) return;
+    const t = window.setTimeout(() => {
+      setGhosts([]);
+      setHiddenPaths(new Set());
+    }, 220);
+    return () => window.clearTimeout(t);
+  }, [ghosts]);
   function exitRow(f: FileChange, list: "u" | "s", letter: string, idx: number) {
     const id = ++ghostSeq;
     setGhosts((g) => [...g, { id, file: f, letter, list, idx }]);
     setHiddenPaths((s) => new Set(s).add(f.path));
-    ghostTimers.current.push(
-      window.setTimeout(() => {
-        setGhosts((g) => g.filter((x) => x.id !== id));
-        setHiddenPaths((s) => {
-          const n = new Set(s);
-          n.delete(f.path);
-          return n;
-        });
-      }, 220),
-    );
   }
 
   // Honor a file chosen from the command palette: it stays "selected" (derived,
