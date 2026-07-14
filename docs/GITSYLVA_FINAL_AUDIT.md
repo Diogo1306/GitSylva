@@ -480,3 +480,19 @@ O `AppHangTransient` (WER 1001, sem crash, janela recuperou) coincidiu com essa 
 no primeiro arranque pós-build e não se reproduziu em 2 arranques quentes de 15s. Fica em
 observação na passagem manual — se reaparecer, o log + `__gsPerf()` dizem exatamente o que
 estava em curso.
+
+### I. R4.1 — pós-teste do utilizador: terminais a piscar + animações "mortas"
+
+Reporte do utilizador no exe: "toda vez que acontece 1 ação vários terminais aparecem" e
+"animações e coisas de design morreram". **Uma só causa para as duas queixas**: no Windows,
+uma app de subsistema *windows* (sem consola) que faz spawn de `git.exe` cria uma janela de
+consola visível por processo. Cada ação invalida várias queries → vários spawns → vários
+terminais; e cada consola **rouba o foco à janela**, o que ativa `data-win-hidden` (pausa
+das animações ambientais no blur, feature da R2) — as folhas congelavam a cada ação. As
+animações em si nunca foram removidas; estavam pausadas pelo mecanismo de blur.
+
+Correção: `CREATE_NO_WINDOW` (0x08000000) em TODOS os spawns (`run_git`, `run_git_stdin`,
+`run_git_timeout`, `open_path`, `reveal_path` — helper `hide_console` em git/mod.rs).
+
+Verificação medida (EnumWindows a cada 250ms durante 10s de arranque, que dispara 10–15
+gits): **0 janelas de consola novas visíveis**; exe vivo e responsivo. cargo test 48/48.

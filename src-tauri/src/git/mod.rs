@@ -93,6 +93,18 @@ where
     .await
 }
 
+/// Esconde a janela de consola dos processos filho no Windows. Sem isto, cada
+/// spawn de git abre um terminal visível QUE ROUBA O FOCO à janela — além do
+/// flicker, as animações ambientais pausam a cada ação (data-win-hidden é
+/// ativado no blur). CREATE_NO_WINDOW = 0x08000000.
+#[cfg(windows)]
+pub fn hide_console(cmd: &mut Command) {
+    use std::os::windows::process::CommandExt;
+    cmd.creation_flags(0x0800_0000);
+}
+#[cfg(not(windows))]
+pub fn hide_console(_cmd: &mut Command) {}
+
 /// Diffs acima deste tamanho são cortados antes do IPC (o utilizador pode
 /// pedir o diff completo). Transferir e desenhar 20MB num só passo era um
 /// freeze de vários segundos no WebView.
@@ -145,17 +157,17 @@ fn friendly(stderr: &str) -> String {
 /// opening an editor and blocking. A GUI must never block on either.
 pub fn run_git(repo: &str, args: &[&str]) -> Result<String, GitError> {
     let started = Instant::now();
-    let output = Command::new("git")
-        .arg("-C")
+    let mut cmd = Command::new("git");
+    cmd.arg("-C")
         .arg(repo)
         .args(args)
         .env("GIT_TERMINAL_PROMPT", "0")
-        .env("GIT_EDITOR", "true")
-        .output()
-        .map_err(|e| GitError {
-            code: "spawn_failed".into(),
-            message: format!("could not run git: {e}"),
-        })?;
+        .env("GIT_EDITOR", "true");
+    hide_console(&mut cmd);
+    let output = cmd.output().map_err(|e| GitError {
+        code: "spawn_failed".into(),
+        message: format!("could not run git: {e}"),
+    })?;
     // Só o subcomando: os args completos podem conter mensagens de commit ou
     // URLs com credenciais embebidas — nunca vão para o log.
     let sub = args.first().copied().unwrap_or("");
@@ -185,20 +197,20 @@ pub fn run_git_timeout(repo: &str, args: &[&str], secs: u64) -> Result<String, G
 
 fn run_git_timeout_inner(repo: &str, args: &[&str], secs: u64, hold_stdin: bool) -> Result<String, GitError> {
     let started = Instant::now();
-    let mut child = Command::new("git")
-        .arg("-C")
+    let mut cmd = Command::new("git");
+    cmd.arg("-C")
         .arg(repo)
         .args(args)
         .env("GIT_TERMINAL_PROMPT", "0")
         .env("GIT_EDITOR", "true")
         .stdin(if hold_stdin { Stdio::piped() } else { Stdio::null() })
         .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()
-        .map_err(|e| GitError {
-            code: "spawn_failed".into(),
-            message: format!("could not run git: {e}"),
-        })?;
+        .stderr(Stdio::piped());
+    hide_console(&mut cmd);
+    let mut child = cmd.spawn().map_err(|e| GitError {
+        code: "spawn_failed".into(),
+        message: format!("could not run git: {e}"),
+    })?;
     // Ler stdout/stderr em threads evita deadlock se o git encher os pipes
     // antes de terminar.
     fn drain(pipe: Option<impl std::io::Read + Send + 'static>) -> std::thread::JoinHandle<String> {
@@ -247,20 +259,20 @@ fn run_git_timeout_inner(repo: &str, args: &[&str], secs: u64, hold_stdin: bool)
 /// Run git in `repo` feeding `input` to stdin. Used for `git apply`, which reads
 /// a patch from stdin. Same environment guards as `run_git`.
 pub fn run_git_stdin(repo: &str, args: &[&str], input: &str) -> Result<String, GitError> {
-    let mut child = Command::new("git")
-        .arg("-C")
+    let mut cmd = Command::new("git");
+    cmd.arg("-C")
         .arg(repo)
         .args(args)
         .env("GIT_TERMINAL_PROMPT", "0")
         .env("GIT_EDITOR", "true")
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()
-        .map_err(|e| GitError {
-            code: "spawn_failed".into(),
-            message: format!("could not run git: {e}"),
-        })?;
+        .stderr(Stdio::piped());
+    hide_console(&mut cmd);
+    let mut child = cmd.spawn().map_err(|e| GitError {
+        code: "spawn_failed".into(),
+        message: format!("could not run git: {e}"),
+    })?;
     child
         .stdin
         .take()
