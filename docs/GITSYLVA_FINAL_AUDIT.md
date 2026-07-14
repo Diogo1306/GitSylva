@@ -200,3 +200,38 @@ token extra `--danger`, ambos documentados). O delta é sobretudo **motion, over
 | Saída de rows do StageList | fade+shift ao remover | EM FALTA | P3 | Documentado (não implementado) |
 | Commit→node único anima | só o novo nó | PARCIAL (grafo ≤120 re-anima inteiro) | P3 | Documentado |
 | Splash/screen-switch/tema/scroll-spy/context menu/fileIn/spinner/graph growth/resizable/truncation | conforme spec | CORRETO | — | Preservar |
+
+### Resultado da Ronda 2 (branch `feature/design-v2-motion`, 2026-07-14)
+
+Todos os P1 e P2 da matriz acima foram implementados e validados; os dois P3 marcados
+"Documentado" ficam como dívida consciente (saída de rows do StageList; re-animação do grafo
+≤120 rows em vez de só o nó novo). Entregas principais:
+
+- **Tokens de motion** (`--motion-micro/fast/normal/slow`, `--ease-pop/standard/out`) + keyframes
+  do spec repostos (notifIn/notifOut, toastOut, modalOut, fadeOut, winMinimize, fxFall, recPulse,
+  obFade, sway).
+- **Notifications top-right** (`notificationStore` + `Notifications`): severidade, ~4s com pausa
+  no hover, saída `notifOut` antes de desmontar, cap de stack, vinha decorativa por estilo de
+  árvore, `aria-live`/`role=alert`, ✕ acessível. Roteado: push/pull/fetch/merge/clone/conflitos,
+  com **gating real** pelos toggles em Settings → Notificações (+ preview ao vivo).
+- **Toasts** com saída animada e timers limpos no dismiss manual.
+- **Modal shell**: focus trap, autofocus, foco devolvido ao abridor, Esc/scrim/✕/Cancelar com
+  saída animada (contexto `useModalClose`), `role=dialog`, scroll interno; ConfirmDialog
+  (danger) foca Cancelar por omissão; palette com fade de saída (lingering render).
+- **Atalhos regraváveis** (`shortcutsStore` persistido): ⌘K/⌘Enter/⌘P/⌘⇧L/⌘R/⌘B/⌘S com mod
+  obrigatório, gravação por clique com `recPulse` (Esc cancela), swap em conflito, repor;
+  ⌘Enter funciona dentro da caixa de commit.
+- **Desktop**: controlos Windows à direita com ✕ hover `#E81123` (mac mantém traffic lights),
+  animação `winMinimize` antes de minimizar, min 900×560, folha efémera `fxFall` após
+  fetch/commit/troca de repo, **loops ambientais pausam** em blur/hidden (`data-win-hidden`).
+- **Grupos nas tabs** iguais ao rail (chip colorido, collapse, right-click fecha o grupo,
+  menu de mover/novo grupo por tab); **último repo não fecha** (toast, testado).
+- **Densidade real** (conforto 52 / compacta 40) a comandar as linhas e o grafo do histórico.
+- **Responsivo do spec**: tempos escondem <1180px, branch das tabs <980px, Working Copy
+  empilha automaticamente <980px (matchMedia).
+- Clique num ficheiro do detalhe **rola o diff** até à sua secção; NewsCardDeck com os
+  transforms exatos do spec; Settings → Notificações com toggles reais + "onde" honesto.
+- Testes: 61 frontend (11 novos p/ notification timers/gating e bindings de atalhos) + 43 Rust.
+
+Validação final R2: `tsc` ✅ · `eslint` ✅ · vitest **61/61** ✅ · `cargo test` **43/43** ✅ ·
+`vite build` ✅.
