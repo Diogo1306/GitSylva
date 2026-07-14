@@ -36,11 +36,21 @@ describe("appStore repo groups", () => {
   it("drops the grouping entry when a repo is closed", () => {
     const s = useAppStore.getState();
     s.setRepo(repo("/a"));
+    useAppStore.getState().setRepo(repo("/b"));
     const id = useAppStore.getState().addGroup("Trabalho");
     useAppStore.getState().setRepoGroup("/a", id);
     useAppStore.getState().closeRepo("/a");
 
     expect(useAppStore.getState().groupOf["/a"]).toBeUndefined();
-    expect(useAppStore.getState().repos).toHaveLength(0);
+    expect(useAppStore.getState().repos).toHaveLength(1);
+  });
+
+  it("refuses to close the last open repository (spec)", () => {
+    useAppStore.getState().setRepo(repo("/only"));
+    useAppStore.getState().closeRepo("/only");
+
+    const st = useAppStore.getState();
+    expect(st.repos).toHaveLength(1);
+    expect(st.repo?.path).toBe("/only");
   });
 });

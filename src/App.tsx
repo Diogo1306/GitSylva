@@ -1,4 +1,4 @@
-import { Suspense, lazy } from "react";
+import { Suspense, lazy, useEffect } from "react";
 import { useAppStore } from "./state/appStore";
 import { useOnboardStore } from "./state/onboardStore";
 import { useApplyTheme } from "./theme/useApplyTheme";
@@ -25,6 +25,26 @@ function Root() {
 
 export default function App() {
   useApplyTheme();
+
+  // Ambient loops (falling leaves, sway) pause while the window is blurred,
+  // minimized or hidden — see the [data-win-hidden] rule in tokens.css.
+  useEffect(() => {
+    const root = document.documentElement;
+    const update = () => {
+      if (document.hidden || !document.hasFocus()) root.setAttribute("data-win-hidden", "true");
+      else root.removeAttribute("data-win-hidden");
+    };
+    window.addEventListener("focus", update);
+    window.addEventListener("blur", update);
+    document.addEventListener("visibilitychange", update);
+    update();
+    return () => {
+      window.removeEventListener("focus", update);
+      window.removeEventListener("blur", update);
+      document.removeEventListener("visibilitychange", update);
+    };
+  }, []);
+
   return (
     <ErrorBoundary>
       <Root />

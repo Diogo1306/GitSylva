@@ -167,6 +167,18 @@ export function Appearance() {
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <FieldLabel>Densidade</FieldLabel>
+        <div style={{ display: "inline-flex", gap: 4, padding: 4, borderRadius: 10, background: "var(--panel2)", border: "1px solid var(--border)", alignSelf: "flex-start" }}>
+          {(["conforto", "compacta"] as const).map((k) => (
+            <div key={k} onClick={() => t.savePrefs({ density: k })} style={{ padding: "6px 16px", borderRadius: 7, fontSize: 13, fontWeight: 600, cursor: "pointer", background: t.density === k ? "var(--win)" : "transparent", color: t.density === k ? "var(--text)" : "var(--muted)" }}>
+              {k === "conforto" ? "Conforto" : "Compacta"}
+            </div>
+          ))}
+        </div>
+        <Hint>Altura das linhas do histórico: 52px em conforto, 40px em compacta.</Hint>
+      </div>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         <FieldLabel>Repositórios abertos</FieldLabel>
         <div style={{ display: "inline-flex", gap: 4, padding: 4, borderRadius: 10, background: "var(--panel2)", border: "1px solid var(--border)", alignSelf: "flex-start" }}>
           {(["tabs", "rail"] as const).map((k) => (

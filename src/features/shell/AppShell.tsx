@@ -9,9 +9,15 @@ import { ActionBar } from "./ActionBar";
 import { CommandPalette } from "./CommandPalette";
 import { Modals } from "./Modals";
 import { Toaster } from "../../components/Toaster";
+import { Notifications } from "../../components/Notifications";
+import { EphemeralLeaves } from "../../components/EphemeralLeaves";
+import { spawnLeaf } from "../../lib/leaf";
 import { ConflictBanner } from "../working-copy/ConflictBanner";
 import { openRepo } from "../../lib/api";
 import { toast } from "../../state/toastStore";
+import { notify } from "../../state/notificationStore";
+import { useShortcutsStore, actionForEvent } from "../../state/shortcutsStore";
+import { useSyncActions } from "../../state/queries";
 
 // Each screen is a separate chunk; only the active one is fetched and parsed.
 const WorkingCopy = lazy(() => import("../working-copy/WorkingCopy").then((m) => ({ default: m.WorkingCopy })));
@@ -38,20 +44,61 @@ function Screen() {
 }
 
 export function AppShell() {
-  const setPaletteOpen = useAppStore((s) => s.setPaletteOpen);
   const repoPath = useAppStore((s) => s.repo?.path);
   const rail = useThemeStore((s) => s.repoLayout) === "rail";
+  const bindings = useShortcutsStore((s) => s.bindings);
+  const sync = useSyncActions(repoPath ?? "");
+  const fetchMutate = sync.fetch.mutate;
 
+  // Global, rebindable shortcuts (Settings → Atalhos). All combos carry the
+  // mod key, so typing never triggers them; ⌘Enter is allowed inside the
+  // commit textarea by design.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
-        e.preventDefault();
-        setPaletteOpen(true);
+      // A row in Settings is capturing the next combo — don't act on it.
+      if (document.documentElement.hasAttribute("data-recording-shortcut")) return;
+      const action = actionForEvent(e, bindings);
+      if (!action) return;
+      const tag = (e.target as HTMLElement)?.tagName;
+      const typing = tag === "INPUT" || tag === "TEXTAREA";
+      if (typing && action !== "commit" && action !== "palette") return;
+      e.preventDefault();
+      const st = useAppStore.getState();
+      switch (action) {
+        case "palette":
+          st.setPaletteOpen(!st.paletteOpen);
+          break;
+        case "commit":
+          if (st.view !== "working") st.setView("working");
+          else window.dispatchEvent(new CustomEvent("gitsylva:commit"));
+          break;
+        case "push":
+          st.setModal("push");
+          break;
+        case "pull":
+          st.setModal("pull");
+          break;
+        case "branch":
+          st.setModal("branch");
+          break;
+        case "stash":
+          st.setModal("stash");
+          break;
+        case "fetch":
+          fetchMutate(undefined, {
+            onSuccess: () => {
+              spawnLeaf();
+              notify("Fetch concluído", "origin", "success", "fetch");
+            },
+            onError: (err: unknown) =>
+              notify("Fetch falhou", (err as { message?: string })?.message ?? "não foi possível fazer fetch", "error", "fetch"),
+          });
+          break;
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [setPaletteOpen]);
+  }, [bindings, fetchMutate]);
 
   // Revalidate persisted repos once at startup: refresh branch/head for the
   // ones still on disk, close (with a warning) the ones that no longer exist.
@@ -108,6 +155,8 @@ export function AppShell() {
       <CommandPalette />
       <Modals />
       <Toaster />
+      <Notifications />
+      <EphemeralLeaves />
     </div>
   );
 }

@@ -17,6 +17,10 @@ const DROPS: Drop[] = [
   { left: "95%", delay: 7, dur: 10, scale: 0.75 },
 ];
 
+export function LeafMark({ style }: { style: string }) {
+  return <Mark style={style} />;
+}
+
 function Mark({ style }: { style: string }) {
   if (style === "grafo")
     return <svg width={9} height={9} viewBox="0 0 9 9"><circle cx={4.5} cy={4.5} r={3} fill="var(--win)" stroke="var(--l0)" strokeWidth={1.6} /></svg>;
@@ -40,7 +44,7 @@ export function FallingLeaves() {
   const treeStyle = useThemeStore((s) => s.treeStyle);
   if (!anims) return null;
   return (
-    <div style={{ position: "absolute", inset: 0, overflow: "hidden", pointerEvents: "none", zIndex: 0 }}>
+    <div className="gs-ambient" style={{ position: "absolute", inset: 0, overflow: "hidden", pointerEvents: "none", zIndex: 0 }}>
       {DROPS.map((d, i) => (
         <div
           key={i}

@@ -15,7 +15,7 @@
         "title": "GitSylva",
         "width": 1200,
         "height": 800,
-        "minWidth": 880,
+        "minWidth": 900,
         "minHeight": 560,
         "resizable": true,
         "fullscreen": false,

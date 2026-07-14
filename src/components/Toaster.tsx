@@ -36,7 +36,9 @@ export function Toaster() {
             color: "var(--text)",
             maxWidth: 520,
             cursor: "pointer",
-            animation: "toastIn 0.25s cubic-bezier(0.2,0.9,0.3,1) both",
+            animation: t.exiting
+              ? "toastOut 220ms var(--ease-standard) both"
+              : "toastIn var(--motion-normal) var(--ease-pop) both",
           }}
         >
           <span style={{ width: 8, height: 8, borderRadius: "50%", background: DOT[t.kind], flexShrink: 0 }} />

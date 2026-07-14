@@ -1,17 +1,25 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAppStore } from "../../state/appStore";
 import { useStatus, queryKeys, useSyncActions } from "../../state/queries";
 import { useThemeStore } from "../../state/themeStore";
 import { discardAll } from "../../lib/api";
-import { winMinimize, winToggleMaximize, winClose } from "../../lib/window";
+import { winMinimizeAnimated, winToggleMaximize, winClose, winIsMaximized } from "../../lib/window";
+import { spawnLeaf } from "../../lib/leaf";
 import { toast } from "../../state/toastStore";
+import { notify } from "../../state/notificationStore";
 import { Wordmark } from "../../components/Wordmark";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
+import { ContextMenu, type MenuItem } from "../../components/ui/ContextMenu";
 
 const mono = "'JetBrains Mono', monospace";
 
+const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform);
+
+// macOS: traffic lights on the left. The handoff's minimize animation plays
+// before the real minimize.
 function TrafficLights() {
+  const anims = useThemeStore((s) => s.anims);
   const light = (bg: string, glyph: string, onClick: () => void, title: string) => (
     <div
       className="gs-light"
@@ -33,8 +41,41 @@ function TrafficLights() {
   return (
     <div className="gs-lights" style={{ display: "flex", gap: 8, flexShrink: 0 }}>
       {light("#FF5F57", "✕", () => void winClose(), "Fechar")}
-      {light("#FEBC2E", "–", () => void winMinimize(), "Minimizar")}
+      {light("#FEBC2E", "–", () => void winMinimizeAnimated(anims), "Minimizar")}
       {light("#28C840", "+", () => void winToggleMaximize(), "Maximizar")}
+    </div>
+  );
+}
+
+// Windows: min / max-restore / close on the RIGHT; close hover turns red
+// (#E81123) per the interaction spec.
+function WinControls() {
+  const anims = useThemeStore((s) => s.anims);
+  const [maxed, setMaxed] = useState(false);
+  useEffect(() => {
+    void winIsMaximized().then(setMaxed);
+  }, []);
+  const btn = (glyph: React.ReactNode, onClick: () => void, title: string, close = false) => (
+    <div
+      onClick={onClick}
+      title={title}
+      className={close ? "gs-winclose" : "gs-winbtn"}
+      style={{ width: 40, height: 30, display: "grid", placeItems: "center", cursor: "pointer", fontSize: 11, color: "var(--text2)", borderRadius: 6 }}
+    >
+      {glyph}
+    </div>
+  );
+  return (
+    <div style={{ display: "flex", flexShrink: 0, marginLeft: 2 }}>
+      {btn("—", () => void winMinimizeAnimated(anims), "Minimizar")}
+      {btn(
+        maxed ? "❐" : "▢",
+        () => {
+          void winToggleMaximize().then(() => winIsMaximized().then(setMaxed));
+        },
+        maxed ? "Restaurar" : "Maximizar",
+      )}
+      {btn("✕", () => void winClose(), "Fechar", true)}
     </div>
   );
 }
@@ -86,18 +127,78 @@ export function Titlebar({ rail = false }: { rail?: boolean }) {
   const { data } = useStatus(repo.path);
   const sync = useSyncActions(repo.path);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
+  const groups = useAppStore((s) => s.groups);
+  const groupOf = useAppStore((s) => s.groupOf);
+  const addGroup = useAppStore((s) => s.addGroup);
+  const removeGroup = useAppStore((s) => s.removeGroup);
+  const toggleGroupCollapsed = useAppStore((s) => s.toggleGroupCollapsed);
+  const setRepoGroup = useAppStore((s) => s.setRepoGroup);
+  const [tabMenu, setTabMenu] = useState<{ x: number; y: number; kind: "repo" | "group"; id: string } | null>(null);
 
   const files = data ?? [];
   const unstaged = files.filter((f) => f.worktree_status !== ".").length;
+  const ungrouped = repos.filter((r) => !groupOf[r.path] || !groups.some((g) => g.id === groupOf[r.path]));
+
+  // One repo tab. Used flat and inside group containers.
+  function tabEl(r: (typeof repos)[number], i: number) {
+    const active = r.path === repo.path;
+    const name = r.path.replace(/[/\\]$/, "").split(/[/\\]/).pop() ?? r.path;
+    return (
+      <div
+        key={r.path}
+        onClick={() => switchRepo(r.path)}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          setTabMenu({ x: e.clientX, y: e.clientY, kind: "repo", id: r.path });
+        }}
+        className="gs-row"
+        title={`${r.path} · botão direito para grupos`}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 7,
+          padding: "5px 8px 5px 12px",
+          borderRadius: 8,
+          border: `1px solid ${active ? "var(--btnB)" : "transparent"}`,
+          background: active ? "var(--sel)" : "transparent",
+          minWidth: 0,
+          cursor: "pointer",
+        }}
+      >
+        <span style={{ width: 7, height: 7, borderRadius: "50%", background: `var(--l${i % 3})`, flexShrink: 0 }} />
+        <span style={{ fontSize: 12.5, fontWeight: active ? 600 : 400, color: active ? "var(--text)" : "var(--text2)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+          {name}
+        </span>
+        <span className="gs-resp-tabbr" style={{ fontFamily: mono, fontSize: 10.5, color: "var(--muted)", whiteSpace: "nowrap" }}>
+          {active ? repo.current_branch : r.current_branch}
+        </span>
+        <span
+          onClick={(e) => {
+            e.stopPropagation();
+            closeRepo(r.path);
+          }}
+          title="Fechar"
+          className="gs-row"
+          style={{ width: 16, height: 16, borderRadius: 5, display: "grid", placeItems: "center", color: "var(--muted)", fontSize: 10, flexShrink: 0 }}
+        >
+          ✕
+        </span>
+      </div>
+    );
+  }
 
   function refresh() {
     // The ⟳ fetches origin; on failure (no remote/credentials) still reload local.
+    const name = repo.path.replace(/[/\\]$/, "").split(/[/\\]/).pop() ?? repo.path;
     sync.fetch.mutate(undefined, {
-      onSuccess: () => toast("Fetch concluído"),
+      onSuccess: () => {
+        spawnLeaf();
+        notify("Fetch concluído", `origin · ${name}`, "success", "fetch");
+      },
       onError: (e: unknown) => {
         qc.invalidateQueries({ queryKey: queryKeys.status(repo.path) });
         qc.invalidateQueries({ queryKey: queryKeys.log(repo.path) });
-        toast((e as { message?: string })?.message ?? "não foi possível fazer fetch", "error");
+        notify("Fetch falhou", (e as { message?: string })?.message ?? "não foi possível fazer fetch", "error", "fetch");
       },
     });
   }
@@ -136,7 +237,7 @@ export function Titlebar({ rail = false }: { rail?: boolean }) {
         background: "var(--panel)",
       }}
     >
-      <TrafficLights />
+      {isMac && <TrafficLights />}
 
       <div style={{ flexShrink: 0 }}>
         <Wordmark size={17} />
@@ -152,50 +253,43 @@ export function Titlebar({ rail = false }: { rail?: boolean }) {
           <span style={{ fontFamily: mono, fontSize: 12, color: "var(--l0)", fontWeight: 600 }}>{repo.current_branch}</span>
         </div>
       ) : (
-      /* Repo tabs: one per open repository, switch on click, ✕ to close.
+      /* Repo tabs, grouped exactly like the rail (spec: groups work
+         identically): chip toggles collapse, right-click closes the group.
          Horizontal scroll keeps every tab reachable with many repos open. */
       <div style={{ display: "flex", alignItems: "center", gap: 5, minWidth: 0, flex: 1, overflowX: "auto", overflowY: "hidden", scrollbarWidth: "thin" }}>
-        {repos.map((r, i) => {
-          const active = r.path === repo.path;
-          const name = r.path.replace(/[/\\]$/, "").split(/[/\\]/).pop() ?? r.path;
+        {groups.map((g) => {
+          const members = repos.filter((r) => groupOf[r.path] === g.id);
+          if (members.length === 0) return null;
           return (
             <div
-              key={r.path}
-              onClick={() => switchRepo(r.path)}
-              className="gs-row"
+              key={g.id}
               style={{
                 display: "flex",
                 alignItems: "center",
-                gap: 7,
-                padding: "5px 8px 5px 12px",
-                borderRadius: 8,
-                border: `1px solid ${active ? "var(--btnB)" : "transparent"}`,
-                background: active ? "var(--sel)" : "transparent",
-                minWidth: 0,
-                cursor: "pointer",
+                gap: 3,
+                padding: 3,
+                borderRadius: 10,
+                border: `1px solid var(--l${g.color}bd)`,
+                background: g.collapsed ? `var(--l${g.color}bg)` : "transparent",
+                flexShrink: 0,
               }}
             >
-              <span style={{ width: 7, height: 7, borderRadius: "50%", background: `var(--l${i % 3})`, flexShrink: 0 }} />
-              <span style={{ fontSize: 12.5, fontWeight: active ? 600 : 400, color: active ? "var(--text)" : "var(--text2)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                {name}
-              </span>
-              <span style={{ fontFamily: mono, fontSize: 10.5, color: "var(--muted)", whiteSpace: "nowrap" }}>
-                {active ? repo.current_branch : r.current_branch}
-              </span>
               <span
-                onClick={(e) => {
-                  e.stopPropagation();
-                  closeRepo(r.path);
+                onClick={() => toggleGroupCollapsed(g.id)}
+                onContextMenu={(e) => {
+                  e.preventDefault();
+                  setTabMenu({ x: e.clientX, y: e.clientY, kind: "group", id: g.id });
                 }}
-                title="Fechar"
-                className="gs-row"
-                style={{ width: 16, height: 16, borderRadius: 5, display: "grid", placeItems: "center", color: "var(--muted)", fontSize: 10, flexShrink: 0 }}
+                title={`${g.collapsed ? "Expandir" : "Colapsar"} grupo · botão direito para opções`}
+                style={{ fontSize: 11.5, fontWeight: 700, padding: "3px 9px", borderRadius: 7, background: `var(--l${g.color}bg)`, color: `var(--l${g.color})`, cursor: "pointer", whiteSpace: "nowrap" }}
               >
-                ✕
+                {g.name} · {members.length}
               </span>
+              {!g.collapsed && members.map((r) => tabEl(r, repos.indexOf(r)))}
             </div>
           );
         })}
+        {ungrouped.map((r) => tabEl(r, repos.indexOf(r)))}
         <div
           onClick={() => setView("picker")}
           className="gs-lift"
@@ -293,6 +387,31 @@ export function Titlebar({ rail = false }: { rail?: boolean }) {
           <span style={{ width: 11, height: 11, borderRadius: "50%", border: "2.5px dotted currentColor", boxSizing: "border-box" }} />
         </div>
       </div>
+
+      {!isMac && <WinControls />}
+
+      {tabMenu &&
+        (() => {
+          if (tabMenu.kind === "group") {
+            const members = repos.filter((r) => groupOf[r.path] === tabMenu.id);
+            const items: MenuItem[] = [
+              {
+                label: `Fechar todas as abas do grupo (${members.length})`,
+                danger: true,
+                onClick: () => members.forEach((r) => closeRepo(r.path)),
+              },
+              { label: "Apagar grupo (mantém as abas)", onClick: () => removeGroup(tabMenu.id) },
+            ];
+            return <ContextMenu x={tabMenu.x} y={tabMenu.y} items={items} onClose={() => setTabMenu(null)} />;
+          }
+          const path = tabMenu.id;
+          const items: MenuItem[] = [
+            { label: "Novo grupo com este repo", onClick: () => { const id = addGroup("Grupo"); setRepoGroup(path, id); } },
+            ...groups.map((g) => ({ label: `Mover para “${g.name}”`, onClick: () => setRepoGroup(path, g.id) })),
+          ];
+          if (groupOf[path]) items.push({ label: "Remover do grupo", onClick: () => setRepoGroup(path, undefined) });
+          return <ContextMenu x={tabMenu.x} y={tabMenu.y} items={items} onClose={() => setTabMenu(null)} />;
+        })()}
 
       {confirmDiscard && (
         <ConfirmDialog

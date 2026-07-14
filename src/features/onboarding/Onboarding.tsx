@@ -193,8 +193,9 @@ export function Onboarding() {
               <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "1.4px", color: "var(--muted)" }}>NOVIDADES</div>
               <div style={{ position: "relative", height: 88 }}>
                 {NEWS.map(([title, sub], i) => {
-                  // Stacked deck: the active card sits flat on top; the others
-                  // peek out behind with a slight rotation (design: ±3.5°).
+                  // Stacked deck per the animation spec: back cards sit at
+                  // translateX ±30, y9, rotate ±3.5°, scale .96, opacity .5;
+                  // advancing reflows over 450ms with the pop easing.
                   const off = (i - news + NEWS.length) % NEWS.length;
                   return (
                     <div
@@ -206,10 +207,13 @@ export function Onboarding() {
                         borderRadius: 11,
                         border: "1px solid var(--border)",
                         background: "var(--panel)",
-                        transform: off === 0 ? "none" : `rotate(${off === 1 ? 3.5 : -3.5}deg) translateY(${off * 3}px)`,
+                        transform:
+                          off === 0
+                            ? "none"
+                            : `translateX(${off === 1 ? 30 : -30}px) translateY(9px) rotate(${off === 1 ? 3.5 : -3.5}deg) scale(0.96)`,
                         opacity: off === 0 ? 1 : 0.5,
                         zIndex: NEWS.length - off,
-                        transition: "transform 0.25s ease, opacity 0.25s ease",
+                        transition: "transform 450ms var(--ease-pop), opacity 450ms var(--ease-pop)",
                         boxSizing: "border-box",
                       }}
                     >

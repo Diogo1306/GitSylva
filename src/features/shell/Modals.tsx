@@ -2,7 +2,9 @@ import { useEffect, useState } from "react";
 import { useAppStore } from "../../state/appStore";
 import { useBranchActions, useBranches, useStashActions, useTagActions, useSyncActions, useSyncStatus, useOutgoing, useIncoming } from "../../state/queries";
 import { toast } from "../../state/toastStore";
+import { notify } from "../../state/notificationStore";
 import { Modal } from "../../components/ui/Modal";
+import { useModalClose } from "../../components/ui/modalClose";
 import { Input } from "../../components/ui/Input";
 import { Button } from "../../components/ui/Button";
 import { Chip, CheckSquare } from "../../components/ui/misc";
@@ -30,17 +32,25 @@ function Check({ on, onToggle, children }: { on: boolean; onToggle: () => void; 
 }
 
 function Actions({ onClose, onConfirm, label, busy, disabled }: { onClose: () => void; onConfirm: () => void; label: string; busy?: boolean; disabled?: boolean }) {
+  // Cancel plays the modal's exit animation (context from the Modal shell).
+  const requestClose = useModalClose(onClose);
   // `busy` really blocks the click — a double-click must not run the git
   // operation twice.
   const blocked = disabled || busy;
   return (
     <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 2 }}>
-      <Button onClick={onClose}>Cancelar</Button>
+      <Button onClick={requestClose}>Cancelar</Button>
       <Button variant="primary" onClick={blocked ? undefined : onConfirm} style={disabled ? { opacity: 0.5, cursor: "default" } : busy ? { opacity: 0.7, cursor: "default" } : undefined}>
         {label}
       </Button>
     </div>
   );
+}
+
+/** "Fechar" button that exits through the modal's close animation. */
+function CloseButton({ onClose }: { onClose: () => void }) {
+  const requestClose = useModalClose(onClose);
+  return <Button onClick={requestClose}>Fechar</Button>;
 }
 
 function Err({ msg }: { msg: string | null }) {
@@ -159,8 +169,12 @@ function MergeModal({ onClose }: { onClose: () => void }) {
   function run(name: string) {
     setError(null);
     merge.mutate(name, {
-      onSuccess: () => { toast(`${name} integrada em ${repo.current_branch}`); onClose(); },
-      onError: (e: unknown) => setError((e as { message?: string })?.message ?? "conflito ou erro no merge"),
+      onSuccess: () => { notify("Merge concluído", `${name} → ${repo.current_branch}`); onClose(); },
+      onError: (e: unknown) => {
+        const msg = (e as { message?: string })?.message ?? "conflito ou erro no merge";
+        setError(msg);
+        if (/conflict|conflito/i.test(msg)) notify("Conflitos no merge", "Resolve os ficheiros marcados na Cópia de trabalho", "error", "conflict");
+      },
     });
   }
 
@@ -182,7 +196,7 @@ function MergeModal({ onClose }: { onClose: () => void }) {
       )}
       <Err msg={error} />
       <div style={{ display: "flex", justifyContent: "flex-end" }}>
-        <Button onClick={onClose}>Fechar</Button>
+        <CloseButton onClose={onClose} />
       </div>
     </Modal>
   );
@@ -238,14 +252,21 @@ function PullModal({ onClose }: { onClose: () => void }) {
       <CommitList commits={commits} empty={fetchError ? "Sem ligação ao remoto." : "Nada para integrar. Estás em dia."} />
       <Err msg={error} />
       <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
-        <Button onClick={onClose}>Fechar</Button>
+        <CloseButton onClose={onClose} />
         <Button
           variant="primary"
           onClick={() =>
             !sync.pull.isPending &&
             sync.pull.mutate(undefined, {
-              onSuccess: () => { toast("Pull concluído"); onClose(); },
-              onError: (e: unknown) => setError((e as { message?: string })?.message ?? "não foi possível fazer pull (ff-only)"),
+              onSuccess: () => {
+                notify("Pull concluído", `${commits.length || status?.behind || 0} commit(s) integrados em ${repo.current_branch}`, "info", "push");
+                onClose();
+              },
+              onError: (e: unknown) => {
+                const msg = (e as { message?: string })?.message ?? "não foi possível fazer pull";
+                setError(msg);
+                if (/conflict|conflito/i.test(msg)) notify("Conflitos no pull", "Resolve os ficheiros marcados na Cópia de trabalho", "error", "conflict");
+              },
             })
           }
           style={sync.pull.isPending ? { opacity: 0.7, cursor: "default" } : undefined}
@@ -270,13 +291,13 @@ function PushModal({ onClose }: { onClose: () => void }) {
       <CommitList commits={commits} empty="Nada para enviar." />
       <Err msg={error} />
       <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
-        <Button onClick={onClose}>Fechar</Button>
+        <CloseButton onClose={onClose} />
         <Button
           variant="primary"
           onClick={() =>
             !sync.push.isPending &&
             sync.push.mutate(undefined, {
-              onSuccess: () => { toast("Push concluído"); onClose(); },
+              onSuccess: () => { notify("Push concluído", `origin · ${commits.length} commit(s) · ${repo.current_branch}`, "success", "push"); onClose(); },
               onError: (e: unknown) => setError((e as { message?: string })?.message ?? "não foi possível fazer push"),
             })
           }

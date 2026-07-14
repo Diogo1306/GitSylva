@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { toast } from "./toastStore";
 import type { RepoInfo } from "../lib/types";
 
 export type View = "working" | "history" | "stashes" | "settings" | "picker";
@@ -74,6 +75,11 @@ export const useAppStore = create<AppState>()(
     }),
   closeRepo: (path) =>
     set((s) => {
+      // Spec: the last open repository can't be closed (toast instead).
+      if (s.repos.length <= 1 && s.repos.some((r) => r.path === path)) {
+        toast("Não podes fechar o último repositório");
+        return {};
+      }
       const repos = s.repos.filter((r) => r.path !== path);
       const wasActive = s.repo?.path === path;
       const groupOf = { ...s.groupOf };

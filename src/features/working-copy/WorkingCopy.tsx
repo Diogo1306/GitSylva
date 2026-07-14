@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAppStore } from "../../state/appStore";
 import { useStatus, useStageActions, useCommit, useDiff, useBlame, useHunkActions, useSyncStatus } from "../../state/queries";
 import { useThemeStore } from "../../state/themeStore";
@@ -11,6 +11,7 @@ import { usePanelWidth } from "../../lib/usePanelWidth";
 import { statusStyle, isConflict } from "../../lib/status";
 import { errMsg } from "../../lib/errors";
 import { headMessage, openPath, revealPath } from "../../lib/api";
+import { spawnLeaf } from "../../lib/leaf";
 import { toast } from "../../state/toastStore";
 import type { FileChange } from "../../lib/types";
 
@@ -127,6 +128,16 @@ export function WorkingCopy() {
   const [fileMenu, setFileMenu] = useState<{ x: number; y: number; file: FileChange } | null>(null);
   const [stacked, setStacked] = useState(false);
   const [blameOn, setBlameOn] = useState(false);
+  // Below ~980px the working copy stacks automatically (handoff §8); the
+  // manual toggle still works on wide windows.
+  const [narrow, setNarrow] = useState(() => window.matchMedia("(max-width: 980px)").matches);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 980px)");
+    const onChange = () => setNarrow(mq.matches);
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
+  const isStacked = stacked || narrow;
   // Design: files panel resizable 320–540, persisted.
   const filesW = usePanelWidth("gitsylva-w-working", 400, 320, 540, "right");
 
@@ -153,6 +164,26 @@ export function WorkingCopy() {
     [hunk, stagedSel],
   );
 
+  // ⌘Enter (rebindable) fires this event from the global shortcut handler.
+  // Rebinds every render on purpose: the closure must see fresh msg/amend/data.
+  useEffect(() => {
+    const onCommitShortcut = () => {
+      const all = data ?? [];
+      const stagedCount = all.filter((f) => f.index_status !== "." && f.index_status !== "?" && !isConflict(f.index_status, f.worktree_status)).length;
+      if (commit.isPending || msg.trim() === "" || (stagedCount === 0 && !amend)) return;
+      setCommitErr(null);
+      commit.mutate(
+        { message: msg, amend },
+        {
+          onSuccess: () => { spawnLeaf(); setMsg(""); setAmend(false); },
+          onError: (e: unknown) => setCommitErr((e as { message?: string })?.message ?? "não foi possível fazer commit"),
+        },
+      );
+    };
+    window.addEventListener("gitsylva:commit", onCommitShortcut);
+    return () => window.removeEventListener("gitsylva:commit", onCommitShortcut);
+  });
+
   if (isLoading) return <div style={{ padding: 16, color: "var(--muted)" }}>A carregar alterações…</div>;
   if (error) return <div style={{ padding: 16, color: "var(--ddT)" }}>{errMsg(error, "não foi possível ler o estado do repositório")}</div>;
 
@@ -173,7 +204,7 @@ export function WorkingCopy() {
     commit.mutate(
       { message: msg, amend },
       {
-        onSuccess: () => { setMsg(""); setAmend(false); },
+        onSuccess: () => { spawnLeaf(); setMsg(""); setAmend(false); },
         onError: (e: unknown) => setCommitErr((e as { message?: string })?.message ?? "não foi possível fazer commit"),
       },
     );
@@ -240,15 +271,15 @@ export function WorkingCopy() {
 
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, minHeight: 0, animation: "fadeIn 0.25s ease both" }}>
-      <div style={{ flex: 1, display: "flex", flexDirection: stacked ? "column" : "row", minWidth: 0, minHeight: 0 }}>
+      <div style={{ flex: 1, display: "flex", flexDirection: isStacked ? "column" : "row", minWidth: 0, minHeight: 0 }}>
       {/* Files + commit */}
       <div
         style={{
-          width: stacked ? "auto" : filesW.width,
+          width: isStacked ? "auto" : filesW.width,
           flexShrink: 0,
-          borderRight: stacked ? "none" : "1px solid var(--border)",
-          borderTop: stacked ? "1px solid var(--border)" : "none",
-          order: stacked ? 2 : 1,
+          borderRight: isStacked ? "none" : "1px solid var(--border)",
+          borderTop: isStacked ? "1px solid var(--border)" : "none",
+          order: isStacked ? 2 : 1,
           display: "flex",
           flexDirection: "column",
           minHeight: 0,
@@ -256,7 +287,7 @@ export function WorkingCopy() {
           position: "relative",
         }}
       >
-        {!stacked && <PanelHandle edge="right" handleProps={filesW.handleProps} />}
+        {!isStacked && <PanelHandle edge="right" handleProps={filesW.handleProps} />}
         <div style={{ padding: "12px 16px 8px", display: "flex", alignItems: "center" }}>
           <SectionHead>NÃO PREPARADAS · {unstaged.length}</SectionHead>
           <div onClick={() => actions.stageAll.mutate()} className="gs-row" style={{ fontSize: 12, color: "var(--l0)", cursor: "pointer", padding: "3px 8px", borderRadius: 6, fontWeight: 600 }}>
@@ -365,7 +396,7 @@ export function WorkingCopy() {
       </div>
 
       {/* Diff */}
-      <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", order: stacked ? 1 : 2 }}>
+      <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", order: isStacked ? 1 : 2 }}>
         <div style={{ padding: "13px 20px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 10 }}>
           {effSel ? (
             <>
@@ -386,7 +417,7 @@ export function WorkingCopy() {
           {!blameOn && <span style={{ fontSize: 12, color: "var(--muted)" }}>{effSel?.staged ? "diff preparado" : "diff da cópia de trabalho"}</span>}
           {!blameOn && (
             <div onClick={() => setStacked((v) => !v)} className="gs-lift" style={{ display: "flex", alignItems: "center", gap: 6, padding: "5px 11px", borderRadius: 7, background: "var(--btn)", border: "1px solid var(--btnB)", fontSize: 12, color: "var(--btnT)", cursor: "pointer", whiteSpace: "nowrap" }}>
-              {stacked ? "Lado a lado" : "Empilhado"}
+              {isStacked ? "Lado a lado" : "Empilhado"}
             </div>
           )}
         </div>
