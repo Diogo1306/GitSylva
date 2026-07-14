@@ -496,3 +496,15 @@ Correção: `CREATE_NO_WINDOW` (0x08000000) em TODOS os spawns (`run_git`, `run_
 
 Verificação medida (EnumWindows a cada 250ms durante 10s de arranque, que dispara 10–15
 gits): **0 janelas de consola novas visíveis**; exe vivo e responsivo. cargo test 48/48.
+
+### J. R4.2 — "falta animações": a entrada do grafo estava silenciada desde a R3
+
+`git diff d34ede1..HEAD` confirmou que a R4 não removeu uma única linha de animação. O que
+faltava era pré-existente: o cap da R3 era tudo-ou-nada (`rows.length <= 120`) e o log
+carrega 200 — **a entrada-assinatura do grafo (vinhas a crescer) nunca tocava num repo
+real**. O orçamento passou a ser POR ROW: as primeiras 120 rows animam (vários ecrãs), o
+resto renderiza estático — a mesma razão de perf do cap antigo (abaixo da dobra não se vê),
+sem matar o momento. Guarda de modo janela: no fim da entrada (1,6s) todos os hashes ficam
+"vistos", para o scroll (que remonta elementos) nunca a repetir; a troca é invisível porque
+todos os keyframes terminam na pose estática. vitest 69/69 (novo teste: row 0 anima, row
+150 estática num log de 200). develop @ d9d4287.
