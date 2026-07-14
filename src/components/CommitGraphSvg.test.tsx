@@ -64,6 +64,24 @@ describe("CommitGraphSvg incremental animation", () => {
   });
 });
 
+describe("CommitGraphSvg entrance budget", () => {
+  it("large histories animate their first rows and render the rest static", () => {
+    const n = 200;
+    const rows: GraphCommit[] = [];
+    for (let i = 0; i < n; i++) {
+      rows.push(row(`h${i}`, i + 1 < n ? [`h${i + 1}`] : [], i + 1 < n ? [i + 1] : []));
+    }
+    const { container } = render(<CommitGraphSvg rows={rows} rowH={52} />);
+    // The signature entrance plays above the fold (the old all-or-nothing cap
+    // silenced it entirely for >120-commit logs)…
+    const early = container.querySelector('[data-hash="h0"]') as SVGCircleElement;
+    expect(early.style.animation).toContain("nodePop");
+    // …while rows past the budget render static.
+    const late = container.querySelector('[data-hash="h150"]') as SVGCircleElement;
+    expect(late.style.animation).toBe("none");
+  });
+});
+
 describe("CommitGraphSvg windowed mode", () => {
   it("emits only the visible range but keeps the full scroll height", () => {
     const n = 2000;

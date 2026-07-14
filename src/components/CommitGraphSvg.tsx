@@ -1,4 +1,4 @@
-import { createElement as h, memo, useMemo, useState, type ReactElement } from "react";
+import { createElement as h, memo, useEffect, useMemo, useState, type ReactElement } from "react";
 import { useThemeStore } from "../state/themeStore";
 import type { GraphCommit } from "../graph/layout";
 import type { TreeStyleKey } from "../theme/themes";
@@ -17,6 +17,12 @@ import type { TreeStyleKey } from "../theme/themes";
 const LANE_W = 18;
 const laneX = (l: number) => 10 + l * LANE_W;
 
+// Entrance animation budget, PER ROW: the first screenfuls grow in; rows
+// beyond this render static. The old all-or-nothing cap (skip when
+// rows.length > 120) silenced the signature entrance on every real repo —
+// a 200-commit log never animated at all.
+const ANIM_ROWS = 120;
+
 function buildGraph(
   rows: GraphCommit[],
   rowH: number,
@@ -26,8 +32,9 @@ function buildGraph(
   range?: { start: number; end: number },
 ): ReactElement[] {
   const els: ReactElement[] = [];
-  // Only commits that weren't on screen last render play their entrance.
-  const fresh = (hash: string) => anims && !seenHashes.has(hash);
+  // Only commits that weren't on screen last render play their entrance, and
+  // only within the first ANIM_ROWS rows (the rest is below the fold).
+  const fresh = (hash: string, i: number) => anims && i < ANIM_ROWS && !seenHashes.has(hash);
   const anim = (on: boolean, s: string) => (on ? s : "none");
   // Windowed mode (huge histories): only emit elements whose row span
   // intersects the visible range. Geometry is index-based, so skipping rows
@@ -80,7 +87,7 @@ function buildGraph(
   // Edges (keyed child-hash → parent-hash; they animate with the CHILD commit).
   rows.forEach((c, i) => {
     const hash = c.commit.hash;
-    const on = fresh(hash);
+    const on = fresh(hash, i);
     const x1 = laneX(c.lane);
     const y1 = i * rowH + rowH / 2;
     const delay = Math.min(i * 0.045, 0.6);
@@ -125,7 +132,7 @@ function buildGraph(
   rows.forEach((c, i) => {
     if (!inRange(i)) return;
     const hash = c.commit.hash;
-    const on = fresh(hash);
+    const on = fresh(hash, i);
     const x = laneX(c.lane);
     const y = i * rowH + rowH / 2;
     const delay = Math.min(i * 0.045, 0.6) + 0.25;
@@ -153,7 +160,7 @@ function buildGraph(
   rows.forEach((c, i) => {
     if (styleKey === "grafo") return;
     const hash = c.commit.hash;
-    const on = fresh(hash);
+    const on = fresh(hash, i);
     // Tip bookkeeping must run for EVERY row (it accumulates), so the range
     // check happens after it — skipping only the element creation.
     const isTip = (c.lane > 0 && !tipLanes.has(c.lane)) || i === 0;
@@ -340,9 +347,8 @@ export const CommitGraphSvg = memo(function CommitGraphSvg({
 }) {
   const styleKey = useThemeStore((s) => s.treeStyle);
   const anims = useThemeStore((s) => s.anims);
-  // Cap the entrance animation: past ~120 rows a burst of staggered keyframes
-  // costs real jank and the reveal is off-screen anyway.
-  const animate = anims && rows.length <= 120;
+  // The per-row budget (ANIM_ROWS in buildGraph) bounds the entrance cost:
+  // any history size animates its first screenfuls, the rest is static.
 
   // Incremental entrance: hashes from the PREVIOUS render become "seen" and
   // never replay; only genuinely new commits animate. Render-phase state
@@ -355,9 +361,22 @@ export const CommitGraphSvg = memo(function CommitGraphSvg({
     if (prevKey !== null) setSeenHashes(new Set(prevKey.split("|")));
   }
 
+  // Once the entrance finishes (longest chain ≈ 0.6s stagger + 0.8s draw),
+  // everything becomes "seen": in windowed mode, scrolling away and back
+  // remounts elements, and without this they would replay their entrance.
+  // The rebuild is invisible — every keyframe ends at the static pose.
+  useEffect(() => {
+    if (!anims || rows.length === 0) return;
+    if (rows.every((r) => seenHashes.has(r.commit.hash))) return;
+    const t = window.setTimeout(() => {
+      setSeenHashes(new Set(rows.map((r) => r.commit.hash)));
+    }, 1600);
+    return () => window.clearTimeout(t);
+  }, [anims, rows, seenHashes]);
+
   const els = useMemo(
-    () => buildGraph(rows, rowH, styleKey, animate, seenHashes, visibleRange),
-    [rows, rowH, styleKey, animate, seenHashes, visibleRange],
+    () => buildGraph(rows, rowH, styleKey, anims, seenHashes, visibleRange),
+    [rows, rowH, styleKey, anims, seenHashes, visibleRange],
   );
   return h("svg", { width: 72, height: rows.length * rowH, style: { display: "block", overflow: "visible" } }, els);
 });
