@@ -23,11 +23,16 @@ function buildGraph(
   styleKey: TreeStyleKey,
   anims: boolean,
   seenHashes: ReadonlySet<string>,
+  range?: { start: number; end: number },
 ): ReactElement[] {
   const els: ReactElement[] = [];
   // Only commits that weren't on screen last render play their entrance.
   const fresh = (hash: string) => anims && !seenHashes.has(hash);
   const anim = (on: boolean, s: string) => (on ? s : "none");
+  // Windowed mode (huge histories): only emit elements whose row span
+  // intersects the visible range. Geometry is index-based, so skipping rows
+  // never changes where anything is drawn.
+  const inRange = (a: number, b = a) => !range || (Math.min(a, b) <= range.end && Math.max(a, b) >= range.start);
 
   const vine = (x: number, y1: number, y2: number, seed: number) => {
     let d = `M${x},${y1}`;
@@ -82,6 +87,8 @@ function buildGraph(
     c.parentRows.forEach((p) => {
       const pc = rows[p];
       if (!pc) return;
+      // An edge is visible when any part of its child→parent span is.
+      if (!inRange(i, p)) return;
       const pHash = pc.commit.hash;
       const x2 = laneX(pc.lane);
       const y2 = p * rowH + rowH / 2;
@@ -116,6 +123,7 @@ function buildGraph(
 
   // Nodes.
   rows.forEach((c, i) => {
+    if (!inRange(i)) return;
     const hash = c.commit.hash;
     const on = fresh(hash);
     const x = laneX(c.lane);
@@ -146,8 +154,11 @@ function buildGraph(
     if (styleKey === "grafo") return;
     const hash = c.commit.hash;
     const on = fresh(hash);
+    // Tip bookkeeping must run for EVERY row (it accumulates), so the range
+    // check happens after it — skipping only the element creation.
     const isTip = (c.lane > 0 && !tipLanes.has(c.lane)) || i === 0;
     tipLanes.add(c.lane);
+    if (!inRange(i)) return;
     if (c.merge && !isTip) return;
     const x = laneX(c.lane);
     const y = i * rowH + rowH / 2;
@@ -317,7 +328,16 @@ function buildGraph(
   return els;
 }
 
-export const CommitGraphSvg = memo(function CommitGraphSvg({ rows, rowH }: { rows: GraphCommit[]; rowH: number }) {
+export const CommitGraphSvg = memo(function CommitGraphSvg({
+  rows,
+  rowH,
+  visibleRange,
+}: {
+  rows: GraphCommit[];
+  rowH: number;
+  /** Windowed mode: only rows in [start, end] emit SVG elements. */
+  visibleRange?: { start: number; end: number };
+}) {
   const styleKey = useThemeStore((s) => s.treeStyle);
   const anims = useThemeStore((s) => s.anims);
   // Cap the entrance animation: past ~120 rows a burst of staggered keyframes
@@ -336,8 +356,8 @@ export const CommitGraphSvg = memo(function CommitGraphSvg({ rows, rowH }: { row
   }
 
   const els = useMemo(
-    () => buildGraph(rows, rowH, styleKey, animate, seenHashes),
-    [rows, rowH, styleKey, animate, seenHashes],
+    () => buildGraph(rows, rowH, styleKey, animate, seenHashes, visibleRange),
+    [rows, rowH, styleKey, animate, seenHashes, visibleRange],
   );
   return h("svg", { width: 72, height: rows.length * rowH, style: { display: "block", overflow: "visible" } }, els);
 });

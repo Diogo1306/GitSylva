@@ -63,3 +63,25 @@ describe("CommitGraphSvg incremental animation", () => {
     });
   });
 });
+
+describe("CommitGraphSvg windowed mode", () => {
+  it("emits only the visible range but keeps the full scroll height", () => {
+    const n = 2000;
+    const rows: GraphCommit[] = [];
+    for (let i = 0; i < n; i++) {
+      rows.push(row(`h${i}`, i + 1 < n ? [`h${i + 1}`] : [], i + 1 < n ? [i + 1] : []));
+    }
+    const { container } = render(<CommitGraphSvg rows={rows} rowH={52} visibleRange={{ start: 100, end: 140 }} />);
+
+    // Only the windowed rows produce nodes (41 in range vs 2000 total)…
+    const nodes = container.querySelectorAll("circle[data-hash]");
+    expect(nodes.length).toBe(41);
+    expect(container.querySelector('[data-hash="h100"]')).toBeTruthy();
+    expect(container.querySelector('[data-hash="h99"]')).toBeNull();
+    expect(container.querySelector('[data-hash="h141"]')).toBeNull();
+
+    // …while the SVG keeps the full history height so alignment holds.
+    const svg = container.querySelector("svg")!;
+    expect(Number(svg.getAttribute("height"))).toBe(n * 52);
+  });
+});

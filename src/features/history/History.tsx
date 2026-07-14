@@ -25,6 +25,14 @@ import type { Commit } from "../../lib/types";
 const ROW_H = 52;
 const mono = "'JetBrains Mono', monospace";
 
+// Above this many rows the list renders in a window (uniform row height →
+// simple math). Measured: 2000 commits fully rendered = 2000 divs + 11.6k SVG
+// elements (~1.6MB of markup) living in one 104k-px-tall layer — scroll and
+// selection paid for all of it. Below the threshold everything renders (and
+// the entrance animation, capped at 120, still plays).
+const VIRTUAL_MIN = 300;
+const OVERSCAN = 10;
+
 function Avatar({ name, size = 22 }: { name: string; size?: number }) {
   const { bg, color } = avatarColor(name);
   return (
@@ -217,8 +225,6 @@ const CommitRow = memo(function CommitRow({
 }) {
   return (
     <div
-      // Keyboard navigation must keep the selected row visible.
-      ref={selected ? (el) => el?.scrollIntoView({ block: "nearest" }) : undefined}
       onClick={() => onSelect(commit.hash)}
       onContextMenu={(e) => {
         e.preventDefault();
@@ -322,6 +328,43 @@ export function History() {
     navRef.current = { hashes: filtered.map((c) => c.hash), selected: selected?.hash ?? null };
   });
 
+  // ── List windowing ────────────────────────────────────────────────────────
+  // Callback-ref state: the scroll container appears only after loading, so a
+  // plain useRef + [] effect would observe nothing.
+  const [scrollEl, setScrollEl] = useState<HTMLDivElement | null>(null);
+  const [viewH, setViewH] = useState(0);
+  const [scrollTop, setScrollTop] = useState(0);
+  useEffect(() => {
+    if (!scrollEl) return;
+    // ResizeObserver fires once on observe — no synchronous measure needed.
+    const ro = new ResizeObserver(() => setViewH(scrollEl.clientHeight));
+    ro.observe(scrollEl);
+    return () => ro.disconnect();
+  }, [scrollEl]);
+
+  const virtual = filtered.length > VIRTUAL_MIN;
+  const startIdx = virtual ? Math.max(0, Math.floor(scrollTop / rowH) - OVERSCAN) : 0;
+  const endIdx = virtual ? Math.min(filtered.length - 1, Math.ceil((scrollTop + viewH) / rowH) + OVERSCAN) : filtered.length - 1;
+  const visibleCommits = virtual ? filtered.slice(startIdx, endIdx + 1) : filtered;
+
+  // Keep the selected row visible when the SELECTION changes (keyboard nav,
+  // palette jump). An element-level scrollIntoView ref would re-fire on every
+  // remount in windowed mode and hijack the user's scroll.
+  const lastScrolledTo = useRef<string | null>(null);
+  useEffect(() => {
+    if (!scrollEl || !selected) return;
+    if (lastScrolledTo.current === selected.hash) return;
+    const first = lastScrolledTo.current === null;
+    lastScrolledTo.current = selected.hash;
+    if (first) return; // initial selection: don't move a freshly opened list
+    const idx = filtered.findIndex((c) => c.hash === selected.hash);
+    if (idx < 0) return;
+    const top = idx * rowH;
+    if (top < scrollEl.scrollTop) scrollEl.scrollTo({ top });
+    else if (top + rowH > scrollEl.scrollTop + scrollEl.clientHeight)
+      scrollEl.scrollTo({ top: top + rowH - scrollEl.clientHeight });
+  });
+
   if (isLoading) return <div style={{ padding: 16, color: "var(--muted)" }}>A carregar histórico…</div>;
   if (error) return <div style={{ padding: 16, color: "var(--ddT)" }}>{errMsg(error, "não foi possível ler o histórico")}</div>;
   if (commits.length === 0) return <div style={{ padding: 16, color: "var(--muted)" }}>Sem commits ainda.</div>;
@@ -352,24 +395,33 @@ export function History() {
           </div>
         </div>
 
-        <div style={{ flex: 1, overflowY: "auto" }}>
-          <div style={{ position: "relative" }}>
+        <div
+          ref={setScrollEl}
+          onScroll={virtual ? (e) => setScrollTop(e.currentTarget.scrollTop) : undefined}
+          style={{ flex: 1, overflowY: "auto" }}
+        >
+          {/* In windowed mode the spacer keeps the real scroll height and the
+              rows are absolutely positioned inside it; the graph overlay is
+              full-height either way, emitting only the visible range. */}
+          <div style={{ position: "relative", height: virtual ? filtered.length * rowH : undefined }}>
             {!filtering && (
               <div style={{ position: "absolute", left: 14, top: 0, pointerEvents: "none" }}>
-                <CommitGraphSvg rows={rows} rowH={rowH} />
+                <CommitGraphSvg rows={rows} rowH={rowH} visibleRange={virtual ? { start: startIdx, end: endIdx } : undefined} />
               </div>
             )}
-            {filtered.map((c) => (
-              <CommitRow
-                key={c.hash}
-                commit={c}
-                selected={selected.hash === c.hash}
-                filtering={filtering}
-                rowH={rowH}
-                onSelect={selectHash}
-                onContext={onContext}
-              />
-            ))}
+            <div style={virtual ? { position: "absolute", top: startIdx * rowH, left: 0, right: 0 } : undefined}>
+              {visibleCommits.map((c) => (
+                <CommitRow
+                  key={c.hash}
+                  commit={c}
+                  selected={selected.hash === c.hash}
+                  filtering={filtering}
+                  rowH={rowH}
+                  onSelect={selectHash}
+                  onContext={onContext}
+                />
+              ))}
+            </div>
           </div>
           {/* When the log filled the window, there are probably older commits. */}
           {!filtering && commits.length >= limit && (
