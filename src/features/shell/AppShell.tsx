@@ -9,6 +9,7 @@ import { ActionBar } from "./ActionBar";
 import { CommandPalette } from "./CommandPalette";
 import { Modals } from "./Modals";
 import { Toaster } from "../../components/Toaster";
+import { ErrorBoundary } from "../../components/ErrorBoundary";
 import { Notifications } from "../../components/Notifications";
 import { EphemeralLeaves } from "../../components/EphemeralLeaves";
 import { spawnLeaf } from "../../lib/leaf";
@@ -144,9 +145,14 @@ export function AppShell() {
           <ConflictBanner />
           <div style={{ flex: 1, display: "flex", minWidth: 0, overflow: "hidden" }}>
             <Suspense fallback={<div style={{ flex: 1, display: "grid", placeItems: "center", color: "var(--muted)", fontSize: 13 }}>A carregar…</div>}>
-              {/* Keyed by repo so per-screen state (commit message, amend flag,
-                  selected file/commit) never leaks across repositories. */}
-              <Screen key={repoPath ?? "none"} />
+              {/* A crash inside a screen must not take down the titlebar,
+                  sidebar and navigation — the shell-level boundary catches it
+                  and offers a way back to History. */}
+              <ErrorBoundary homeLabel="Ir para o Histórico" onHome={() => useAppStore.getState().setView("history")}>
+                {/* Keyed by repo so per-screen state (commit message, amend flag,
+                    selected file/commit) never leaks across repositories. */}
+                <Screen key={repoPath ?? "none"} />
+              </ErrorBoundary>
             </Suspense>
           </div>
         </div>

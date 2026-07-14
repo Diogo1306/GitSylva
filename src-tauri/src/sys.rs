@@ -8,6 +8,20 @@ fn os_err(e: std::io::Error) -> GitError {
     }
 }
 
+/// Sink for frontend failures (window.onerror, unhandledrejection, error
+/// boundaries): they land in the same rotated log file as the backend's
+/// entries, so a field crash leaves one combined trail.
+#[tauri::command(rename = "frontend_log")]
+pub async fn frontend_log_cmd(level: String, message: String) -> Result<(), GitError> {
+    let msg: String = message.chars().take(4000).collect();
+    match level.as_str() {
+        "error" => log::error!("[frontend] {msg}"),
+        "warn" => log::warn!("[frontend] {msg}"),
+        _ => log::info!("[frontend] {msg}"),
+    }
+    Ok(())
+}
+
 #[tauri::command(rename = "open_path")]
 pub async fn open_path_cmd(path: String, file: String) -> Result<(), GitError> {
     crate::git::run_blocking("open_path", move || open_path(path, file)).await

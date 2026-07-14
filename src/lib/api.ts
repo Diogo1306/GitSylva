@@ -1,4 +1,6 @@
-import { invoke } from "@tauri-apps/api/core";
+// Every Tauri call goes through the instrumented invoke (timing, ring buffer,
+// error trail) instead of the raw one.
+import { invoke } from "./telemetry";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import type { RepoInfo, FileChange, Commit, CommitDetail, BranchInfo, StashInfo, TagInfo, SyncStatus, GitIdentity, BlameLine, ConflictState, ConflictKind } from "./types";
 

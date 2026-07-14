@@ -104,7 +104,8 @@ pub fn run() {
       git::config::get_identity_cmd,
       git::config::set_identity_cmd,
       sys::open_path_cmd,
-      sys::reveal_path_cmd
+      sys::reveal_path_cmd,
+      sys::frontend_log_cmd
     ])
     .build(tauri::generate_context!())
     .expect("error while building tauri application")
