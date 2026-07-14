@@ -12,10 +12,34 @@ pub struct ConflictState {
     pub files: Vec<String>,
 }
 
+#[tauri::command(rename = "conflict_state")]
+pub async fn conflict_state_cmd(path: String) -> Result<ConflictState, GitError> {
+    crate::git::run_blocking("conflict_state", move || conflict_state(path)).await
+}
+
+#[tauri::command(rename = "resolve_use")]
+pub async fn resolve_use_cmd(path: String, file: String, side: String) -> Result<(), GitError> {
+    crate::git::run_mutating("resolve_use", path.clone(), move || resolve_use(path, file, side)).await
+}
+
+#[tauri::command(rename = "mark_resolved")]
+pub async fn mark_resolved_cmd(path: String, file: String) -> Result<(), GitError> {
+    crate::git::run_mutating("mark_resolved", path.clone(), move || mark_resolved(path, file)).await
+}
+
+#[tauri::command(rename = "continue_op")]
+pub async fn continue_op_cmd(path: String, kind: String) -> Result<(), GitError> {
+    crate::git::run_mutating("continue_op", path.clone(), move || continue_op(path, kind)).await
+}
+
+#[tauri::command(rename = "abort_op")]
+pub async fn abort_op_cmd(path: String, kind: String) -> Result<(), GitError> {
+    crate::git::run_mutating("abort_op", path.clone(), move || abort_op(path, kind)).await
+}
+
 /// Detect an in-progress merge/rebase/cherry-pick/revert and list the unmerged
 /// (conflicted) files. `files` is also populated for bare conflicts with no
 /// operation marker (e.g. a conflicting `stash apply`).
-#[tauri::command]
 pub fn conflict_state(path: String) -> Result<ConflictState, GitError> {
     let git_dir = run_git(&path, &["rev-parse", "--absolute-git-dir"])?
         .trim()
@@ -39,7 +63,6 @@ pub fn conflict_state(path: String) -> Result<ConflictState, GitError> {
 }
 
 /// Resolve a conflicted file by taking one side ("ours" or "theirs"), then stage it.
-#[tauri::command]
 pub fn resolve_use(path: String, file: String, side: String) -> Result<(), GitError> {
     let flag = if side == "theirs" { "--theirs" } else { "--ours" };
     run_git(&path, &["checkout", flag, "--", &file])?;
@@ -47,13 +70,11 @@ pub fn resolve_use(path: String, file: String, side: String) -> Result<(), GitEr
 }
 
 /// Mark a conflicted file as resolved (stage it) after a manual edit.
-#[tauri::command]
 pub fn mark_resolved(path: String, file: String) -> Result<(), GitError> {
     run_git(&path, &["add", "--", &file]).map(|_| ())
 }
 
 /// Continue an in-progress operation (kind = "merge" | "rebase" | "cherry-pick" | "revert").
-#[tauri::command]
 pub fn continue_op(path: String, kind: String) -> Result<(), GitError> {
     match kind.as_str() {
         "rebase" => run_git(&path, &["rebase", "--continue"]).map(|_| ()),
@@ -64,7 +85,6 @@ pub fn continue_op(path: String, kind: String) -> Result<(), GitError> {
 }
 
 /// Abort an in-progress operation.
-#[tauri::command]
 pub fn abort_op(path: String, kind: String) -> Result<(), GitError> {
     match kind.as_str() {
         "rebase" => run_git(&path, &["rebase", "--abort"]).map(|_| ()),

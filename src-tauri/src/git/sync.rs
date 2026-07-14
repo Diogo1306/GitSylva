@@ -10,10 +10,41 @@ pub struct SyncStatus {
     pub upstream: Option<String>,
 }
 
-/// Fetch all remotes and prune deleted refs. Fails fast (no credential prompt).
-#[tauri::command]
+#[tauri::command(rename = "fetch")]
+pub async fn fetch_cmd(path: String) -> Result<(), GitError> {
+    crate::git::run_mutating("fetch", path.clone(), move || fetch(path)).await
+}
+
+#[tauri::command(rename = "sync_status")]
+pub async fn sync_status_cmd(path: String) -> Result<SyncStatus, GitError> {
+    crate::git::run_blocking("sync_status", move || sync_status(path)).await
+}
+
+#[tauri::command(rename = "pull")]
+pub async fn pull_cmd(path: String, mode: String) -> Result<(), GitError> {
+    crate::git::run_mutating("pull", path.clone(), move || pull(path, mode)).await
+}
+
+#[tauri::command(rename = "push")]
+pub async fn push_cmd(path: String) -> Result<(), GitError> {
+    crate::git::run_mutating("push", path.clone(), move || push(path)).await
+}
+
+#[tauri::command(rename = "outgoing")]
+pub async fn outgoing_cmd(path: String) -> Result<Vec<Commit>, GitError> {
+    crate::git::run_blocking("outgoing", move || outgoing(path)).await
+}
+
+#[tauri::command(rename = "incoming")]
+pub async fn incoming_cmd(path: String) -> Result<Vec<Commit>, GitError> {
+    crate::git::run_blocking("incoming", move || incoming(path)).await
+}
+
+/// Fetch all remotes and prune deleted refs. Fails fast (no credential
+/// prompt) and is killed after 120s: fetch is idempotent, so a hung network
+/// must not leave the UI "A verificar origin…" forever.
 pub fn fetch(path: String) -> Result<(), GitError> {
-    run_git(&path, &["fetch", "--all", "--prune"]).map(|_| ())
+    crate::git::run_git_timeout(&path, &["fetch", "--all", "--prune"], 120).map(|_| ())
 }
 
 fn has_upstream(path: &str) -> bool {
@@ -21,7 +52,6 @@ fn has_upstream(path: &str) -> bool {
 }
 
 /// Local commits not yet on the upstream (what a push would send).
-#[tauri::command]
 pub fn outgoing(path: String) -> Result<Vec<Commit>, GitError> {
     if !has_upstream(&path) {
         return Ok(Vec::new());
@@ -31,7 +61,6 @@ pub fn outgoing(path: String) -> Result<Vec<Commit>, GitError> {
 
 /// Upstream commits not yet local (what a pull would bring). Reflects the last
 /// fetch; the pull modal fetches first.
-#[tauri::command]
 pub fn incoming(path: String) -> Result<Vec<Commit>, GitError> {
     if !has_upstream(&path) {
         return Ok(Vec::new());
@@ -41,7 +70,6 @@ pub fn incoming(path: String) -> Result<Vec<Commit>, GitError> {
 
 /// Pull using the chosen mode: "ff" (fast-forward only, safe default),
 /// "merge" (default git merge), or "rebase".
-#[tauri::command]
 pub fn pull(path: String, mode: String) -> Result<(), GitError> {
     let flag = match mode.as_str() {
         "merge" => "--no-rebase",
@@ -52,7 +80,6 @@ pub fn pull(path: String, mode: String) -> Result<(), GitError> {
 }
 
 /// Push the current branch. Sets the upstream if the branch has none yet.
-#[tauri::command]
 pub fn push(path: String) -> Result<(), GitError> {
     let has_upstream = run_git(&path, &["rev-parse", "--abbrev-ref", "@{u}"]).is_ok();
     if has_upstream {
@@ -63,7 +90,6 @@ pub fn push(path: String) -> Result<(), GitError> {
 }
 
 /// How far the current branch is ahead/behind its upstream. No upstream -> zeros.
-#[tauri::command]
 pub fn sync_status(path: String) -> Result<SyncStatus, GitError> {
     let upstream = run_git(&path, &["rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}"])
         .ok()

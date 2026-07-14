@@ -10,7 +10,11 @@ pub struct FileChange {
     pub orig_path: Option<String>,
 }
 
-#[tauri::command]
+#[tauri::command(rename = "get_status")]
+pub async fn get_status_cmd(path: String) -> Result<Vec<FileChange>, GitError> {
+    crate::git::run_blocking("get_status", move || get_status(path)).await
+}
+
 pub fn get_status(path: String) -> Result<Vec<FileChange>, GitError> {
     // Null terminated porcelain v2 is robust against spaces and renames.
     let out = run_git(&path, &["status", "--porcelain=v2", "-z"])?;

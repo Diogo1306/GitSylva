@@ -1,4 +1,6 @@
-import { invoke } from "@tauri-apps/api/core";
+// Every Tauri call goes through the instrumented invoke (timing, ring buffer,
+// error trail) instead of the raw one.
+import { invoke } from "./telemetry";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import type { RepoInfo, FileChange, Commit, CommitDetail, BranchInfo, StashInfo, TagInfo, SyncStatus, GitIdentity, BlameLine, ConflictState, ConflictKind } from "./types";
 
@@ -79,16 +81,17 @@ export function getLog(path: string, limit: number, skip = 0): Promise<Commit[]>
   return invoke<Commit[]>("get_log", { path, limit, skip });
 }
 
-export function getDiff(path: string, file: string, staged: boolean, untracked = false): Promise<string> {
-  return invoke<string>("get_diff", { path, file, staged, untracked });
+export function getDiff(path: string, file: string, staged: boolean, untracked = false, full = false): Promise<string> {
+  // Without `full` the backend caps huge patches (see diffLimits.ts).
+  return invoke<string>("get_diff", { path, file, staged, untracked, full });
 }
 
 export function applyHunk(path: string, patch: string, cached: boolean, reverse: boolean): Promise<void> {
   return invoke("apply_hunk", { path, patch, cached, reverse });
 }
 
-export function commitDetail(path: string, hash: string): Promise<CommitDetail> {
-  return invoke<CommitDetail>("commit_detail", { path, hash });
+export function commitDetail(path: string, hash: string, full = false): Promise<CommitDetail> {
+  return invoke<CommitDetail>("commit_detail", { path, hash, full });
 }
 
 export function listBranches(path: string): Promise<BranchInfo[]> {

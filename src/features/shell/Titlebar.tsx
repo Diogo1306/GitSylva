@@ -189,6 +189,8 @@ export function Titlebar({ rail = false }: { rail?: boolean }) {
 
   function refresh() {
     // The ⟳ fetches origin; on failure (no remote/credentials) still reload local.
+    // Repeated clicks while a fetch is in flight must not queue more fetches.
+    if (sync.fetch.isPending) return;
     const name = repo.path.replace(/[/\\]$/, "").split(/[/\\]/).pop() ?? repo.path;
     sync.fetch.mutate(undefined, {
       onSuccess: () => {

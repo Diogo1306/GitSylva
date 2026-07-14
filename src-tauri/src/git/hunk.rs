@@ -7,7 +7,11 @@ use crate::git::run_git_stdin;
 /// - stage a hunk:   cached = true,  reverse = false
 /// - unstage a hunk: cached = true,  reverse = true   (patch is the staged diff)
 /// - discard a hunk: cached = false, reverse = true   (patch is the worktree diff)
-#[tauri::command]
+#[tauri::command(rename = "apply_hunk")]
+pub async fn apply_hunk_cmd(path: String, patch: String, cached: bool, reverse: bool) -> Result<(), GitError> {
+    crate::git::run_mutating("apply_hunk", path.clone(), move || apply_hunk(path, patch, cached, reverse)).await
+}
+
 pub fn apply_hunk(path: String, patch: String, cached: bool, reverse: bool) -> Result<(), GitError> {
     let mut args = vec!["apply"];
     if cached {

@@ -1,6 +1,7 @@
 // MUST be the first import: seeds localStorage before the stores rehydrate.
 // A no-op (dead-code-eliminated) unless built with VITE_PERF_MOCK=1.
 import './perf/mockGit'
+import { installGlobalErrorCapture } from './lib/telemetry'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
@@ -11,6 +12,9 @@ import App from './App.tsx'
 import { useAppStore } from './state/appStore'
 import { useThemeStore } from './state/themeStore'
 
+
+// Uncaught exceptions and unhandled rejections leave a trail in the Rust log.
+installGlobalErrorCapture()
 
 const queryClient = new QueryClient({
   // Git data is cheap to recompute but each query spawns a git process; a short

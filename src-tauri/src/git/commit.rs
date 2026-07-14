@@ -1,13 +1,21 @@
 use crate::error::GitError;
 use crate::git::run_git;
 
+#[tauri::command(rename = "head_message")]
+pub async fn head_message_cmd(path: String) -> Result<String, GitError> {
+    crate::git::run_blocking("head_message", move || head_message(path)).await
+}
+
+#[tauri::command(rename = "commit")]
+pub async fn commit_cmd(path: String, message: String, amend: bool) -> Result<String, GitError> {
+    crate::git::run_mutating("commit", path.clone(), move || commit(path, message, amend)).await
+}
+
 /// Full message (%B) of HEAD — used to prefill the box when amending.
-#[tauri::command]
 pub fn head_message(path: String) -> Result<String, GitError> {
     run_git(&path, &["log", "-1", "--format=%B"]).map(|s| s.trim().to_string())
 }
 
-#[tauri::command]
 pub fn commit(path: String, message: String, amend: bool) -> Result<String, GitError> {
     if message.trim().is_empty() {
         return Err(GitError { code: "empty_message".into(), message: "commit message is empty".into() });

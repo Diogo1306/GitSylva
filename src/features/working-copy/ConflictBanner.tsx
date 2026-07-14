@@ -36,6 +36,12 @@ export function ConflictBanner() {
   const remaining = data.files.length;
 
   const smallBtn = { padding: "3px 9px", fontSize: 11.5 } as const;
+  // One resolution at a time, and a failure (e.g. file deleted meanwhile)
+  // must reach the user instead of dying silently.
+  const resolving = actions.resolve.isPending || actions.markResolved.isPending;
+  const resolveOpts = {
+    onError: (e: unknown) => toast((e as { message?: string })?.message ?? "não foi possível resolver o ficheiro", "error"),
+  };
 
   return (
     <div style={{ margin: 12, border: "1px solid var(--ddT)", borderRadius: 12, background: "var(--ddB)", padding: 14, display: "flex", flexDirection: "column", gap: 10, animation: "popIn 0.2s ease both" }}>
@@ -57,8 +63,18 @@ export function ConflictBanner() {
           </Button>
         )}
         {kind && (
-          <Button variant="danger" size="sm" onClick={() => actions.abort.mutate(kind, { onSuccess: () => toast("Operação abortada") })}>
-            Abortar
+          <Button
+            variant="danger"
+            size="sm"
+            onClick={() =>
+              !actions.abort.isPending &&
+              actions.abort.mutate(kind, {
+                onSuccess: () => toast("Operação abortada"),
+                onError: (e: unknown) => toast((e as { message?: string })?.message ?? "não foi possível abortar", "error"),
+              })
+            }
+          >
+            {actions.abort.isPending ? "A abortar…" : "Abortar"}
           </Button>
         )}
       </div>
@@ -66,9 +82,9 @@ export function ConflictBanner() {
         {data.files.map((f) => (
           <div key={f} style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 6px", borderRadius: 8, background: "var(--panel)" }}>
             <span style={{ flex: 1, fontFamily: mono, fontSize: 12, color: "var(--text2)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", direction: "rtl", textAlign: "left" }}>{f}</span>
-            <Button size="sm" style={smallBtn} onClick={() => actions.resolve.mutate({ file: f, side: "ours" })}>Usar meu</Button>
-            <Button size="sm" style={smallBtn} onClick={() => actions.resolve.mutate({ file: f, side: "theirs" })}>Usar deles</Button>
-            <Button size="sm" style={smallBtn} onClick={() => actions.markResolved.mutate(f)}>Resolvido</Button>
+            <Button size="sm" style={smallBtn} onClick={() => !resolving && actions.resolve.mutate({ file: f, side: "ours" }, resolveOpts)}>Usar meu</Button>
+            <Button size="sm" style={smallBtn} onClick={() => !resolving && actions.resolve.mutate({ file: f, side: "theirs" }, resolveOpts)}>Usar deles</Button>
+            <Button size="sm" style={smallBtn} onClick={() => !resolving && actions.markResolved.mutate(f, resolveOpts)}>Resolvido</Button>
           </div>
         ))}
       </div>

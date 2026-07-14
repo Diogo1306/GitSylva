@@ -1,5 +1,5 @@
 import "./shell.css";
-import { Suspense, lazy, useEffect } from "react";
+import { Suspense, lazy, useEffect, useRef } from "react";
 import { useAppStore } from "../../state/appStore";
 import { useThemeStore } from "../../state/themeStore";
 import { Titlebar } from "./Titlebar";
@@ -9,6 +9,7 @@ import { ActionBar } from "./ActionBar";
 import { CommandPalette } from "./CommandPalette";
 import { Modals } from "./Modals";
 import { Toaster } from "../../components/Toaster";
+import { ErrorBoundary } from "../../components/ErrorBoundary";
 import { Notifications } from "../../components/Notifications";
 import { EphemeralLeaves } from "../../components/EphemeralLeaves";
 import { spawnLeaf } from "../../lib/leaf";
@@ -49,6 +50,9 @@ export function AppShell() {
   const bindings = useShortcutsStore((s) => s.bindings);
   const sync = useSyncActions(repoPath ?? "");
   const fetchMutate = sync.fetch.mutate;
+  // Ref (not isPending): the keydown closure below only re-binds when the
+  // bindings change, so a state read would be stale.
+  const fetchInFlight = useRef(false);
 
   // Global, rebindable shortcuts (Settings → Atalhos). All combos carry the
   // mod key, so typing never triggers them; ⌘Enter is allowed inside the
@@ -85,6 +89,9 @@ export function AppShell() {
           st.setModal("stash");
           break;
         case "fetch":
+          // Holding the shortcut must not queue a fetch per keypress.
+          if (fetchInFlight.current) break;
+          fetchInFlight.current = true;
           fetchMutate(undefined, {
             onSuccess: () => {
               spawnLeaf();
@@ -92,6 +99,9 @@ export function AppShell() {
             },
             onError: (err: unknown) =>
               notify("Fetch falhou", (err as { message?: string })?.message ?? "não foi possível fazer fetch", "error", "fetch"),
+            onSettled: () => {
+              fetchInFlight.current = false;
+            },
           });
           break;
       }
@@ -102,16 +112,28 @@ export function AppShell() {
 
   // Revalidate persisted repos once at startup: refresh branch/head for the
   // ones still on disk, close (with a warning) the ones that no longer exist.
+  // Sequential, ACTIVE REPO FIRST: it feeds the visible screen, and N repos
+  // must not spawn N git processes at once while the app is still painting
+  // (one repo on a slow network drive would also stall the others' slots).
   useEffect(() => {
-    const { repos } = useAppStore.getState();
-    for (const r of repos) {
-      openRepo(r.path)
-        .then((info) => useAppStore.getState().updateRepo(r.path, info))
-        .catch(() => {
+    const { repos, repo } = useAppStore.getState();
+    const ordered = [...repos].sort((a, b) => (a.path === repo?.path ? -1 : b.path === repo?.path ? 1 : 0));
+    let cancelled = false;
+    (async () => {
+      for (const r of ordered) {
+        if (cancelled) return;
+        try {
+          const info = await openRepo(r.path);
+          useAppStore.getState().updateRepo(r.path, info);
+        } catch {
           useAppStore.getState().closeRepo(r.path);
           toast(`O repositório ${r.path} já não existe no disco — separador fechado`, "error");
-        });
-    }
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Warm the other screens' chunks while the machine is idle, so the first
@@ -144,9 +166,14 @@ export function AppShell() {
           <ConflictBanner />
           <div style={{ flex: 1, display: "flex", minWidth: 0, overflow: "hidden" }}>
             <Suspense fallback={<div style={{ flex: 1, display: "grid", placeItems: "center", color: "var(--muted)", fontSize: 13 }}>A carregar…</div>}>
-              {/* Keyed by repo so per-screen state (commit message, amend flag,
-                  selected file/commit) never leaks across repositories. */}
-              <Screen key={repoPath ?? "none"} />
+              {/* A crash inside a screen must not take down the titlebar,
+                  sidebar and navigation — the shell-level boundary catches it
+                  and offers a way back to History. */}
+              <ErrorBoundary homeLabel="Ir para o Histórico" onHome={() => useAppStore.getState().setView("history")}>
+                {/* Keyed by repo so per-screen state (commit message, amend flag,
+                    selected file/commit) never leaks across repositories. */}
+                <Screen key={repoPath ?? "none"} />
+              </ErrorBoundary>
             </Suspense>
           </div>
         </div>

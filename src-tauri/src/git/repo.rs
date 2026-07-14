@@ -10,7 +10,24 @@ pub struct RepoInfo {
     pub is_empty: bool,
 }
 
-#[tauri::command]
+#[tauri::command(rename = "open_repo")]
+pub async fn open_repo_cmd(path: String) -> Result<RepoInfo, GitError> {
+    crate::git::run_blocking("open_repo", move || open_repo(path)).await
+}
+
+#[tauri::command(rename = "init_repo")]
+pub async fn init_repo_cmd(parent: String, name: String) -> Result<RepoInfo, GitError> {
+    // Locked on the destination: two inits/clones into the same folder queue up.
+    let key = join(&parent, name.trim());
+    crate::git::run_mutating("init_repo", key, move || init_repo(parent, name)).await
+}
+
+#[tauri::command(rename = "clone_repo")]
+pub async fn clone_repo_cmd(parent: String, url: String, name: String) -> Result<RepoInfo, GitError> {
+    let key = join(&parent, name.trim());
+    crate::git::run_mutating("clone_repo", key, move || clone_repo(parent, url, name)).await
+}
+
 pub fn open_repo(path: String) -> Result<RepoInfo, GitError> {
     // Bare repositories have no working copy to operate on.
     if run_git(&path, &["rev-parse", "--is-bare-repository"]).map(|s| s.trim() == "true").unwrap_or(false) {
@@ -48,7 +65,6 @@ pub fn open_repo(path: String) -> Result<RepoInfo, GitError> {
 }
 
 /// Create a new repository at `parent`/`name` with `git init` and return its path.
-#[tauri::command]
 pub fn init_repo(parent: String, name: String) -> Result<RepoInfo, GitError> {
     let name = name.trim();
     if name.is_empty() {
@@ -60,7 +76,6 @@ pub fn init_repo(parent: String, name: String) -> Result<RepoInfo, GitError> {
 
 /// Clone `url` into `parent`/`name` and return the new repository. Fails fast if
 /// credentials are required (no interactive prompt).
-#[tauri::command]
 pub fn clone_repo(parent: String, url: String, name: String) -> Result<RepoInfo, GitError> {
     let url = url.trim();
     let name = name.trim();

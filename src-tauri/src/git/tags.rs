@@ -9,8 +9,22 @@ pub struct TagInfo {
     pub subject: String,
 }
 
+#[tauri::command(rename = "list_tags")]
+pub async fn list_tags_cmd(path: String) -> Result<Vec<TagInfo>, GitError> {
+    crate::git::run_blocking("list_tags", move || list_tags(path)).await
+}
+
+#[tauri::command(rename = "create_tag")]
+pub async fn create_tag_cmd(path: String, name: String, message: String) -> Result<(), GitError> {
+    crate::git::run_mutating("create_tag", path.clone(), move || create_tag(path, name, message)).await
+}
+
+#[tauri::command(rename = "delete_tag")]
+pub async fn delete_tag_cmd(path: String, name: String) -> Result<(), GitError> {
+    crate::git::run_mutating("delete_tag", path.clone(), move || delete_tag(path, name)).await
+}
+
 /// List tags, newest first.
-#[tauri::command]
 pub fn list_tags(path: String) -> Result<Vec<TagInfo>, GitError> {
     let out = run_git(
         &path,
@@ -41,7 +55,6 @@ pub fn list_tags(path: String) -> Result<Vec<TagInfo>, GitError> {
 }
 
 /// Create a tag on HEAD. A non-empty message produces an annotated tag.
-#[tauri::command]
 pub fn create_tag(path: String, name: String, message: String) -> Result<(), GitError> {
     if name.trim().is_empty() {
         return Err(GitError {
@@ -59,7 +72,6 @@ pub fn create_tag(path: String, name: String, message: String) -> Result<(), Git
 }
 
 /// Delete a tag.
-#[tauri::command]
 pub fn delete_tag(path: String, name: String) -> Result<(), GitError> {
     run_git(&path, &["tag", "-d", &name]).map(|_| ())
 }

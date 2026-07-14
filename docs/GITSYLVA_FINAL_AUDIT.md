@@ -328,3 +328,155 @@ $env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS = "--disable-gpu"
 
 Se com o flag o "estranho/pesado" desaparecer nesse PC, o problema é o driver/GPU — atualizar
 o driver ou considerar expor `additionalBrowserArgs` na config Tauri por instalação.
+
+## 9. Ronda 4 — estabilidade, crashes e responsividade em utilização real (2026-07-14, branch `fix/runtime-stability-r4`)
+
+Premissa da ronda: as métricas de idle da R3 estavam certas **e eram irrelevantes** — o
+problema relatado ("lenta durante utilização real e já apresentou crashes") acontece durante
+interação. A investigação começou pela arquitetura, não pelos sintomas.
+
+### A. Causa-raiz principal (confirmada na fonte)
+
+**Todos os 45 comandos `#[tauri::command]` eram `fn` síncronos.** Em Tauri 2, um comando
+síncrono executa dentro do handler IPC do wry, ou seja, **na thread do event loop da
+janela**. Prova: `tauri-macros-2.6.3/src/command/wrapper.rs` — sem `async`, o comando é
+`ExecutionContext::Blocking`, corpo executado inline no closure do IPC (kind `"sync"`).
+
+Consequências diretas, todas reportadas pelo utilizador:
+
+| Sintoma reportado | Mecanismo |
+|---|---|
+| "lenta durante utilização real" | cada `get_status`/`get_log`/`get_diff` bloqueava o repaint e os cliques |
+| "crashes" | um `fetch`/`pull` lento (>5s) congela o message pump → Windows marca "não responde" → utilizador mata a app. **Não havia crash de processo: havia janela pendurada** |
+| "abrir repositório grande congela" | comandos grandes + arranque a revalidar todos os repos por comandos bloqueantes |
+| idle impecável (R3) | em idle não há comandos — a main thread nunca era tocada |
+
+Um panic num comando síncrono na main thread também **abortava o processo** (crash real).
+Depois da correção, um panic vira `JoinError` no `spawn_blocking` → convertido em `GitError`
+→ toast de erro; o processo sobrevive (teste `run_blocking_converts_panic_into_error`).
+
+### B. Crashes — tabela §20
+
+| Crash | Reprodução | Causa | Stack trace | Correção | Estado |
+|---|---|---|---|---|---|
+| Janela "não responde" (percebido como crash) | fetch/pull com rede lenta; status/log em repo grande; qualquer operação demorada | comandos síncronos na main thread (ver A) | n/a (não é exceção — é starvation do message pump) | todos os comandos → `async fn` + `tauri::async_runtime::spawn_blocking`; mutações serializadas por repo | **corrigido** (ebe1db0) |
+| Abort por panic num comando | output git malformado num parser com indexação direta (`parts[8]`, `xy[0..1]` em status.rs) | panic atravessava o handler síncrono e matava o processo | agora capturado: panic hook regista ficheiro:linha:coluna + mensagem + backtrace + operação em curso no log | panics em comandos viram `GitError { code: "internal_panic" }`; hook instalado em `lib.rs` | **mitigado** (processo sobrevive; parsers ficam para endurecer — ver G) |
+| Janela branca / OOM do renderer (risco) | navegar por vários commits com diffs de MBs (cache 5 min + DOM gigante) | diffs inteiros no IPC + renderização completa + gcTime default | n/a | cap de 1,5MB no backend, paginação de 1500 linhas, gcTime 30s nos pesados | **corrigido** (2f6d1ad) |
+| Sem rasto de crashes em release | qualquer crash em produção | logging só existia em debug | — | tauri-plugin-log em release (ficheiro rodado 2MB em `%LOCALAPPDATA%/com.gitsylva.app/logs`), panic hook, `frontend_log` para window.onerror/unhandledrejection/error boundaries | **corrigido** |
+
+Commits da ronda: `ebe1db0` (main thread), `dd92cd5` (captura de erros/telemetria),
+`af34700` (guards), `2f6d1ad` (diffs), `c76926b` (janela do History/grafo), `b2ebdf7`
+(timeout/arranque), `cf8c468` (harness §18).
+
+### C. Lentidão — antes/depois medidos (render React da pipeline real, esta máquina)
+
+| Fluxo | Antes | Depois | Causa | Correção |
+|---|---:|---:|---|---|
+| Abrir diff 3.000 linhas | 345ms (unificado) / 381ms (split) | ≤237ms | render + highlight de tudo | página de 1.500 linhas |
+| Abrir diff 20.000 linhas | 1.764ms / 2.691ms | **136ms** | idem | paginação + cap backend |
+| Abrir diff 50.000 linhas | 4.555ms / 6.593ms | **114ms** | idem | idem (primeira página constante) |
+| Grafo 2.000 commits | 238ms de render, **11.639 elementos SVG**, 1,6MB markup, layer de 104.000px | **19ms, 242 elementos, 32KB** | SVG inteiro sem janela | `visibleRange` no CommitGraphSvg |
+| Lista History 2.000 commits | 2.000 divs no DOM | ~60 divs (janela + overscan 10) | lista sem virtualização | windowing acima de 300 rows (altura uniforme) |
+| Qualquer operação git durante interação | bloqueava a UI inteira | 0ms de main thread (blocking pool) | ver A | ver A |
+| `graphRows()` (cálculo de lanes) | 1,2ms @ 2000 | igual | nunca foi problema | — (medido para excluir) |
+
+highlight(): 474ms por 50k linhas — agora salta linhas >400 chars e patches >8.000 linhas
+renderizadas.
+
+### D. Comandos Tauri — instrumentação (§6)
+
+Ambos os lados medem agora:
+- **Rust**: `run_blocking` loga cada comando (duração; warn ≥500ms) e `run_git` cada processo
+  git (subcomando + ms; warn ≥1s). Só o subcomando é registado — nunca args completos
+  (mensagens de commit, URLs com credenciais).
+- **Frontend**: `src/lib/telemetry.ts` mede o round-trip completo de cada `invoke` (nome,
+  duração, sucesso/erro, tamanho aproximado do resultado) num ring de 300 entradas com
+  buckets >100ms/500ms/1s/5s. **Consultar na app: `window.__gsPerf()` (resumo) e
+  `window.__gsPerfDump()` (bruto).** Erros vão para o ficheiro de log via `frontend_log`.
+
+A tabela por comando (média/máxima em uso real) preenche-se na tua passagem manual com
+`__gsPerf()` — os valores dependem do repo e do disco. Thread anterior de TODOS: main thread.
+Solução de todos: blocking pool.
+
+### E. Concorrência e estados de erro (§8, §9, §16)
+
+- **Lock por repositório no Rust** (`run_mutating`): stage/commit/checkout/merge/pull/push/
+  fetch/stash/tag/reset/rebase entram em fila em vez de disputar `.git/index.lock`. Teste:
+  12 `git add` concorrentes → todos passam, 12 ficheiros staged.
+- **Leituras continuam concorrentes** (status/log/diff/detail/branches/…).
+- **Guards de duplo clique/fire** onde faltavam: Preparar tudo, toggles de row (ignora se em
+  saída animada), stashes apply/pop/drop mutuamente exclusivos, checkout na sidebar (1 de
+  cada vez), ⟳ da titlebar, Fetch da palette, atalho global de fetch (ref — closure do
+  keydown lia isPending obsoleto).
+- **Falhas silenciosas eliminadas**: stage/unstage/stageAll/discardAll/hunk/resolve/abort
+  mostravam nada em erro — agora toast com a mensagem do git.
+- **Respostas obsoletas**: já estavam corretas por construção (react-query com keys por
+  path/file/hash/staged — resposta antiga cai na entrada antiga da cache, nunca no ecrã
+  atual). Auditado, sem alterações.
+- **Timeout**: `fetch` é morto aos 120s (idempotente; rede em buraco negro não deixa
+  "A verificar origin…" eterno). Pull/clone deliberadamente SEM kill — matá-los a meio pode
+  deixar estado parcial; com a main thread livre, ficam canceláveis pelo utilizador fechar o
+  modal e a UI nunca prende. Teste determinístico: `hash-object --stdin` pendurado morto a 1s.
+- **Arranque**: revalidação dos repos persistidos passou a sequencial, repo ativo primeiro.
+
+### F. React e memória (§10, §14)
+
+- Error boundary por ecrã (além do topo): um crash de render num ecrã mantém titlebar/
+  sidebar/navegação vivas, com "Tentar novamente" + "Ir para o Histórico"; o erro vai para o
+  log (componentDidCatch → frontend_log).
+- Correção de bug real da virtualização: o `scrollIntoView` por ref na row selecionada
+  refazia-se em cada remount da janela e sequestrava o scroll — substituído por um efeito que
+  só corre quando a SELEÇÃO muda (teclado/palette).
+- Caches: diffs/commit-detail/blame com `gcTime` 30s (antes 5min — megabytes presos por
+  commit visitado). Ring de telemetria capado a 300; relatórios de erro capados a 40/sessão.
+- Leaks: auditados todos os `addEventListener`/`setTimeout`/`matchMedia`/`ResizeObserver`/
+  `subscribe` de src/ — todos com cleanup; zero listeners de eventos Tauri (nada a unlisten);
+  timers de toasts/notificações com bookkeeping e clear no dismiss.
+- Trabalho em render: o pesado (highlight/parse de diff) já era memoizado por patch; agora
+  além disso é paginado e com limites. `graphRows` medido como irrelevante (1,2ms @ 2000).
+
+### G. Problemas restantes (honestos)
+
+- **Parsers Rust com indexação direta** (`status.rs` `parts[8]`/`xy[0..2]`, etc.): um output
+  git inesperado já não mata a app (vira erro + log com backtrace), mas o parser devia ser
+  defensivo e devolver erro estruturado por entrada. Endurecer na próxima ronda.
+- **Pull/push/clone sem timeout de kill** — decisão deliberada (estado parcial); um buraco
+  negro de rede pode mantê-los pendurados no blocking pool até o SO desistir. A UI continua
+  utilizável e o fetch (o caso comum de "verificar") tem timeout.
+- **Repo em unidade de rede morta**: `git status` pode demorar dezenas de segundos ao nível
+  do SO. Já não congela a UI (fica "A carregar…" nesse ecrã) mas não há cancelamento.
+- **Working Copy com centenas de ficheiros não é virtualizada** (500 no harness renderizam
+  500 rows). Leve na prática; virtualizar se a tua passagem manual mostrar custo real.
+- **Stage de hunk na cauda paginada**: o último hunk visível de um diff paginado/capado não
+  recebe botão (o patch podia estar cortado) — carregar mais páginas resolve.
+- **Métricas de interação ao vivo (§17)**: tempo-até-resposta/longest task/renders por
+  interação dependem da tua passagem manual (instruções em §8-D e `__gsPerf()`); os números
+  de render/DOM acima são medidos, mas não substituem o Profiler na app real.
+- Dívidas antigas mantêm-se (§6/§7): i18n, OAuth/SSH, virtualização adicional, packaging.
+
+### H. Validação R4
+
+| Verificação | Resultado |
+|---|---|
+| TypeScript (`tsc -b`) | ✅ 0 erros |
+| ESLint (`--max-warnings=0`) | ✅ 0 |
+| Vitest | ✅ **68/68** (novos: paginação DiffView ×4, janela do grafo, cleanup entre testes) |
+| Cargo tests | ✅ **48/48** (novos: lock por repo com 12 adds concorrentes, panic→erro, cap_patch UTF-8/linha, timeout mata processo pendurado, passthrough) |
+| Build frontend | ✅ |
+| `tauri build --no-bundle` | ✅ (exe release, 1m28s) |
+| Exe manual (3 arranques, 8–15s cada) | ✅ vivo e responsivo em todos; log ativo em `%LOCALAPPDATA%/com.gitsylva.app/logs/gitsylva.log` |
+| Event Viewer (14 dias) | sem crashes de `app.exe`/`msedgewebview2`; **1× `AppHangTransient`** no primeiro arranque do exe acabado de compilar (ver abaixo) — 2 arranques quentes seguintes: zero |
+
+**O logging pagou-se logo no smoke test.** No arranque, ~10–15 processos git disparam em
+simultâneo (queries do ecrã ativo + revalidação) e, com o WebView2 a inicializar e o Defender
+a inspecionar o exe recém-compilado, cada git demorou 1,3–4,1s (`open_repo: 4147ms`,
+`commit_detail: 3651ms`) — **tudo fora da main thread** (a janela pintou e respondeu; antes
+desta ronda isto era ecrã congelado). As entradas lentas agrupam-se exclusivamente nos
+primeiros ~5s de cada arranque; depois, zero warnings (comandos <500ms são invisíveis no
+nível INFO de release). Controlo: git puro nesta máquina = 37–53ms; 10 gits concorrentes via
+PowerShell = ~40ms cada — a rajada só é lenta dentro do contexto arranque+Defender.
+
+O `AppHangTransient` (WER 1001, sem crash, janela recuperou) coincidiu com essa rajada fria
+no primeiro arranque pós-build e não se reproduziu em 2 arranques quentes de 15s. Fica em
+observação na passagem manual — se reaparecer, o log + `__gsPerf()` dizem exatamente o que
+estava em curso.
