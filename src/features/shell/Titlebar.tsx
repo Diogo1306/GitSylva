@@ -6,6 +6,7 @@ import { useThemeStore } from "../../state/themeStore";
 import { discardAll } from "../../lib/api";
 import { winMinimize, winToggleMaximize, winClose } from "../../lib/window";
 import { toast } from "../../state/toastStore";
+import { notify } from "../../state/notificationStore";
 import { Wordmark } from "../../components/Wordmark";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
 
@@ -92,12 +93,13 @@ export function Titlebar({ rail = false }: { rail?: boolean }) {
 
   function refresh() {
     // The ⟳ fetches origin; on failure (no remote/credentials) still reload local.
+    const name = repo.path.replace(/[/\\]$/, "").split(/[/\\]/).pop() ?? repo.path;
     sync.fetch.mutate(undefined, {
-      onSuccess: () => toast("Fetch concluído"),
+      onSuccess: () => notify("Fetch concluído", `origin · ${name}`, "success", "fetch"),
       onError: (e: unknown) => {
         qc.invalidateQueries({ queryKey: queryKeys.status(repo.path) });
         qc.invalidateQueries({ queryKey: queryKeys.log(repo.path) });
-        toast((e as { message?: string })?.message ?? "não foi possível fazer fetch", "error");
+        notify("Fetch falhou", (e as { message?: string })?.message ?? "não foi possível fazer fetch", "error", "fetch");
       },
     });
   }

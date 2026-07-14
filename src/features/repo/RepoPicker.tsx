@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useAppStore } from "../../state/appStore";
 import { useRecentsStore } from "../../state/recentsStore";
 import { pickFolder, initRepo, cloneRepo } from "../../lib/api";
+import { notify } from "../../state/notificationStore";
 import { initials } from "../../lib/format";
 import { useOpenRepo } from "./useOpenRepo";
 
@@ -218,7 +219,10 @@ export function RepoPicker() {
               <div
                 onClick={async () => {
                   if (!cloneUrl.trim() || !cloneParent.trim() || !cloneName || busy) return;
-                  if (await run(() => cloneRepo(cloneParent.trim(), cloneUrl.trim(), cloneName))) close();
+                  if (await run(() => cloneRepo(cloneParent.trim(), cloneUrl.trim(), cloneName))) {
+                    notify("Clone concluído", `${cloneName} → ${cloneParent.trim()}/${cloneName}`);
+                    close();
+                  }
                 }}
                 style={{ ...primaryBtn, display: "flex", alignItems: "center", gap: 8, opacity: cloneUrl.trim() && cloneParent.trim() && cloneName ? 1 : 0.5 }}
                 className="gs-press"

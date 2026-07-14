@@ -9,6 +9,7 @@ import { ActionBar } from "./ActionBar";
 import { CommandPalette } from "./CommandPalette";
 import { Modals } from "./Modals";
 import { Toaster } from "../../components/Toaster";
+import { Notifications } from "../../components/Notifications";
 import { ConflictBanner } from "../working-copy/ConflictBanner";
 import { openRepo } from "../../lib/api";
 import { toast } from "../../state/toastStore";
@@ -108,6 +109,7 @@ export function AppShell() {
       <CommandPalette />
       <Modals />
       <Toaster />
+      <Notifications />
     </div>
   );
 }

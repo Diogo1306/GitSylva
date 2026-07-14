@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useAppStore } from "../../state/appStore";
 import { useBranchActions, useBranches, useStashActions, useTagActions, useSyncActions, useSyncStatus, useOutgoing, useIncoming } from "../../state/queries";
 import { toast } from "../../state/toastStore";
+import { notify } from "../../state/notificationStore";
 import { Modal } from "../../components/ui/Modal";
 import { Input } from "../../components/ui/Input";
 import { Button } from "../../components/ui/Button";
@@ -159,8 +160,12 @@ function MergeModal({ onClose }: { onClose: () => void }) {
   function run(name: string) {
     setError(null);
     merge.mutate(name, {
-      onSuccess: () => { toast(`${name} integrada em ${repo.current_branch}`); onClose(); },
-      onError: (e: unknown) => setError((e as { message?: string })?.message ?? "conflito ou erro no merge"),
+      onSuccess: () => { notify("Merge concluído", `${name} → ${repo.current_branch}`); onClose(); },
+      onError: (e: unknown) => {
+        const msg = (e as { message?: string })?.message ?? "conflito ou erro no merge";
+        setError(msg);
+        if (/conflict|conflito/i.test(msg)) notify("Conflitos no merge", "Resolve os ficheiros marcados na Cópia de trabalho", "error", "conflict");
+      },
     });
   }
 
@@ -244,8 +249,15 @@ function PullModal({ onClose }: { onClose: () => void }) {
           onClick={() =>
             !sync.pull.isPending &&
             sync.pull.mutate(undefined, {
-              onSuccess: () => { toast("Pull concluído"); onClose(); },
-              onError: (e: unknown) => setError((e as { message?: string })?.message ?? "não foi possível fazer pull (ff-only)"),
+              onSuccess: () => {
+                notify("Pull concluído", `${commits.length || status?.behind || 0} commit(s) integrados em ${repo.current_branch}`, "info", "push");
+                onClose();
+              },
+              onError: (e: unknown) => {
+                const msg = (e as { message?: string })?.message ?? "não foi possível fazer pull";
+                setError(msg);
+                if (/conflict|conflito/i.test(msg)) notify("Conflitos no pull", "Resolve os ficheiros marcados na Cópia de trabalho", "error", "conflict");
+              },
             })
           }
           style={sync.pull.isPending ? { opacity: 0.7, cursor: "default" } : undefined}
@@ -276,7 +288,7 @@ function PushModal({ onClose }: { onClose: () => void }) {
           onClick={() =>
             !sync.push.isPending &&
             sync.push.mutate(undefined, {
-              onSuccess: () => { toast("Push concluído"); onClose(); },
+              onSuccess: () => { notify("Push concluído", `origin · ${commits.length} commit(s) · ${repo.current_branch}`, "success", "push"); onClose(); },
               onError: (e: unknown) => setError((e as { message?: string })?.message ?? "não foi possível fazer push"),
             })
           }

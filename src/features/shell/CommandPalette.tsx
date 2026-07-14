@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useAppStore } from "../../state/appStore";
 import { useLog, useBranches, useBranchActions, useStatus, useSyncActions } from "../../state/queries";
 import { toast } from "../../state/toastStore";
+import { notify } from "../../state/notificationStore";
 import { fold, foldChars } from "../../lib/fold";
 import type { View } from "../../state/appStore";
 
@@ -129,8 +130,8 @@ export function CommandPalette() {
       ["Push…", "enviar para o remoto", () => { setModal("push"); setOpen(false); }],
       ["Fetch", "atualizar do remoto", () => {
         sync.fetch.mutate(undefined, {
-          onSuccess: () => toast("Fetch concluído"),
-          onError: (e: unknown) => toast((e as { message?: string })?.message ?? "não foi possível fazer fetch", "error"),
+          onSuccess: () => notify("Fetch concluído", "origin", "success", "fetch"),
+          onError: (e: unknown) => notify("Fetch falhou", (e as { message?: string })?.message ?? "não foi possível fazer fetch", "error", "fetch"),
         });
         setOpen(false);
       }],

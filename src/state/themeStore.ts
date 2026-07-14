@@ -23,6 +23,10 @@ type ThemeState = {
   repoLayout: RepoLayout;
   pullMode: PullMode;
   confirmDiscard: boolean;
+  // Which async git results raise a top-right notification.
+  notifPush: boolean;
+  notifFetch: boolean;
+  notifConflicts: boolean;
   savePrefs: (patch: Partial<ThemePrefsSlice>) => void;
   resetPrefs: () => void;
 };
@@ -37,6 +41,9 @@ const DEFAULTS: ThemePrefsSlice = {
   repoLayout: "tabs",
   pullMode: "ff",
   confirmDiscard: true,
+  notifPush: true,
+  notifFetch: true,
+  notifConflicts: true,
 };
 
 type ThemePrefsSlice = Pick<
@@ -50,6 +57,9 @@ type ThemePrefsSlice = Pick<
   | "repoLayout"
   | "pullMode"
   | "confirmDiscard"
+  | "notifPush"
+  | "notifFetch"
+  | "notifConflicts"
 >;
 
 export const useThemeStore = create<ThemeState>()(
