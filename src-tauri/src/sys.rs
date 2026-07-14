@@ -37,11 +37,12 @@ pub fn open_path(path: String, file: String) -> Result<(), GitError> {
     let full = Path::new(&path).join(&file);
     #[cfg(target_os = "windows")]
     {
-        std::process::Command::new("cmd")
-            .args(["/C", "start", ""])
-            .arg(&full)
-            .spawn()
-            .map_err(os_err)?;
+        // hide_console: o cmd intermediário não pode piscar um terminal (a app
+        // que o `start` lança abre a sua própria janela normalmente).
+        let mut cmd = std::process::Command::new("cmd");
+        cmd.args(["/C", "start", ""]).arg(&full);
+        crate::git::hide_console(&mut cmd);
+        cmd.spawn().map_err(os_err)?;
     }
     #[cfg(target_os = "macos")]
     {
@@ -59,10 +60,10 @@ pub fn reveal_path(path: String, file: String) -> Result<(), GitError> {
     let full = Path::new(&path).join(&file);
     #[cfg(target_os = "windows")]
     {
-        std::process::Command::new("explorer")
-            .arg(format!("/select,{}", full.display()))
-            .spawn()
-            .map_err(os_err)?;
+        let mut cmd = std::process::Command::new("explorer");
+        cmd.arg(format!("/select,{}", full.display()));
+        crate::git::hide_console(&mut cmd);
+        cmd.spawn().map_err(os_err)?;
     }
     #[cfg(target_os = "macos")]
     {
