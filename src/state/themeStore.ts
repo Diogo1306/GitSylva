@@ -9,6 +9,7 @@ import type {
 
 export type RepoLayout = "tabs" | "rail";
 export type PullMode = "ff" | "merge" | "rebase";
+export type Density = "conforto" | "compacta";
 
 // Note: earlier builds persisted `density` and `language` keys that nothing
 // consumed; they were dropped to keep every stored preference real. Stale keys
@@ -21,6 +22,8 @@ type ThemeState = {
   fontKey: FontKey;
   anims: boolean;
   repoLayout: RepoLayout;
+  // Commit-row density: conforto = 52px rows, compacta = 40px (handoff token).
+  density: Density;
   pullMode: PullMode;
   confirmDiscard: boolean;
   // Which async git results raise a top-right notification.
@@ -39,6 +42,7 @@ const DEFAULTS: ThemePrefsSlice = {
   fontKey: "inter",
   anims: true,
   repoLayout: "tabs",
+  density: "conforto",
   pullMode: "ff",
   confirmDiscard: true,
   notifPush: true,
@@ -55,6 +59,7 @@ type ThemePrefsSlice = Pick<
   | "fontKey"
   | "anims"
   | "repoLayout"
+  | "density"
   | "pullMode"
   | "confirmDiscard"
   | "notifPush"

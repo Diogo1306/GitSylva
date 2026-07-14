@@ -6,6 +6,7 @@ import { ConfirmDialog } from "../../components/ConfirmDialog";
 import { PanelHandle } from "../../components/ui/PanelResize";
 import { usePanelWidth } from "../../lib/usePanelWidth";
 import { toast } from "../../state/toastStore";
+import { useThemeStore } from "../../state/themeStore";
 import { graphRows } from "../../graph/layout";
 import { CommitGraphSvg } from "../../components/CommitGraphSvg";
 import { DiffView } from "../../components/DiffView";
@@ -183,12 +184,14 @@ const CommitRow = memo(function CommitRow({
   commit,
   selected,
   filtering,
+  rowH,
   onSelect,
   onContext,
 }: {
   commit: Commit;
   selected: boolean;
   filtering: boolean;
+  rowH: number;
   onSelect: (hash: string) => void;
   onContext: (hash: string, x: number, y: number) => void;
 }) {
@@ -203,7 +206,7 @@ const CommitRow = memo(function CommitRow({
       }}
       className="gs-row"
       style={{
-        height: ROW_H,
+        height: rowH,
         display: "flex",
         alignItems: "center",
         gap: 12,
@@ -215,7 +218,7 @@ const CommitRow = memo(function CommitRow({
         // Skip painting rows scrolled out of view; the box keeps its height so
         // the graph overlay stays aligned.
         contentVisibility: "auto",
-        containIntrinsicSize: `${ROW_H}px`,
+        containIntrinsicSize: `${rowH}px`,
       }}
     >
       <div style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 8 }}>
@@ -242,6 +245,9 @@ export function History() {
   const [menu, setMenu] = useState<{ x: number; y: number; hash: string } | null>(null);
   const [confirmHardReset, setConfirmHardReset] = useState<string | null>(null);
   const [confirmRebase, setConfirmRebase] = useState<string | null>(null);
+  // Settings → Aparência → Densidade (handoff: conforto 52 / compacta 40).
+  const density = useThemeStore((s) => s.density);
+  const rowH = density === "compacta" ? 40 : ROW_H;
   // Design: detail panel resizable 300–560, persisted.
   const detailW = usePanelWidth("gitsylva-w-detail", 372, 300, 560, "left");
 
@@ -330,7 +336,7 @@ export function History() {
           <div style={{ position: "relative" }}>
             {!filtering && (
               <div style={{ position: "absolute", left: 14, top: 0, pointerEvents: "none" }}>
-                <CommitGraphSvg rows={rows} rowH={ROW_H} />
+                <CommitGraphSvg rows={rows} rowH={rowH} />
               </div>
             )}
             {filtered.map((c) => (
@@ -339,6 +345,7 @@ export function History() {
                 commit={c}
                 selected={selected.hash === c.hash}
                 filtering={filtering}
+                rowH={rowH}
                 onSelect={selectHash}
                 onContext={onContext}
               />
