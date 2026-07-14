@@ -4,6 +4,7 @@ import { useBranchActions, useBranches, useStashActions, useTagActions, useSyncA
 import { toast } from "../../state/toastStore";
 import { notify } from "../../state/notificationStore";
 import { Modal } from "../../components/ui/Modal";
+import { useModalClose } from "../../components/ui/modalClose";
 import { Input } from "../../components/ui/Input";
 import { Button } from "../../components/ui/Button";
 import { Chip, CheckSquare } from "../../components/ui/misc";
@@ -31,17 +32,25 @@ function Check({ on, onToggle, children }: { on: boolean; onToggle: () => void; 
 }
 
 function Actions({ onClose, onConfirm, label, busy, disabled }: { onClose: () => void; onConfirm: () => void; label: string; busy?: boolean; disabled?: boolean }) {
+  // Cancel plays the modal's exit animation (context from the Modal shell).
+  const requestClose = useModalClose(onClose);
   // `busy` really blocks the click — a double-click must not run the git
   // operation twice.
   const blocked = disabled || busy;
   return (
     <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 2 }}>
-      <Button onClick={onClose}>Cancelar</Button>
+      <Button onClick={requestClose}>Cancelar</Button>
       <Button variant="primary" onClick={blocked ? undefined : onConfirm} style={disabled ? { opacity: 0.5, cursor: "default" } : busy ? { opacity: 0.7, cursor: "default" } : undefined}>
         {label}
       </Button>
     </div>
   );
+}
+
+/** "Fechar" button that exits through the modal's close animation. */
+function CloseButton({ onClose }: { onClose: () => void }) {
+  const requestClose = useModalClose(onClose);
+  return <Button onClick={requestClose}>Fechar</Button>;
 }
 
 function Err({ msg }: { msg: string | null }) {
@@ -187,7 +196,7 @@ function MergeModal({ onClose }: { onClose: () => void }) {
       )}
       <Err msg={error} />
       <div style={{ display: "flex", justifyContent: "flex-end" }}>
-        <Button onClick={onClose}>Fechar</Button>
+        <CloseButton onClose={onClose} />
       </div>
     </Modal>
   );
@@ -243,7 +252,7 @@ function PullModal({ onClose }: { onClose: () => void }) {
       <CommitList commits={commits} empty={fetchError ? "Sem ligação ao remoto." : "Nada para integrar. Estás em dia."} />
       <Err msg={error} />
       <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
-        <Button onClick={onClose}>Fechar</Button>
+        <CloseButton onClose={onClose} />
         <Button
           variant="primary"
           onClick={() =>
@@ -282,7 +291,7 @@ function PushModal({ onClose }: { onClose: () => void }) {
       <CommitList commits={commits} empty="Nada para enviar." />
       <Err msg={error} />
       <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
-        <Button onClick={onClose}>Fechar</Button>
+        <CloseButton onClose={onClose} />
         <Button
           variant="primary"
           onClick={() =>

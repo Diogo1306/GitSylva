@@ -30,6 +30,19 @@ function markMatch(text: string, q: string) {
 export function CommandPalette() {
   const open = useAppStore((s) => s.paletteOpen);
   const setOpen = useAppStore((s) => s.setPaletteOpen);
+  // Lingering render: when the store closes the palette, keep it mounted for
+  // 150ms to play the exit fade (spec: palette exit = fade).
+  const [render, setRender] = useState(false);
+  const closing = render && !open;
+  useEffect(() => {
+    if (open) {
+      setRender(true);
+      return;
+    }
+    if (!render) return;
+    const t = window.setTimeout(() => setRender(false), 150);
+    return () => window.clearTimeout(t);
+  }, [open, render]);
   const setView = useAppStore((s) => s.setView);
   const setFocusCommit = useAppStore((s) => s.setFocusCommit);
   const setSelectedFile = useAppStore((s) => s.setSelectedFile);
@@ -46,7 +59,7 @@ export function CommandPalette() {
   const sync = useSyncActions(repo?.path ?? "");
 
   const groups = useMemo<Group[]>(() => {
-    if (!open) return [];
+    if (!render) return [];
     const query = fold(q.trim());
     const match = (s: string) => !query || fold(s).includes(query);
 
@@ -154,9 +167,9 @@ export function CommandPalette() {
     if (ac.length) gs.push({ title: "AÇÕES", items: ac });
     if (nav.length) gs.push({ title: "IR PARA", items: nav });
     return gs;
-  }, [open, q, commits, branches, files, repos, repo, switchRepo, checkout, sync, setView, setOpen, setFocusCommit, setSelectedFile, setModal]);
+  }, [render, q, commits, branches, files, repos, repo, switchRepo, checkout, sync, setView, setOpen, setFocusCommit, setSelectedFile, setModal]);
 
-  if (!open) return null;
+  if (!render) return null;
 
   const flat = groups.flatMap((g) => g.items);
   const activeIdx = Math.min(active, Math.max(0, flat.length - 1));
@@ -174,7 +187,7 @@ export function CommandPalette() {
         justifyContent: "center",
         alignItems: "flex-start",
         paddingTop: 110,
-        animation: "fadeIn 0.15s ease both",
+        animation: closing ? "fadeOut 150ms var(--ease-standard) both" : "fadeIn 0.15s ease both",
       }}
     >
       <div
@@ -186,7 +199,7 @@ export function CommandPalette() {
           borderRadius: 14,
           boxShadow: "0 24px 80px rgba(0,0,0,0.4)",
           overflow: "hidden",
-          animation: "popIn 0.2s cubic-bezier(0.2, 0.9, 0.3, 1) both",
+          animation: closing ? "fadeOut 150ms var(--ease-standard) both" : "popIn 0.2s var(--ease-pop) both",
           color: "var(--text)",
         }}
       >

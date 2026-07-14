@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes, ReactNode } from "react";
+import type { ButtonHTMLAttributes, ReactNode, Ref } from "react";
 
 type Variant = "primary" | "ghost" | "danger";
 type Size = "sm" | "md";
@@ -8,6 +8,8 @@ type Props = Omit<ButtonHTMLAttributes<HTMLButtonElement>, "type"> & {
   size?: Size;
   /** Dimmed but still clickable — a planned-but-not-final action. */
   soon?: boolean;
+  /** React 19 ref-as-prop (spread onto the native button). */
+  ref?: Ref<HTMLButtonElement>;
   children: ReactNode;
 };
 
