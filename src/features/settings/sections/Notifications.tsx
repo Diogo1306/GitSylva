@@ -41,7 +41,11 @@ export function Notifications() {
         <FieldLabel>Onde mostrar</FieldLabel>
         <div style={{ display: "inline-flex", gap: 4, padding: 4, borderRadius: 10, background: "var(--panel2)", border: "1px solid var(--border)", alignSelf: "flex-start" }}>
           <div style={{ padding: "6px 16px", borderRadius: 7, fontSize: 13, fontWeight: 600, background: "var(--win)", color: "var(--text)" }}>Na app</div>
-          <div title="Notificações do sistema chegam numa próxima fase" style={{ padding: "6px 16px", borderRadius: 7, fontSize: 13, fontWeight: 600, color: "var(--muted)", opacity: 0.55, cursor: "default" }}>
+          <div
+            title="Indisponível: requer o plugin oficial tauri-plugin-notification (e, no Windows, identidade de app instalada). Sem efeito até lá."
+            aria-disabled="true"
+            style={{ padding: "6px 16px", borderRadius: 7, fontSize: 13, fontWeight: 600, color: "var(--muted)", opacity: 0.55, cursor: "default" }}
+          >
             Sistema · em breve
           </div>
         </div>
