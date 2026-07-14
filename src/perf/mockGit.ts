@@ -9,9 +9,12 @@
 
 type Args = Record<string, unknown>;
 
+// R4 §18 stress numbers: 2 000 commits, 500 changed files, 200 branches and a
+// ~30k-line diff (exercises the paged diff rendering and the windowed list).
 const REPO = "C:/perf/mock-repo";
 const N_COMMITS = 2000;
-const N_FILES = 200;
+const N_FILES = 500;
+const N_BRANCHES = 200;
 
 function hash(i: number): string {
   return (i + 1).toString(16).padStart(7, "a").repeat(6).slice(0, 40);
@@ -55,7 +58,7 @@ const files = Array.from({ length: N_FILES }, (_, i) => ({
   orig_path: null,
 }));
 
-const DIFF = bigDiff(3000);
+const DIFF = bigDiff(30000);
 
 const handlers: Record<string, (a: Args) => unknown> = {
   open_repo: () => ({ path: REPO, current_branch: "main", head: hash(0), is_empty: false }),
@@ -70,10 +73,10 @@ const handlers: Record<string, (a: Args) => unknown> = {
   }),
   get_diff: () => DIFF,
   list_branches: () =>
-    Array.from({ length: 30 }, (_, i) => ({
+    Array.from({ length: N_BRANCHES }, (_, i) => ({
       name: i === 0 ? "main" : `feature/coisa-${i}`,
       is_current: i === 0,
-      is_remote: i > 20,
+      is_remote: i > 140,
       upstream: i === 0 ? "origin/main" : null,
     })),
   list_stashes: () => [{ index: 0, message: "WIP perf", relative_date: "há 2 dias" }],
@@ -112,7 +115,7 @@ function installPerfMock() {
     },
     metadata: { currentWindow: { label: "main" }, currentWebview: { label: "main" } },
   };
-  console.log("[perf] mock git installed — 2000 commits / 200 files / big diff");
+  console.log("[perf] mock git installed — 2000 commits / 500 files / 200 branches / 30k-line diff");
 }
 
 if (import.meta.env.VITE_PERF_MOCK === "1") {
