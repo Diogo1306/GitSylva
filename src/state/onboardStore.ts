@@ -16,6 +16,6 @@ export const useOnboardStore = create<OnboardState>()(
       finish: () => set({ onboarded: true }),
       replay: () => set({ onboarded: false }),
     }),
-    { name: "gitsylva-onboard" },
+    { name: "gitsylva-onboard", version: 0 },
   ),
 );

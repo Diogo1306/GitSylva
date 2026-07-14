@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useAppStore } from "../../state/appStore";
-import { useStatus, useBranches, useBranchActions, useStashes, useTags, useRewriteActions } from "../../state/queries";
+import { useStatus, useBranches, useBranchActions, useStashes, useTags, useTagActions, useRewriteActions } from "../../state/queries";
 import { toast } from "../../state/toastStore";
 import { ContextMenu, type MenuItem } from "../../components/ui/ContextMenu";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
@@ -29,11 +29,14 @@ export function Sidebar() {
   const { data: branchData } = useBranches(repo.path);
   const { checkout, remove, rename } = useBranchActions(repo.path);
   const { rebase } = useRewriteActions(repo.path);
+  const tagActions = useTagActions(repo.path);
   const [menu, setMenu] = useState<{ x: number; y: number; name: string } | null>(null);
   const [renaming, setRenaming] = useState<string | null>(null);
   const [renameVal, setRenameVal] = useState("");
   const [confirmDelete, setConfirmDelete] = useState<{ name: string; force: boolean } | null>(null);
   const [confirmRebase, setConfirmRebase] = useState<string | null>(null);
+  const [tagMenu, setTagMenu] = useState<{ x: number; y: number; name: string } | null>(null);
+  const [confirmDeleteTag, setConfirmDeleteTag] = useState<string | null>(null);
   // Design: sidebar resizable 180–340, persisted.
   const sidebarW = usePanelWidth("gitsylva-w-sidebar", 232, 180, 340, "right");
 
@@ -270,7 +273,16 @@ export function Sidebar() {
             <span onClick={() => setModal("tag")} className="gs-row" title="Nova tag" style={{ width: 18, height: 18, borderRadius: 5, display: "grid", placeItems: "center", color: "var(--muted)", fontSize: 14, cursor: "pointer" }}>+</span>
           </div>
           {tags.map((t) => (
-            <div key={t.name} title={t.subject || t.name} className="gs-row" style={{ display: "flex", alignItems: "center", gap: 9, padding: "6px 10px", borderRadius: 8, fontSize: 13, fontFamily: mono, color: "var(--text2)" }}>
+            <div
+              key={t.name}
+              title={`${t.subject || t.name} · botão direito para opções`}
+              onContextMenu={(e) => {
+                e.preventDefault();
+                setTagMenu({ x: e.clientX, y: e.clientY, name: t.name });
+              }}
+              className="gs-row"
+              style={{ display: "flex", alignItems: "center", gap: 9, padding: "6px 10px", borderRadius: 8, fontSize: 13, fontFamily: mono, color: "var(--text2)" }}
+            >
               <span style={{ width: 6, height: 6, background: "var(--muted)", transform: "rotate(45deg)", flexShrink: 0 }} />
               <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name}</span>
             </div>
@@ -325,6 +337,34 @@ export function Sidebar() {
             const { name, force } = confirmDelete;
             setConfirmDelete(null);
             deleteBranch(name, force);
+          }}
+        />
+      )}
+
+      {tagMenu && (
+        <ContextMenu
+          x={tagMenu.x}
+          y={tagMenu.y}
+          items={[
+            { label: "Copiar nome", onClick: () => void navigator.clipboard?.writeText(tagMenu.name).then(() => toast("Nome copiado")) },
+            { label: "Apagar tag…", danger: true, onClick: () => setConfirmDeleteTag(tagMenu.name) },
+          ]}
+          onClose={() => setTagMenu(null)}
+        />
+      )}
+
+      {confirmDeleteTag && (
+        <ConfirmDialog
+          message={`Apagar a tag ${confirmDeleteTag}? (Só localmente — tags já enviadas continuam no remoto.)`}
+          confirmLabel="Apagar tag"
+          onCancel={() => setConfirmDeleteTag(null)}
+          onConfirm={() => {
+            const name = confirmDeleteTag;
+            setConfirmDeleteTag(null);
+            tagActions.remove.mutate(name, {
+              onSuccess: () => toast(`Tag ${name} apagada`),
+              onError: (e: unknown) => toast((e as { message?: string })?.message ?? "não foi possível apagar a tag", "error"),
+            });
           }}
         />
       )}

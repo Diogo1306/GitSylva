@@ -37,6 +37,6 @@ export const useRecentsStore = create<RecentsState>()(
       remove: (path) => set((s) => ({ recents: s.recents.filter((r) => r.path !== path) })),
       clear: () => set({ recents: [] }),
     }),
-    { name: "gitsylva-recents" },
+    { name: "gitsylva-recents", version: 0 },
   ),
 );

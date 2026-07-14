@@ -123,6 +123,14 @@ export function applyStash(path: string, index: number): Promise<void> {
   return invoke("apply_stash", { path, index });
 }
 
+export function popStash(path: string, index: number): Promise<void> {
+  return invoke("pop_stash", { path, index });
+}
+
+export function stashFiles(path: string, index: number): Promise<string[]> {
+  return invoke<string[]>("stash_files", { path, index });
+}
+
 export function dropStash(path: string, index: number): Promise<void> {
   return invoke("drop_stash", { path, index });
 }

@@ -148,16 +148,26 @@ discard de dir untracked, diff de untracked, renames/merges/mensagem no commit_d
 vazio + paginação, toplevel normalization, renames/deletes com paths unicode, isConflict, fold de
 acentos, themeStore, octopus merges.
 
-## 6. Dívida restante (fora do escopo desta passagem, documentada)
+## 6. Dívida restante
 
-- **Ícones Tauri** (`src-tauri/icons/`) continuam os do template — gerar com `npm run tauri icon <png 1024²>` a partir da marca (precisa de um raster; o favicon SVG novo serve de base). O `identifier` novo (`com.gitsylva.app`) **muda a pasta de dados do WebView2**: na primeira execução após esta mudança, as preferências/tabs guardadas localmente reiniciam (uma vez).
-- **Números de linha no diff** (H9) e alinhamento LCS no split (H11) — melhorias de diff pendentes.
-- **Virtualização real** de listas/grafo para históricos ≥1000 e working copies ≥1000 ficheiros (mitigado com memo + content-visibility + cap de animação + paginação).
+### Fechada na passagem seguinte (branch `feature/audit-followups`)
+- ✅ **Ícones Tauri reais** — a marca árvore-S foi rasterizada sem dependências (`scripts/make-icon.js`: stamping + encoder PNG com zlib nativo) e expandida com `tauri icon` para todo o set (ico/icns/Store/android/ios). O favicon foi alinhado com a mesma geometria.
+- ✅ **Números de linha no diff** (H9) — gutters old/new nas duas vistas (unificada e lado-a-lado), não selecionáveis.
+- ✅ **Classify correto** (H10) — conteúdo removido a começar por `--` já não é tratado como cabeçalho; partilhado em `lib/diffLine.ts` + testes.
+- ✅ **content-visibility no split** (H11 parcial) + memoização do parse.
+- ✅ **`git stash pop`** (W16) com tratamento honesto de conflito (stash mantido) + teste.
+- ✅ **Preview de ficheiros nos cartões de stash** (linha meta do design) via `stash_files` + teste.
+- ✅ **Apagar tags na UI** (G15) — menu de contexto + confirmação.
+- ✅ **Pesquisa de definições** (S9) — filtro do nav, insensível a acentos.
+- ✅ **`version` explícita nos 4 stores persistidos** (R12) — versão 0 = forma atual; futuras mudanças de schema levam `migrate`.
+
+### Ainda em aberto
+- O `identifier` novo (`com.gitsylva.app`) **muda a pasta de dados do WebView2**: na primeira execução após esta mudança, as preferências/tabs locais reiniciam (uma vez).
+- Alinhamento LCS no split (H11 completo); virtualização real para históricos/working copies ≥1000 (mitigado com memo + content-visibility + cap de animação + paginação).
 - **i18n** (S17): sem infraestrutura; ~120+ strings PT hardcoded; Idioma marcado "Em breve". Não fazer traduções parciais.
 - **Contas/OAuth, SSH, terminal integrado, editor 3-way** — grandes, dependem de decisões externas (apps OAuth, keyring — usar Windows Credential Manager, nunca localStorage).
-- **Lock de escrita por repo** (G8) — operações concorrentes podem colidir em `index.lock` (o erro agora traz hint acionável).
-- **Notificação com vinha decorativa** (design 6.16) e preview de stash (W16), `git stash pop` (W16), gatilho de apagar tag na UI (G15), Gravatar/email (H20), pesquisa de definições (S9), DnD de grupos (R14).
-- Stores persistidos sem `version`/`migrate` (R12); caminho longo Windows >260 sem `\\?\` (R13).
+- **Lock de escrita por repo** (G8) — operações concorrentes podem colidir em `index.lock` (o erro traz hint acionável).
+- Gravatar/email (H20), DnD/cor de grupos (R14), caminho longo Windows >260 (R13), packaging (`tauri build` bundle) por executar.
 
 ## 7. Ronda 2 — matriz delta contra o handoff v2 (2026-07-14)
 
