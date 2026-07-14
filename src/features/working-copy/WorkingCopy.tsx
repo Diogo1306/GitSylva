@@ -11,6 +11,7 @@ import { usePanelWidth } from "../../lib/usePanelWidth";
 import { statusStyle, isConflict } from "../../lib/status";
 import { errMsg } from "../../lib/errors";
 import { headMessage, openPath, revealPath } from "../../lib/api";
+import { spawnLeaf } from "../../lib/leaf";
 import { toast } from "../../state/toastStore";
 import type { FileChange } from "../../lib/types";
 
@@ -164,7 +165,7 @@ export function WorkingCopy() {
       commit.mutate(
         { message: msg, amend },
         {
-          onSuccess: () => { setMsg(""); setAmend(false); },
+          onSuccess: () => { spawnLeaf(); setMsg(""); setAmend(false); },
           onError: (e: unknown) => setCommitErr((e as { message?: string })?.message ?? "não foi possível fazer commit"),
         },
       );
@@ -193,7 +194,7 @@ export function WorkingCopy() {
     commit.mutate(
       { message: msg, amend },
       {
-        onSuccess: () => { setMsg(""); setAmend(false); },
+        onSuccess: () => { spawnLeaf(); setMsg(""); setAmend(false); },
         onError: (e: unknown) => setCommitErr((e as { message?: string })?.message ?? "não foi possível fazer commit"),
       },
     );

@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAppStore } from "../../state/appStore";
 import { useStatus, queryKeys, useSyncActions } from "../../state/queries";
 import { useThemeStore } from "../../state/themeStore";
 import { discardAll } from "../../lib/api";
-import { winMinimize, winToggleMaximize, winClose } from "../../lib/window";
+import { winMinimizeAnimated, winToggleMaximize, winClose, winIsMaximized } from "../../lib/window";
+import { spawnLeaf } from "../../lib/leaf";
 import { toast } from "../../state/toastStore";
 import { notify } from "../../state/notificationStore";
 import { Wordmark } from "../../components/Wordmark";
@@ -12,7 +13,12 @@ import { ConfirmDialog } from "../../components/ConfirmDialog";
 
 const mono = "'JetBrains Mono', monospace";
 
+const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform);
+
+// macOS: traffic lights on the left. The handoff's minimize animation plays
+// before the real minimize.
 function TrafficLights() {
+  const anims = useThemeStore((s) => s.anims);
   const light = (bg: string, glyph: string, onClick: () => void, title: string) => (
     <div
       className="gs-light"
@@ -34,8 +40,41 @@ function TrafficLights() {
   return (
     <div className="gs-lights" style={{ display: "flex", gap: 8, flexShrink: 0 }}>
       {light("#FF5F57", "✕", () => void winClose(), "Fechar")}
-      {light("#FEBC2E", "–", () => void winMinimize(), "Minimizar")}
+      {light("#FEBC2E", "–", () => void winMinimizeAnimated(anims), "Minimizar")}
       {light("#28C840", "+", () => void winToggleMaximize(), "Maximizar")}
+    </div>
+  );
+}
+
+// Windows: min / max-restore / close on the RIGHT; close hover turns red
+// (#E81123) per the interaction spec.
+function WinControls() {
+  const anims = useThemeStore((s) => s.anims);
+  const [maxed, setMaxed] = useState(false);
+  useEffect(() => {
+    void winIsMaximized().then(setMaxed);
+  }, []);
+  const btn = (glyph: React.ReactNode, onClick: () => void, title: string, close = false) => (
+    <div
+      onClick={onClick}
+      title={title}
+      className={close ? "gs-winclose" : "gs-winbtn"}
+      style={{ width: 40, height: 30, display: "grid", placeItems: "center", cursor: "pointer", fontSize: 11, color: "var(--text2)", borderRadius: 6 }}
+    >
+      {glyph}
+    </div>
+  );
+  return (
+    <div style={{ display: "flex", flexShrink: 0, marginLeft: 2 }}>
+      {btn("—", () => void winMinimizeAnimated(anims), "Minimizar")}
+      {btn(
+        maxed ? "❐" : "▢",
+        () => {
+          void winToggleMaximize().then(() => winIsMaximized().then(setMaxed));
+        },
+        maxed ? "Restaurar" : "Maximizar",
+      )}
+      {btn("✕", () => void winClose(), "Fechar", true)}
     </div>
   );
 }
@@ -95,7 +134,10 @@ export function Titlebar({ rail = false }: { rail?: boolean }) {
     // The ⟳ fetches origin; on failure (no remote/credentials) still reload local.
     const name = repo.path.replace(/[/\\]$/, "").split(/[/\\]/).pop() ?? repo.path;
     sync.fetch.mutate(undefined, {
-      onSuccess: () => notify("Fetch concluído", `origin · ${name}`, "success", "fetch"),
+      onSuccess: () => {
+        spawnLeaf();
+        notify("Fetch concluído", `origin · ${name}`, "success", "fetch");
+      },
       onError: (e: unknown) => {
         qc.invalidateQueries({ queryKey: queryKeys.status(repo.path) });
         qc.invalidateQueries({ queryKey: queryKeys.log(repo.path) });
@@ -138,7 +180,7 @@ export function Titlebar({ rail = false }: { rail?: boolean }) {
         background: "var(--panel)",
       }}
     >
-      <TrafficLights />
+      {isMac && <TrafficLights />}
 
       <div style={{ flexShrink: 0 }}>
         <Wordmark size={17} />
@@ -295,6 +337,8 @@ export function Titlebar({ rail = false }: { rail?: boolean }) {
           <span style={{ width: 11, height: 11, borderRadius: "50%", border: "2.5px dotted currentColor", boxSizing: "border-box" }} />
         </div>
       </div>
+
+      {!isMac && <WinControls />}
 
       {confirmDiscard && (
         <ConfirmDialog

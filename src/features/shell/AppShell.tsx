@@ -10,6 +10,8 @@ import { CommandPalette } from "./CommandPalette";
 import { Modals } from "./Modals";
 import { Toaster } from "../../components/Toaster";
 import { Notifications } from "../../components/Notifications";
+import { EphemeralLeaves } from "../../components/EphemeralLeaves";
+import { spawnLeaf } from "../../lib/leaf";
 import { ConflictBanner } from "../working-copy/ConflictBanner";
 import { openRepo } from "../../lib/api";
 import { toast } from "../../state/toastStore";
@@ -84,7 +86,10 @@ export function AppShell() {
           break;
         case "fetch":
           fetchMutate(undefined, {
-            onSuccess: () => notify("Fetch concluído", "origin", "success", "fetch"),
+            onSuccess: () => {
+              spawnLeaf();
+              notify("Fetch concluído", "origin", "success", "fetch");
+            },
             onError: (err: unknown) =>
               notify("Fetch falhou", (err as { message?: string })?.message ?? "não foi possível fazer fetch", "error", "fetch"),
           });
@@ -151,6 +156,7 @@ export function AppShell() {
       <Modals />
       <Toaster />
       <Notifications />
+      <EphemeralLeaves />
     </div>
   );
 }

@@ -17,6 +17,15 @@
   background: var(--hover);
 }
 
+/* Windows window controls: subtle hover; close turns red per the spec. */
+.gs-winbtn:hover {
+  background: var(--hover);
+}
+.gs-winclose:hover {
+  background: #e81123;
+  color: #fff !important;
+}
+
 /* Panel resize grab area: invisible until hovered/dragged. */
 .gs-resize:hover,
 .gs-resize:active {
