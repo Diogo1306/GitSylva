@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAppStore } from "../../state/appStore";
 import { useStatus, useStageActions, useCommit, useDiff, useBlame, useHunkActions, useSyncStatus } from "../../state/queries";
 import { useThemeStore } from "../../state/themeStore";
@@ -152,6 +152,26 @@ export function WorkingCopy() {
     (p: string) => hunk.mutate({ patch: p, cached: true, reverse: stagedSel }),
     [hunk, stagedSel],
   );
+
+  // ⌘Enter (rebindable) fires this event from the global shortcut handler.
+  // Rebinds every render on purpose: the closure must see fresh msg/amend/data.
+  useEffect(() => {
+    const onCommitShortcut = () => {
+      const all = data ?? [];
+      const stagedCount = all.filter((f) => f.index_status !== "." && f.index_status !== "?" && !isConflict(f.index_status, f.worktree_status)).length;
+      if (commit.isPending || msg.trim() === "" || (stagedCount === 0 && !amend)) return;
+      setCommitErr(null);
+      commit.mutate(
+        { message: msg, amend },
+        {
+          onSuccess: () => { setMsg(""); setAmend(false); },
+          onError: (e: unknown) => setCommitErr((e as { message?: string })?.message ?? "não foi possível fazer commit"),
+        },
+      );
+    };
+    window.addEventListener("gitsylva:commit", onCommitShortcut);
+    return () => window.removeEventListener("gitsylva:commit", onCommitShortcut);
+  });
 
   if (isLoading) return <div style={{ padding: 16, color: "var(--muted)" }}>A carregar alterações…</div>;
   if (error) return <div style={{ padding: 16, color: "var(--ddT)" }}>{errMsg(error, "não foi possível ler o estado do repositório")}</div>;
