@@ -40,9 +40,11 @@ pub async fn incoming_cmd(path: String) -> Result<Vec<Commit>, GitError> {
     crate::git::run_blocking("incoming", move || incoming(path)).await
 }
 
-/// Fetch all remotes and prune deleted refs. Fails fast (no credential prompt).
+/// Fetch all remotes and prune deleted refs. Fails fast (no credential
+/// prompt) and is killed after 120s: fetch is idempotent, so a hung network
+/// must not leave the UI "A verificar origin…" forever.
 pub fn fetch(path: String) -> Result<(), GitError> {
-    run_git(&path, &["fetch", "--all", "--prune"]).map(|_| ())
+    crate::git::run_git_timeout(&path, &["fetch", "--all", "--prune"], 120).map(|_| ())
 }
 
 fn has_upstream(path: &str) -> bool {

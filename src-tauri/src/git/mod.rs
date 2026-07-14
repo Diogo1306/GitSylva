@@ -175,6 +175,75 @@ pub fn run_git(repo: &str, args: &[&str]) -> Result<String, GitError> {
     }
 }
 
+/// Como `run_git`, mas mata o processo git se exceder `secs`. Usado em
+/// operações de rede idempotentes (fetch): uma ligação em buraco negro não
+/// pode deixar um "A verificar origin…" pendurado para sempre. NÃO usar em
+/// pull/clone — matá-los a meio pode deixar estado parcial.
+pub fn run_git_timeout(repo: &str, args: &[&str], secs: u64) -> Result<String, GitError> {
+    run_git_timeout_inner(repo, args, secs, false)
+}
+
+fn run_git_timeout_inner(repo: &str, args: &[&str], secs: u64, hold_stdin: bool) -> Result<String, GitError> {
+    let started = Instant::now();
+    let mut child = Command::new("git")
+        .arg("-C")
+        .arg(repo)
+        .args(args)
+        .env("GIT_TERMINAL_PROMPT", "0")
+        .env("GIT_EDITOR", "true")
+        .stdin(if hold_stdin { Stdio::piped() } else { Stdio::null() })
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .map_err(|e| GitError {
+            code: "spawn_failed".into(),
+            message: format!("could not run git: {e}"),
+        })?;
+    // Ler stdout/stderr em threads evita deadlock se o git encher os pipes
+    // antes de terminar.
+    fn drain(pipe: Option<impl std::io::Read + Send + 'static>) -> std::thread::JoinHandle<String> {
+        std::thread::spawn(move || {
+            let mut s = String::new();
+            if let Some(mut p) = pipe {
+                let _ = p.read_to_string(&mut s);
+            }
+            s
+        })
+    }
+    let out_thread = drain(child.stdout.take());
+    let err_thread = drain(child.stderr.take());
+    let sub = args.first().copied().unwrap_or("").to_string();
+    loop {
+        match child.try_wait() {
+            Ok(Some(status)) => {
+                let stdout = out_thread.join().unwrap_or_default();
+                let stderr = err_thread.join().unwrap_or_default();
+                let ms = started.elapsed().as_millis();
+                ::log::debug!("git {sub}: {ms}ms, exit {:?}", status.code());
+                return if status.success() {
+                    Ok(stdout)
+                } else {
+                    Err(GitError { code: "git_failed".into(), message: friendly(&stderr) })
+                };
+            }
+            Ok(None) => {}
+            Err(e) => {
+                return Err(GitError { code: "wait_failed".into(), message: format!("wait failed: {e}") });
+            }
+        }
+        if started.elapsed().as_secs() >= secs {
+            let _ = child.kill();
+            let _ = child.wait();
+            ::log::warn!("git {sub}: TIMEOUT após {secs}s — processo terminado");
+            return Err(GitError {
+                code: "timeout".into(),
+                message: format!("a operação excedeu {secs}s e foi cancelada — verifica a ligação ao remoto"),
+            });
+        }
+        std::thread::sleep(std::time::Duration::from_millis(120));
+    }
+}
+
 /// Run git in `repo` feeding `input` to stdin. Used for `git apply`, which reads
 /// a patch from stdin. Same environment guards as `run_git`.
 pub fn run_git_stdin(repo: &str, args: &[&str], input: &str) -> Result<String, GitError> {
@@ -293,6 +362,24 @@ mod tests {
         for l in capped.lines() {
             assert!(l.starts_with('+') || l == PATCH_TRUNCATED_MARKER, "linha cortada: {l:?}");
         }
+    }
+
+    #[test]
+    fn run_git_timeout_kills_a_hung_process() {
+        let repo = temp_repo("timeout");
+        // `hash-object --stdin` com o stdin aberto (e nunca fechado) bloqueia
+        // até ser morto — determinístico, sem depender de rede.
+        let t0 = std::time::Instant::now();
+        let err = run_git_timeout_inner(&repo, &["hash-object", "--stdin"], 1, true).unwrap_err();
+        assert_eq!(err.code, "timeout");
+        assert!(t0.elapsed().as_secs() < 10);
+    }
+
+    #[test]
+    fn run_git_timeout_passes_output_through() {
+        let repo = temp_repo("timeout-ok");
+        let out = run_git_timeout(&repo, &["rev-parse", "--is-inside-work-tree"], 30).unwrap();
+        assert_eq!(out.trim(), "true");
     }
 
     #[test]

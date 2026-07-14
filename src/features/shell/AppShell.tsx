@@ -112,16 +112,28 @@ export function AppShell() {
 
   // Revalidate persisted repos once at startup: refresh branch/head for the
   // ones still on disk, close (with a warning) the ones that no longer exist.
+  // Sequential, ACTIVE REPO FIRST: it feeds the visible screen, and N repos
+  // must not spawn N git processes at once while the app is still painting
+  // (one repo on a slow network drive would also stall the others' slots).
   useEffect(() => {
-    const { repos } = useAppStore.getState();
-    for (const r of repos) {
-      openRepo(r.path)
-        .then((info) => useAppStore.getState().updateRepo(r.path, info))
-        .catch(() => {
+    const { repos, repo } = useAppStore.getState();
+    const ordered = [...repos].sort((a, b) => (a.path === repo?.path ? -1 : b.path === repo?.path ? 1 : 0));
+    let cancelled = false;
+    (async () => {
+      for (const r of ordered) {
+        if (cancelled) return;
+        try {
+          const info = await openRepo(r.path);
+          useAppStore.getState().updateRepo(r.path, info);
+        } catch {
           useAppStore.getState().closeRepo(r.path);
           toast(`O repositório ${r.path} já não existe no disco — separador fechado`, "error");
-        });
-    }
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Warm the other screens' chunks while the machine is idle, so the first
