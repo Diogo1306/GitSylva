@@ -25,8 +25,16 @@ pub struct CommitDetail {
 // against the first parent (-m --first-parent) shows what the merge brought in.
 
 #[tauri::command(rename = "commit_detail")]
-pub async fn commit_detail_cmd(path: String, hash: String) -> Result<CommitDetail, GitError> {
-    crate::git::run_blocking("commit_detail", move || commit_detail(path, hash)).await
+pub async fn commit_detail_cmd(path: String, hash: String, full: Option<bool>) -> Result<CommitDetail, GitError> {
+    let full = full.unwrap_or(false);
+    crate::git::run_blocking("commit_detail", move || {
+        let mut detail = commit_detail(path, hash)?;
+        if !full {
+            detail.diff = crate::git::cap_patch(detail.diff, crate::git::PATCH_CAP_BYTES);
+        }
+        Ok(detail)
+    })
+    .await
 }
 
 /// Files changed by a commit (with per file add/delete counts and status), the

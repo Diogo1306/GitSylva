@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { highlight } from "../lib/highlight";
 import { classifyDiffLine, parseHunkHeader } from "../lib/diffLine";
+import { HIGHLIGHT_MAX_LINE, shouldHighlight } from "../lib/diffLimits";
 
 // Side-by-side diff. Parses a unified patch into aligned old/new columns:
 // removals go left, additions right, context on both; hunk/file headers span
@@ -65,13 +66,16 @@ function cellStyle(cell: Cell): React.CSSProperties {
 
 export function DiffSplit({ patch }: { patch: string }) {
   const rows = useMemo(() => parse(patch), [patch]);
+  // Same highlight limits as the unified view (see diffLimits.ts).
+  const hlOk = useMemo(() => shouldHighlight(rows.length), [rows]);
   const gutW = "4ch";
+  const hl = (text: string) => (hlOk && text.length <= HIGHLIGHT_MAX_LINE ? highlight(text) : text);
   const cell = (c: Cell) => (
     <div style={cellStyle(c)}>
       <span style={{ width: gutW, flexShrink: 0, textAlign: "right", color: "var(--muted)", userSelect: "none", marginRight: 8 }}>
         {c ? c.no : ""}
       </span>
-      <span style={{ flex: 1, minWidth: 0 }}>{c ? highlight(c.text) || " " : " "}</span>
+      <span style={{ flex: 1, minWidth: 0 }}>{c ? hl(c.text) || " " : " "}</span>
     </div>
   );
   return (

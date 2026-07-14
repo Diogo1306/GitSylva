@@ -179,7 +179,15 @@ export function WorkingCopy() {
   // New files aren't in the index yet, so their preview is synthesized backend-side.
   const selUntracked =
     !!effSel && !effSel.staged && (data ?? []).find((f) => f.path === effSel.path)?.worktree_status === "?";
-  const diff = useDiff(repo.path, effSel?.path ?? null, effSel?.staged ?? false, selUntracked);
+  // "Carregar diff completo" opt-in, reset whenever the selection changes.
+  const [fullDiff, setFullDiff] = useState(false);
+  const selKey = effSel ? `${effSel.path}|${effSel.staged}` : "";
+  const [prevSelKey, setPrevSelKey] = useState(selKey);
+  if (selKey !== prevSelKey) {
+    setPrevSelKey(selKey);
+    setFullDiff(false);
+  }
+  const diff = useDiff(repo.path, effSel?.path ?? null, effSel?.staged ?? false, selUntracked, fullDiff);
   const blameQ = useBlame(repo.path, effSel?.path ?? null, blameOn);
 
   // Stable so DiffLines' memoized rows survive re-renders of this screen.
@@ -529,6 +537,7 @@ export function WorkingCopy() {
               fontSize={12.5}
               stageLabel={effSel.staged ? "Retirar" : "Preparar"}
               onStageHunk={selStatus === "?" ? undefined : onStageHunk}
+              onLoadFull={() => setFullDiff(true)}
             />
           ) : (
             <div style={{ padding: 20, color: "var(--muted)" }}>Sem alterações textuais.</div>

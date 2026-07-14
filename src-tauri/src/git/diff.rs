@@ -2,8 +2,13 @@ use crate::error::GitError;
 use crate::git::run_git;
 
 #[tauri::command(rename = "get_diff")]
-pub async fn get_diff_cmd(path: String, file: String, staged: bool, untracked: bool) -> Result<String, GitError> {
-    crate::git::run_blocking("get_diff", move || get_diff(path, file, staged, untracked)).await
+pub async fn get_diff_cmd(path: String, file: String, staged: bool, untracked: bool, full: Option<bool>) -> Result<String, GitError> {
+    let full = full.unwrap_or(false);
+    crate::git::run_blocking("get_diff", move || {
+        let patch = get_diff(path, file, staged, untracked)?;
+        Ok(if full { patch } else { crate::git::cap_patch(patch, crate::git::PATCH_CAP_BYTES) })
+    })
+    .await
 }
 
 pub fn get_diff(path: String, file: String, staged: bool, untracked: bool) -> Result<String, GitError> {

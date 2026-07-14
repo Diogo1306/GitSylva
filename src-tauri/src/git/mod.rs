@@ -93,6 +93,30 @@ where
     .await
 }
 
+/// Diffs acima deste tamanho são cortados antes do IPC (o utilizador pode
+/// pedir o diff completo). Transferir e desenhar 20MB num só passo era um
+/// freeze de vários segundos no WebView.
+pub const PATCH_CAP_BYTES: usize = 1_500_000;
+
+/// Linha-marcador anexada a um patch cortado. Linhas de conteúdo de um diff
+/// nunca começam por `\`, por isso é inequívoca; o frontend remove-a e mostra
+/// "Carregar diff completo" (ver diffLimits.ts).
+pub const PATCH_TRUNCATED_MARKER: &str = "\\ gitsylva:truncated";
+
+/// Corta um patch em ~`max` bytes, numa fronteira de linha (e de char UTF-8),
+/// e anexa o marcador. Patches pequenos passam intactos.
+pub fn cap_patch(patch: String, max: usize) -> String {
+    if patch.len() <= max {
+        return patch;
+    }
+    let mut end = max;
+    while end > 0 && !patch.is_char_boundary(end) {
+        end -= 1;
+    }
+    let cut = patch[..end].rfind('\n').unwrap_or(0);
+    format!("{}\n{}\n", &patch[..cut], PATCH_TRUNCATED_MARKER)
+}
+
 /// Prefix well-known raw git failures with an actionable Portuguese hint.
 /// The original stderr is kept below the hint — never hidden.
 fn friendly(stderr: &str) -> String {
@@ -248,6 +272,27 @@ mod tests {
         assert!(results.iter().all(|r| r.is_ok()), "{results:?}");
         let staged = run_git(&p, &["diff", "--cached", "--name-only"]).unwrap();
         assert_eq!(staged.lines().count(), 12);
+    }
+
+    #[test]
+    fn cap_patch_keeps_small_patches_and_cuts_on_line_boundary() {
+        // Pequeno: intacto.
+        let small = "diff --git a/x b/x\n+um\n".to_string();
+        assert_eq!(cap_patch(small.clone(), 1000), small);
+
+        // Grande: cortado em fronteira de linha, com o marcador no fim.
+        // Conteúdo multibyte garante que o corte respeita UTF-8.
+        let mut big = String::new();
+        for i in 0..200 {
+            big.push_str(&format!("+linha çãé {i}\n"));
+        }
+        let capped = cap_patch(big, 300);
+        assert!(capped.len() < 400);
+        assert!(capped.ends_with(&format!("{PATCH_TRUNCATED_MARKER}\n")));
+        // Todas as linhas de conteúdo continuam completas.
+        for l in capped.lines() {
+            assert!(l.starts_with('+') || l == PATCH_TRUNCATED_MARKER, "linha cortada: {l:?}");
+        }
     }
 
     #[test]

@@ -79,19 +79,27 @@ export function useLog(path: string, limit = 200) {
   });
 }
 
-export function useDiff(path: string, file: string | null, staged: boolean, untracked = false) {
+// Diffs and commit details can be megabytes each. A short gcTime keeps the
+// last few in cache for instant back-and-forth, but stops a browsing session
+// from pinning dozens of huge strings for the default 5 minutes (memory
+// growth → WebView OOM risk).
+const HEAVY_GC_MS = 30_000;
+
+export function useDiff(path: string, file: string | null, staged: boolean, untracked = false, full = false) {
   return useQuery({
-    queryKey: [...queryKeys.diff(path, file ?? "", staged), untracked],
-    queryFn: () => getDiff(path, file as string, staged, untracked),
+    queryKey: [...queryKeys.diff(path, file ?? "", staged), untracked, full],
+    queryFn: () => getDiff(path, file as string, staged, untracked, full),
     enabled: file !== null,
+    gcTime: HEAVY_GC_MS,
   });
 }
 
-export function useCommitDetail(path: string, hash: string | null) {
+export function useCommitDetail(path: string, hash: string | null, full = false) {
   return useQuery({
-    queryKey: queryKeys.commit(path, hash ?? ""),
-    queryFn: () => commitDetail(path, hash as string),
+    queryKey: [...queryKeys.commit(path, hash ?? ""), full],
+    queryFn: () => commitDetail(path, hash as string, full),
     enabled: hash !== null,
+    gcTime: HEAVY_GC_MS,
   });
 }
 
@@ -244,6 +252,7 @@ export function useBlame(path: string, file: string | null, enabled: boolean) {
     queryKey: ["blame", path, file ?? ""],
     queryFn: () => blame(path, file as string),
     enabled: enabled && file !== null,
+    gcTime: HEAVY_GC_MS,
   });
 }
 

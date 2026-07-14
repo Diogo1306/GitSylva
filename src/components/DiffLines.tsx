@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { highlight } from "../lib/highlight";
 import { parseHunks } from "../lib/hunks";
 import { classifyDiffLine, parseHunkHeader, gutterDigits } from "../lib/diffLine";
+import { HIGHLIGHT_MAX_LINE, shouldHighlight } from "../lib/diffLimits";
 
 // Renders a unified patch with the design's diff colours: additions green,
 // deletions red, hunk headers tinted, file/meta lines muted. Old/new line
@@ -18,12 +19,15 @@ export function DiffLines({
   fontSize = 11.5,
   onStageHunk,
   stageLabel,
+  partialTail,
 }: {
   patch: string;
   fontSize?: number;
   /** When set, each hunk header gets a button applying that hunk's patch. */
   onStageHunk?: (hunkPatch: string) => void;
   stageLabel?: string;
+  /** The last hunk may be cut (paged/capped patch): no stage button for it. */
+  partialTail?: boolean;
 }) {
   // The whole line list (including syntax highlighting) is memoized on the
   // patch: re-renders of the parent no longer re-run the highlighter over
@@ -31,6 +35,11 @@ export function DiffLines({
   const rows = useMemo(() => {
     const lines = patch.replace(/\n$/, "").split("\n");
     const hunks = onStageHunk ? parseHunks(patch) : [];
+    // Very large or very long content renders plain: highlighting was ~10% of
+    // a multi-second render on 50k-line patches, and single mega-lines
+    // (minified bundles) are worst-case for the tokenizer.
+    const hlOk = shouldHighlight(lines.length);
+    const hl = (text: string) => (hlOk && text.length <= HIGHLIGHT_MAX_LINE ? highlight(text) : text);
     const gutW = `${gutterDigits(lines)}ch`;
     const gutter = (no: number | null) => (
       <span style={{ width: gutW, flexShrink: 0, textAlign: "right", color: "var(--muted)", userSelect: "none", marginRight: 8 }}>
@@ -53,7 +62,9 @@ export function DiffLines({
             newNo = h.newStart;
           }
         }
-        const hunk = kind === "hunk" ? hunks[hunkIdx] : undefined;
+        // A cut tail hunk would stage a corrupt patch — skip its button.
+        const hunkComplete = !partialTail || hunkIdx < hunks.length - 1;
+        const hunk = kind === "hunk" && hunkComplete ? hunks[hunkIdx] : undefined;
         out.push(
           <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, fontFamily: mono, fontSize, lineHeight: 1.75, padding: "0 14px", whiteSpace: "pre", background: kind === "hunk" ? "var(--dhB)" : "transparent", color: kind === "hunk" ? "var(--dhT)" : "var(--dcT)", ...rowContain }}>
             <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis" }}>{line || " "}</span>
@@ -82,13 +93,13 @@ export function DiffLines({
           {gutter(newShown)}
           <span style={{ flex: 1, minWidth: 0 }}>
             <span style={{ color: marker }}>{prefix}</span>
-            {highlight(content) || " "}
+            {hl(content) || " "}
           </span>
         </div>,
       );
     }
     return out;
-  }, [patch, fontSize, onStageHunk, stageLabel]);
+  }, [patch, fontSize, onStageHunk, stageLabel, partialTail]);
 
   return <>{rows}</>;
 }
