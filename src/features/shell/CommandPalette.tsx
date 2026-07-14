@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAppStore } from "../../state/appStore";
 import { useLog, useBranches, useBranchActions, useStatus, useSyncActions } from "../../state/queries";
 import { toast } from "../../state/toastStore";
@@ -31,18 +31,22 @@ export function CommandPalette() {
   const open = useAppStore((s) => s.paletteOpen);
   const setOpen = useAppStore((s) => s.setPaletteOpen);
   // Lingering render: when the store closes the palette, keep it mounted for
-  // 150ms to play the exit fade (spec: palette exit = fade).
-  const [render, setRender] = useState(false);
-  const closing = render && !open;
+  // 150ms to play the exit fade (spec: palette exit = fade). The lingering
+  // flag flips during render (sanctioned adjust-state-on-prop-change pattern);
+  // the timeout that ends it lives in an effect.
+  const [prevOpen, setPrevOpen] = useState(open);
+  const [lingering, setLingering] = useState(false);
+  if (open !== prevOpen) {
+    setPrevOpen(open);
+    if (!open) setLingering(true);
+  }
   useEffect(() => {
-    if (open) {
-      setRender(true);
-      return;
-    }
-    if (!render) return;
-    const t = window.setTimeout(() => setRender(false), 150);
+    if (!lingering || open) return;
+    const t = window.setTimeout(() => setLingering(false), 150);
     return () => window.clearTimeout(t);
-  }, [open, render]);
+  }, [lingering, open]);
+  const render = open || lingering;
+  const closing = lingering && !open;
   const setView = useAppStore((s) => s.setView);
   const setFocusCommit = useAppStore((s) => s.setFocusCommit);
   const setSelectedFile = useAppStore((s) => s.setSelectedFile);
