@@ -1,9 +1,23 @@
 use crate::error::GitError;
 use crate::git::run_git;
 
+#[tauri::command(rename = "reset_to")]
+pub async fn reset_to_cmd(path: String, target: String, mode: String) -> Result<(), GitError> {
+    crate::git::run_mutating("reset_to", path.clone(), move || reset_to(path, target, mode)).await
+}
+
+#[tauri::command(rename = "cherry_pick")]
+pub async fn cherry_pick_cmd(path: String, hash: String) -> Result<(), GitError> {
+    crate::git::run_mutating("cherry_pick", path.clone(), move || cherry_pick(path, hash)).await
+}
+
+#[tauri::command(rename = "rebase")]
+pub async fn rebase_cmd(path: String, onto: String) -> Result<(), GitError> {
+    crate::git::run_mutating("rebase", path.clone(), move || rebase(path, onto)).await
+}
+
 /// Move the current branch to `target` with the given reset mode.
 /// mode: "soft" | "mixed" | "hard".
-#[tauri::command]
 pub fn reset_to(path: String, target: String, mode: String) -> Result<(), GitError> {
     let flag = match mode.as_str() {
         "soft" => "--soft",
@@ -14,14 +28,12 @@ pub fn reset_to(path: String, target: String, mode: String) -> Result<(), GitErr
 }
 
 /// Apply the changes of a single commit onto the current branch.
-#[tauri::command]
 pub fn cherry_pick(path: String, hash: String) -> Result<(), GitError> {
     run_git(&path, &["cherry-pick", &hash]).map(|_| ())
 }
 
 /// Rebase the current branch onto `onto` (a branch or commit). On conflict git
 /// leaves the rebase in progress and this returns the error message.
-#[tauri::command]
 pub fn rebase(path: String, onto: String) -> Result<(), GitError> {
     run_git(&path, &["rebase", &onto]).map(|_| ())
 }

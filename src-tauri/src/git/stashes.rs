@@ -9,8 +9,37 @@ pub struct StashInfo {
     pub relative_date: String,
 }
 
+#[tauri::command(rename = "list_stashes")]
+pub async fn list_stashes_cmd(path: String) -> Result<Vec<StashInfo>, GitError> {
+    crate::git::run_blocking("list_stashes", move || list_stashes(path)).await
+}
+
+#[tauri::command(rename = "create_stash")]
+pub async fn create_stash_cmd(path: String, message: String, keep_index: bool, include_untracked: bool) -> Result<(), GitError> {
+    crate::git::run_mutating("create_stash", path.clone(), move || create_stash(path, message, keep_index, include_untracked)).await
+}
+
+#[tauri::command(rename = "stash_files")]
+pub async fn stash_files_cmd(path: String, index: u32) -> Result<Vec<String>, GitError> {
+    crate::git::run_blocking("stash_files", move || stash_files(path, index)).await
+}
+
+#[tauri::command(rename = "apply_stash")]
+pub async fn apply_stash_cmd(path: String, index: u32) -> Result<(), GitError> {
+    crate::git::run_mutating("apply_stash", path.clone(), move || apply_stash(path, index)).await
+}
+
+#[tauri::command(rename = "pop_stash")]
+pub async fn pop_stash_cmd(path: String, index: u32) -> Result<(), GitError> {
+    crate::git::run_mutating("pop_stash", path.clone(), move || pop_stash(path, index)).await
+}
+
+#[tauri::command(rename = "drop_stash")]
+pub async fn drop_stash_cmd(path: String, index: u32) -> Result<(), GitError> {
+    crate::git::run_mutating("drop_stash", path.clone(), move || drop_stash(path, index)).await
+}
+
 /// List stashes, newest (stash@{0}) first.
-#[tauri::command]
 pub fn list_stashes(path: String) -> Result<Vec<StashInfo>, GitError> {
     let out = run_git(&path, &["stash", "list", "--format=%gd%x1f%s%x1f%cr"])?;
     let mut stashes = Vec::new();
@@ -37,7 +66,6 @@ pub fn list_stashes(path: String) -> Result<Vec<StashInfo>, GitError> {
 
 /// Stash current changes. `keep_index` leaves staged changes in the index;
 /// `include_untracked` also stashes new (untracked) files.
-#[tauri::command]
 pub fn create_stash(path: String, message: String, keep_index: bool, include_untracked: bool) -> Result<(), GitError> {
     let mut args = vec!["stash", "push"];
     if keep_index {
@@ -62,7 +90,6 @@ pub fn create_stash(path: String, message: String, keep_index: bool, include_unt
 }
 
 /// File paths touched by a stash (tracked changes), for the card preview.
-#[tauri::command]
 pub fn stash_files(path: String, index: u32) -> Result<Vec<String>, GitError> {
     let out = run_git(&path, &["stash", "show", "--name-only", &format!("stash@{{{index}}}")])?;
     Ok(out.lines().filter(|l| !l.trim().is_empty()).map(|s| s.to_string()).collect())
@@ -71,7 +98,6 @@ pub fn stash_files(path: String, index: u32) -> Result<Vec<String>, GitError> {
 /// Apply a stash without removing it. A conflicting apply DOES write the
 /// changes (with conflict markers), so that case is reported distinctly
 /// instead of pretending nothing happened.
-#[tauri::command]
 pub fn apply_stash(path: String, index: u32) -> Result<(), GitError> {
     match run_git(&path, &["stash", "apply", &format!("stash@{{{index}}}")]) {
         Ok(_) => Ok(()),
@@ -91,7 +117,6 @@ pub fn apply_stash(path: String, index: u32) -> Result<(), GitError> {
 
 /// Apply a stash and, on clean apply, remove it. On conflict git KEEPS the
 /// stash (and the worktree has markers) — reported distinctly, like apply.
-#[tauri::command]
 pub fn pop_stash(path: String, index: u32) -> Result<(), GitError> {
     match run_git(&path, &["stash", "pop", &format!("stash@{{{index}}}")]) {
         Ok(_) => Ok(()),
@@ -110,7 +135,6 @@ pub fn pop_stash(path: String, index: u32) -> Result<(), GitError> {
 }
 
 /// Delete a stash.
-#[tauri::command]
 pub fn drop_stash(path: String, index: u32) -> Result<(), GitError> {
     run_git(&path, &["stash", "drop", &format!("stash@{{{index}}}")]).map(|_| ())
 }

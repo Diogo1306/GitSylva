@@ -10,9 +10,13 @@ pub struct BlameLine {
     pub content: String,
 }
 
+#[tauri::command(rename = "blame")]
+pub async fn blame_cmd(path: String, file: String) -> Result<Vec<BlameLine>, GitError> {
+    crate::git::run_blocking("blame", move || blame(path, file)).await
+}
+
 /// Per-line blame for a tracked file. --line-porcelain repeats the full author
 /// metadata on every line, which makes parsing straightforward.
-#[tauri::command]
 pub fn blame(path: String, file: String) -> Result<Vec<BlameLine>, GitError> {
     let out = run_git(&path, &["blame", "--line-porcelain", "--", &file])?;
     let mut lines = Vec::new();

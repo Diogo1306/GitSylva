@@ -8,8 +8,17 @@ fn os_err(e: std::io::Error) -> GitError {
     }
 }
 
+#[tauri::command(rename = "open_path")]
+pub async fn open_path_cmd(path: String, file: String) -> Result<(), GitError> {
+    crate::git::run_blocking("open_path", move || open_path(path, file)).await
+}
+
+#[tauri::command(rename = "reveal_path")]
+pub async fn reveal_path_cmd(path: String, file: String) -> Result<(), GitError> {
+    crate::git::run_blocking("reveal_path", move || reveal_path(path, file)).await
+}
+
 /// Open a file (or folder) with the OS default handler.
-#[tauri::command]
 pub fn open_path(path: String, file: String) -> Result<(), GitError> {
     let full = Path::new(&path).join(&file);
     #[cfg(target_os = "windows")]
@@ -32,7 +41,6 @@ pub fn open_path(path: String, file: String) -> Result<(), GitError> {
 }
 
 /// Reveal a file in the system file manager (Explorer on Windows).
-#[tauri::command]
 pub fn reveal_path(path: String, file: String) -> Result<(), GitError> {
     let full = Path::new(&path).join(&file);
     #[cfg(target_os = "windows")]

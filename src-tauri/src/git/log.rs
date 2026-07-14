@@ -16,7 +16,11 @@ pub struct Commit {
 // Unit separator between fields, record separator between commits.
 const FMT: &str = "%H%x1f%P%x1f%an%x1f%ae%x1f%aI%x1f%s%x1f%D%x1e";
 
-#[tauri::command]
+#[tauri::command(rename = "get_log")]
+pub async fn get_log_cmd(path: String, limit: u32, skip: u32) -> Result<Vec<Commit>, GitError> {
+    crate::git::run_blocking("get_log", move || get_log(path, limit, skip)).await
+}
+
 pub fn get_log(path: String, limit: u32, skip: u32) -> Result<Vec<Commit>, GitError> {
     let arg = format!("--pretty=format:{FMT}");
     let n = format!("-{limit}");

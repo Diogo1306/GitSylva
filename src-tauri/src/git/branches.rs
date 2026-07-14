@@ -10,8 +10,37 @@ pub struct BranchInfo {
     pub upstream: Option<String>,
 }
 
+#[tauri::command(rename = "list_branches")]
+pub async fn list_branches_cmd(path: String) -> Result<Vec<BranchInfo>, GitError> {
+    crate::git::run_blocking("list_branches", move || list_branches(path)).await
+}
+
+#[tauri::command(rename = "checkout_branch")]
+pub async fn checkout_branch_cmd(path: String, name: String) -> Result<(), GitError> {
+    crate::git::run_mutating("checkout_branch", path.clone(), move || checkout_branch(path, name)).await
+}
+
+#[tauri::command(rename = "create_branch")]
+pub async fn create_branch_cmd(path: String, name: String, checkout: bool) -> Result<(), GitError> {
+    crate::git::run_mutating("create_branch", path.clone(), move || create_branch(path, name, checkout)).await
+}
+
+#[tauri::command(rename = "merge_branch")]
+pub async fn merge_branch_cmd(path: String, name: String) -> Result<(), GitError> {
+    crate::git::run_mutating("merge_branch", path.clone(), move || merge_branch(path, name)).await
+}
+
+#[tauri::command(rename = "delete_branch")]
+pub async fn delete_branch_cmd(path: String, name: String, force: bool) -> Result<(), GitError> {
+    crate::git::run_mutating("delete_branch", path.clone(), move || delete_branch(path, name, force)).await
+}
+
+#[tauri::command(rename = "rename_branch")]
+pub async fn rename_branch_cmd(path: String, old: String, new: String) -> Result<(), GitError> {
+    crate::git::run_mutating("rename_branch", path.clone(), move || rename_branch(path, old, new)).await
+}
+
 /// List local and remote-tracking branches, most-recent activity first.
-#[tauri::command]
 pub fn list_branches(path: String) -> Result<Vec<BranchInfo>, GitError> {
     // Fields: full refname, short name, HEAD marker (*), upstream short name.
     let out = run_git(
@@ -54,7 +83,6 @@ pub fn list_branches(path: String) -> Result<Vec<BranchInfo>, GitError> {
 }
 
 /// Switch the working tree to an existing branch.
-#[tauri::command]
 pub fn checkout_branch(path: String, name: String) -> Result<(), GitError> {
     run_git(&path, &["checkout", &name]).map(|_| ())
 }
@@ -76,7 +104,6 @@ fn validate_branch_name(path: &str, name: &str) -> Result<(), GitError> {
 }
 
 /// Create a new branch from HEAD, optionally checking it out.
-#[tauri::command]
 pub fn create_branch(path: String, name: String, checkout: bool) -> Result<(), GitError> {
     validate_branch_name(&path, &name)?;
     if checkout {
@@ -88,20 +115,17 @@ pub fn create_branch(path: String, name: String, checkout: bool) -> Result<(), G
 
 /// Merge a branch into the current one. On conflict, git leaves the tree in a
 /// conflicted state and this returns the git error message.
-#[tauri::command]
 pub fn merge_branch(path: String, name: String) -> Result<(), GitError> {
     run_git(&path, &["merge", "--no-edit", &name]).map(|_| ())
 }
 
 /// Delete a branch. `force` uses -D (discard unmerged commits).
-#[tauri::command]
 pub fn delete_branch(path: String, name: String, force: bool) -> Result<(), GitError> {
     let flag = if force { "-D" } else { "-d" };
     run_git(&path, &["branch", flag, &name]).map(|_| ())
 }
 
 /// Rename a branch.
-#[tauri::command]
 pub fn rename_branch(path: String, old: String, new: String) -> Result<(), GitError> {
     validate_branch_name(&path, &new)?;
     run_git(&path, &["branch", "-m", &old, new.trim()]).map(|_| ())

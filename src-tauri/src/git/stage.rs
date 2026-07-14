@@ -1,19 +1,41 @@
 use crate::error::GitError;
 use crate::git::run_git;
 
-#[tauri::command]
+#[tauri::command(rename = "stage_file")]
+pub async fn stage_file_cmd(path: String, file: String) -> Result<(), GitError> {
+    crate::git::run_mutating("stage_file", path.clone(), move || stage_file(path, file)).await
+}
+
+#[tauri::command(rename = "unstage_file")]
+pub async fn unstage_file_cmd(path: String, file: String) -> Result<(), GitError> {
+    crate::git::run_mutating("unstage_file", path.clone(), move || unstage_file(path, file)).await
+}
+
+#[tauri::command(rename = "stage_all")]
+pub async fn stage_all_cmd(path: String) -> Result<(), GitError> {
+    crate::git::run_mutating("stage_all", path.clone(), move || stage_all(path)).await
+}
+
+#[tauri::command(rename = "discard_file")]
+pub async fn discard_file_cmd(path: String, file: String, untracked: bool) -> Result<(), GitError> {
+    crate::git::run_mutating("discard_file", path.clone(), move || discard_file(path, file, untracked)).await
+}
+
+#[tauri::command(rename = "discard_all")]
+pub async fn discard_all_cmd(path: String) -> Result<(), GitError> {
+    crate::git::run_mutating("discard_all", path.clone(), move || discard_all(path)).await
+}
+
 pub fn stage_file(path: String, file: String) -> Result<(), GitError> {
     run_git(&path, &["add", "--", &file]).map(|_| ())
 }
 
-#[tauri::command]
 pub fn unstage_file(path: String, file: String) -> Result<(), GitError> {
     // reset works even on an unborn branch (no HEAD yet), where restore --staged
     // would fail with "could not resolve HEAD".
     run_git(&path, &["reset", "--", &file]).map(|_| ())
 }
 
-#[tauri::command]
 pub fn stage_all(path: String) -> Result<(), GitError> {
     run_git(&path, &["add", "-A"]).map(|_| ())
 }
@@ -21,7 +43,6 @@ pub fn stage_all(path: String) -> Result<(), GitError> {
 /// Discard the UNSTAGED changes of one file. Staged changes are kept: a
 /// partially staged file loses only its worktree edits. Untracked files
 /// (and directories) are removed from disk.
-#[tauri::command]
 pub fn discard_file(path: String, file: String, untracked: bool) -> Result<(), GitError> {
     if untracked {
         run_git(&path, &["clean", "-fd", "--", &file]).map(|_| ())
@@ -32,7 +53,6 @@ pub fn discard_file(path: String, file: String, untracked: bool) -> Result<(), G
 
 /// Discard every unstaged change: revert tracked worktree edits to the index
 /// (staged changes are kept) and remove untracked files and directories.
-#[tauri::command]
 pub fn discard_all(path: String) -> Result<(), GitError> {
     // restore may be a no-op (nothing to restore); its error is not fatal.
     let _ = run_git(&path, &["restore", "--worktree", "."]);

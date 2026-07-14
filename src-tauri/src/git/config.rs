@@ -8,9 +8,18 @@ pub struct GitIdentity {
     pub email: String,
 }
 
+#[tauri::command(rename = "get_identity")]
+pub async fn get_identity_cmd(path: String) -> Result<GitIdentity, GitError> {
+    crate::git::run_blocking("get_identity", move || get_identity(path)).await
+}
+
+#[tauri::command(rename = "set_identity")]
+pub async fn set_identity_cmd(path: String, name: String, email: String) -> Result<(), GitError> {
+    crate::git::run_mutating("set_identity", path.clone(), move || set_identity(path, name, email)).await
+}
+
 /// Read the effective user.name / user.email for this repo (falls back to the
 /// global config when not set locally). Missing values come back empty.
-#[tauri::command]
 pub fn get_identity(path: String) -> Result<GitIdentity, GitError> {
     let name = run_git(&path, &["config", "user.name"]).unwrap_or_default().trim().to_string();
     let email = run_git(&path, &["config", "user.email"]).unwrap_or_default().trim().to_string();
@@ -18,7 +27,6 @@ pub fn get_identity(path: String) -> Result<GitIdentity, GitError> {
 }
 
 /// Set the repo-local user.name / user.email (empty values are skipped).
-#[tauri::command]
 pub fn set_identity(path: String, name: String, email: String) -> Result<(), GitError> {
     if !name.trim().is_empty() {
         run_git(&path, &["config", "user.name", name.trim()])?;
