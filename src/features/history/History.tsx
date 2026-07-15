@@ -217,6 +217,7 @@ const CommitRow = memo(function CommitRow({
   selected,
   filtering,
   rowH,
+  gutter,
   onSelect,
   onContext,
 }: {
@@ -224,6 +225,8 @@ const CommitRow = memo(function CommitRow({
   selected: boolean;
   filtering: boolean;
   rowH: number;
+  /** Left space for the graph — grows with the number of parallel lanes. */
+  gutter: number;
   onSelect: (hash: string) => void;
   onContext: (hash: string, x: number, y: number) => void;
 }) {
@@ -243,7 +246,7 @@ const CommitRow = memo(function CommitRow({
         display: "flex",
         alignItems: "center",
         gap: 12,
-        padding: filtering ? "0 16px" : "0 16px 0 96px",
+        padding: filtering ? "0 16px" : `0 16px 0 ${gutter}px`,
         cursor: "pointer",
         boxSizing: "border-box",
         // undefined (not "transparent") so .gs-row:hover still paints.
@@ -347,6 +350,12 @@ export function History() {
 
   const commits = useMemo(() => data ?? [], [data]);
   const rows = useMemo(() => graphRows(commits), [commits]);
+  // The text gutter follows the widest lane (graph audit): with all branches
+  // in the log, busy repos need more than the old fixed 96px.
+  const gutter = useMemo(() => {
+    const maxLane = rows.reduce((m, r) => Math.max(m, r.lane), 0);
+    return Math.min(96 + Math.max(0, maxLane - 3) * 18, 96 + 9 * 18);
+  }, [rows]);
 
   const q = query.trim().toLowerCase();
   const filtering = q.length > 0;
@@ -451,6 +460,7 @@ export function History() {
                   selected={selected.hash === c.hash}
                   filtering={filtering}
                   rowH={rowH}
+                  gutter={gutter}
                   onSelect={selectHash}
                   onContext={onContext}
                 />

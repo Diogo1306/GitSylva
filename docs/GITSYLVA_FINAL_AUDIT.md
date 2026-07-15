@@ -555,3 +555,16 @@ Validação: tsc 0, eslint 0, vitest 76/76 (+4 fileIcons), cargo check ok; CDP n
 **R5.2 (feedback ao vivo):** minimizar voltou a ser o nativo do Windows (a animação mac-style do handoff foi removida — winMinimizeAnimated e o keyframe apagados); a coluna de ficheiros da Cópia de trabalho passou a UM contentor de scroll (as duas secções + cabeçalhos) com a caixa de commit fixa em baixo — antes uma lista longa de não-preparados empurrava tudo para fora do ecrã (verificado ao vivo: textarea bottom 711/800); em modo empilhado a coluna divide a altura com o diff (flex 1 1 0%); a ActionBar inferior foi REMOVIDA a pedido ("a barra por baixo de Definições") — Pull/Push subiram para a Titlebar com os contadores ahead/behind, o resto já vivia na palette/sidebar/atalhos; notificações desceram para bottom 16; chips de refs ganharam maxWidth 150 por chip (um nome comprido já não esfomeia os outros). NOTA: o utilizador testava a 0.1.0 INSTALADA — os bugs do screenshot (chips sobrepostos, barra, scrollbar) já estavam corrigidos no develop.
 
 **R5.3 (ícone por tema):** make-icon.js → make-icon.cjs ("type":"module" no package.json impedia require) e parametrizado (argv: alvo, bg, folha, tamanho); 4 ícones 256px em src/theme/appicons/ importados com ?inline (CSP sem 'self' em connect-src impedia fetch); useApplyTheme faz setIcon(bytes) na mudança de tema (feature "image-png" no crate tauri + permissão core:window:allow-set-icon). Fora do Tauri é no-op silencioso.
+
+## 11. Auditoria ao grafo de commits (2026-07-15, pedido do utilizador: "ramificações erradas")
+
+Quatro defeitos reais encontrados e corrigidos:
+
+| # | Defeito | Causa | Correção |
+|---|---|---|---|
+| 1 | Branches não integradas NUNCA apareciam na árvore | `get_log` corria `git log` sem refs = só a história do HEAD | `--branches --remotes --tags HEAD` (sem `--all` de propósito — puxaria o refs/stash) |
+| 2 | Lanes entrelaçadas/tortas entre branches paralelas | ordem por data (default) intercala commits de linhas paralelas | `--topo-order` |
+| 3 | Linhas de branch invisíveis a partir da 4ª lane | `var(--l3)` não existe (só há --l0/1/2) → stroke inválido | `laneColor()`: lanes ≥1 ciclam --l1/--l2; --l0 reservada ao tronco |
+| 4 | Nós de outras branches EM CIMA de linhas desenhadas | num fork, o layout libertava a lane do filho na própria row, mas o renderer desenha a linha até à row do pai — uma tip nova reclamava a lane a meio | a lane fica reservada até à row do fork (algoritmo clássico); o nó do pai assenta na lane mais baixa em espera |
+
+Extras: gutter do texto adaptativo (96px + 18px por lane acima da 4ª, cap 258px) e clamp visual na lane 12. Testes novos: 2 de layout (fork reserva a lane; irmãos mantêm linhas distintas) + 1 Rust (`log_includes_unmerged_branches`). vitest 82/82, cargo 52/52.
