@@ -1,12 +1,15 @@
 import { useState } from "react";
 import { useAppStore } from "../../state/appStore";
-import { useStatus, useBranches, useBranchActions, useStashes, useTags, useTagActions, useRewriteActions } from "../../state/queries";
+import { useStatus, useBranches, useBranchActions, useStashes, useTags, useTagActions, useRewriteActions, useSyncActions } from "../../state/queries";
+import { notify } from "../../state/notificationStore";
 import { toast } from "../../state/toastStore";
 import { ContextMenu, type MenuItem } from "../../components/ui/ContextMenu";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
 import { PanelHandle } from "../../components/ui/PanelResize";
 import { usePanelWidth } from "../../lib/usePanelWidth";
 import { Input } from "../../components/ui/Input";
+import { Modal } from "../../components/ui/Modal";
+import { Button } from "../../components/ui/Button";
 import { groupBranches, type BranchGroup } from "../../lib/branchFolders";
 import type { BranchInfo } from "../../lib/types";
 import type { View } from "../../state/appStore";
@@ -30,10 +33,15 @@ export function Sidebar() {
   const { data } = useStatus(repo.path);
   const wcCount = (data ?? []).length;
   const { data: branchData } = useBranches(repo.path);
-  const { checkout, remove, rename, merge } = useBranchActions(repo.path);
+  const { checkout, remove, rename, merge, create } = useBranchActions(repo.path);
+  const sync = useSyncActions(repo.path);
   const { rebase } = useRewriteActions(repo.path);
   const tagActions = useTagActions(repo.path);
-  const [menu, setMenu] = useState<{ x: number; y: number; name: string } | null>(null);
+  // `remote` menus act on "origin/x" names (checkout uses the short name).
+  const [menu, setMenu] = useState<{ x: number; y: number; name: string; remote?: { full: string; short: string; tip: string } } | null>(null);
+  // "Criar branch a partir daqui…" (R5.16): name prompt + the source tip.
+  const [createFrom, setCreateFrom] = useState<{ label: string; tip: string } | null>(null);
+  const [createName, setCreateName] = useState("");
   const [renaming, setRenaming] = useState<string | null>(null);
   const [renameVal, setRenameVal] = useState("");
   const [confirmDelete, setConfirmDelete] = useState<{ name: string; force: boolean } | null>(null);
@@ -42,6 +50,7 @@ export function Sidebar() {
   // the wrong row and the working tree changes underneath you.
   const [confirmSwitch, setConfirmSwitch] = useState<string | null>(null);
   const [confirmMerge, setConfirmMerge] = useState<string | null>(null);
+  const [remoteMenu, setRemoteMenu] = useState<{ x: number; y: number; remote: string } | null>(null);
   const [tagMenu, setTagMenu] = useState<{ x: number; y: number; name: string } | null>(null);
   const [confirmDeleteTag, setConfirmDeleteTag] = useState<string | null>(null);
   // Design: sidebar resizable 180–340, persisted.
@@ -70,8 +79,12 @@ export function Sidebar() {
         key={`${remote}/${shortName}`}
         onClick={() => focusBranch(tip)}
         onDoubleClick={() => !checkout.isPending && setConfirmSwitch(shortName)}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          setMenu({ x: e.clientX, y: e.clientY, name: shortName, remote: { full: `${remote}/${shortName}`, short: shortName, tip } });
+        }}
         className="gs-row"
-        title={`1 clique: ver no histórico · 2 cliques: checkout local de ${remote}/${shortName}`}
+        title={`1 clique: ver no histórico · 2 cliques: checkout local de ${remote}/${shortName} · botão direito para opções`}
         style={{ display: "flex", alignItems: "center", gap: 9, padding: `5px 10px 5px ${padLeft}px`, borderRadius: 8, fontSize: 12.5, fontFamily: mono, color: "var(--muted)", cursor: "pointer" }}
       >
         <span style={{ width: 5, height: 5, borderRadius: "50%", background: "var(--muted)", flexShrink: 0 }} />
@@ -347,7 +360,15 @@ export function Sidebar() {
         ) : (
           remotes.map((remote) => (
             <div key={remote} style={{ display: "flex", flexDirection: "column", gap: 1 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "6px 10px", fontSize: 13, fontFamily: mono, color: "var(--text2)" }}>
+              <div
+                onContextMenu={(e) => {
+                  e.preventDefault();
+                  setRemoteMenu({ x: e.clientX, y: e.clientY, remote });
+                }}
+                className="gs-row"
+                title={`${remote} · botão direito para fetch/pull/push`}
+                style={{ display: "flex", alignItems: "center", gap: 9, padding: "6px 10px", borderRadius: 8, fontSize: 13, fontFamily: mono, color: "var(--text2)" }}
+              >
                 <span style={{ color: "var(--muted)", fontSize: 11 }}>▾</span>
                 <span style={{ flex: 1 }}>{remote}</span>
               </div>
@@ -428,8 +449,25 @@ export function Sidebar() {
 
       {menu &&
         (() => {
+          if (menu.remote) {
+            // Remote-tracking branch, organized like SourceTree (R5.16):
+            // checkout → integrar → derivar → utilitários.
+            const r = menu.remote;
+            const items: MenuItem[] = [
+              { label: `Checkout local de ${r.short}…`, onClick: () => setConfirmSwitch(r.short) },
+              { label: `Merge de ${r.full} na branch atual…`, onClick: () => setConfirmMerge(r.full) },
+              { label: `Rebase da atual sobre ${r.full}…`, onClick: () => setConfirmRebase(r.full) },
+              { label: "", onClick: () => {}, divider: true },
+              { label: "Ver no histórico", onClick: () => focusBranch(r.tip) },
+              { label: "Criar branch a partir daqui…", onClick: () => { setCreateName(""); setCreateFrom({ label: r.full, tip: r.tip }); } },
+              { label: "", onClick: () => {}, divider: true },
+              { label: "Copiar nome", onClick: () => void navigator.clipboard?.writeText(r.full).then(() => toast("Nome copiado")) },
+            ];
+            return <ContextMenu x={menu.x} y={menu.y} items={items} onClose={() => setMenu(null)} />;
+          }
           const name = menu.name;
-          const isCurrent = localBranches.find((b) => b.name === name)?.is_current;
+          const local = localBranches.find((b) => b.name === name);
+          const isCurrent = local?.is_current;
           const items: MenuItem[] = [];
           if (!isCurrent) {
             items.push({ label: `Mudar para ${name}…`, onClick: () => setConfirmSwitch(name) });
@@ -437,13 +475,75 @@ export function Sidebar() {
             items.push({ label: `Rebase da atual sobre ${name}…`, onClick: () => setConfirmRebase(name) });
             items.push({ label: "", onClick: () => {}, divider: true });
           }
-          items.push({ label: "Renomear", onClick: () => { setRenaming(name); setRenameVal(name); } });
+          items.push({ label: "Ver no histórico", onClick: () => focusBranch(local?.tip ?? "") });
+          items.push({ label: "Criar branch a partir daqui…", onClick: () => { setCreateName(""); setCreateFrom({ label: name, tip: local?.tip ?? "" }); } });
+          items.push({ label: "", onClick: () => {}, divider: true });
+          items.push({ label: `Renomear ${name}…`, onClick: () => { setRenaming(name); setRenameVal(name); } });
           items.push({ label: "Copiar nome", onClick: () => void navigator.clipboard?.writeText(name).then(() => toast("Nome copiado")) });
           if (!isCurrent) {
-            items.push({ label: "Apagar branch…", danger: true, onClick: () => setConfirmDelete({ name, force: false }) });
+            items.push({ label: `Apagar ${name}…`, danger: true, onClick: () => setConfirmDelete({ name, force: false }) });
           }
           return <ContextMenu x={menu.x} y={menu.y} items={items} onClose={() => setMenu(null)} />;
         })()}
+
+      {remoteMenu && (
+        <ContextMenu
+          x={remoteMenu.x}
+          y={remoteMenu.y}
+          items={[
+            {
+              label: `Fetch de ${remoteMenu.remote}`,
+              onClick: () => {
+                if (sync.fetch.isPending) return;
+                sync.fetch.mutate(undefined, {
+                  onSuccess: () => notify("Fetch concluído", remoteMenu.remote, "success", "fetch"),
+                  onError: (e: unknown) => notify("Fetch falhou", (e as { message?: string })?.message ?? "não foi possível fazer fetch", "error", "fetch"),
+                });
+              },
+            },
+            { label: `Pull de ${remoteMenu.remote}…`, onClick: () => setModal("pull") },
+            { label: `Push para ${remoteMenu.remote}…`, onClick: () => setModal("push") },
+          ]}
+          onClose={() => setRemoteMenu(null)}
+        />
+      )}
+
+      {createFrom && (
+        <Modal title={`Criar branch a partir de ${createFrom.label}`} onClose={() => setCreateFrom(null)} width={400}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            <Input
+              autoFocus
+              mono
+              value={createName}
+              onChange={(e) => setCreateName(e.target.value)}
+              placeholder="feature/a-minha-branch"
+            />
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+              {([false, true] as const).map((doCheckout) => (
+                <Button
+                  key={String(doCheckout)}
+                  variant={doCheckout ? "primary" : "ghost"}
+                  disabled={!createName.trim() || create.isPending}
+                  onClick={() => {
+                    const from = createFrom.tip;
+                    const name = createName.trim();
+                    setCreateFrom(null);
+                    create.mutate(
+                      { name, checkout: doCheckout, from },
+                      {
+                        onSuccess: () => toast(doCheckout ? `Em ${name}` : `Branch ${name} criada`),
+                        onError: (e: unknown) => toast((e as { message?: string })?.message ?? "não foi possível criar a branch", "error"),
+                      },
+                    );
+                  }}
+                >
+                  {doCheckout ? "Criar e mudar" : "Criar"}
+                </Button>
+              ))}
+            </div>
+          </div>
+        </Modal>
+      )}
 
       {confirmDelete && (
         <ConfirmDialog

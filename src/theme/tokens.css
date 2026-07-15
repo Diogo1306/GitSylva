@@ -157,6 +157,11 @@ button:focus-visible {
 @keyframes modalOut { from { opacity: 1; transform: none; } to { opacity: 0; transform: scale(0.96) translateY(8px); } }
 @keyframes obFade { from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(1.05); } }
 @keyframes recPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
+/* History detail panel show/hide (R5.16) — short and quiet on purpose. */
+@keyframes panelInX { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: none; } }
+@keyframes panelOutX { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateX(24px); } }
+@keyframes panelInY { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: none; } }
+@keyframes panelOutY { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateY(20px); } }
 @keyframes fxFall {
   0% { transform: translateY(0) rotate(0deg); opacity: 0; }
   12% { opacity: 0.9; }
