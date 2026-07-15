@@ -7,17 +7,9 @@ import { toast } from "../../state/toastStore";
 import { PALETTES, TREE_META, type ThemeKey, type TreeStyleKey } from "../../theme/themes";
 import { WinControls } from "../shell/Titlebar";
 import logoS from "../../theme/appicons/logo-s.png";
-import sEscuro from "../../theme/marks/escuro.png";
-import sClaro from "../../theme/marks/claro.png";
-import sGitclassic from "../../theme/marks/gitclassic.png";
-import sNipon from "../../theme/marks/nipon.png";
-
-const S_BY_THEME: Record<ThemeKey, string> = {
-  escuro: sEscuro,
-  claro: sClaro,
-  gitclassic: sGitclassic,
-  nipon: sNipon,
-};
+import tree1 from "../../theme/marks/tree-1.png";
+import tree2 from "../../theme/marks/tree-2.png";
+import tree3 from "../../theme/marks/tree-3.png";
 
 // Always-on window bar (R5.18): a frameless window must be movable and
 // closable in EVERY onboarding phase, splash included — full-width drag strip
@@ -122,14 +114,26 @@ export function Onboarding() {
       <OnboardBar />
       <FallingLeaves />
       <div data-tauri-drag-region style={{ position: "relative", zIndex: 1, display: "flex", alignItems: "center", gap: 60, padding: 24, boxSizing: "border-box" }}>
-        {/* Left: the official S mark grows with each step (R5.20). */}
+        {/* Left: the official growth art (R5.21) — sapling → young tree → the
+            full S, cross-fading and bottom-anchored like a real plant. */}
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, flexShrink: 0, minWidth: 262 }}>
-          <div style={{ height: TREE_H[stage], display: "grid", placeItems: "center", transition: "height 0.9s cubic-bezier(0.2,0.9,0.3,1)" }}>
-            <img
-              src={S_BY_THEME[t.theme] ?? logoS}
-              alt=""
-              style={{ height: TREE_H[stage] * 0.92, transition: "height 0.9s cubic-bezier(0.2,0.9,0.3,1)" }}
-            />
+          <div style={{ position: "relative", width: 262, height: TREE_H[stage], transition: "height 0.9s cubic-bezier(0.2,0.9,0.3,1)" }}>
+            {[tree1, tree2, tree3].map((src, i) => (
+              <img
+                key={i}
+                src={src}
+                alt=""
+                style={{
+                  position: "absolute",
+                  bottom: 0,
+                  left: "50%",
+                  transform: "translateX(-50%)",
+                  height: TREE_H[i],
+                  opacity: stage === i ? 1 : 0,
+                  transition: "opacity 0.7s ease",
+                }}
+              />
+            ))}
           </div>
           <div style={{ marginTop: 4 }}>
             <Wordmark size={20} />
