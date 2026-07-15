@@ -77,6 +77,9 @@ function Chips({ refs }: { refs: string }) {
               whiteSpace: "nowrap",
               overflow: "hidden",
               textOverflow: "ellipsis",
+              // Per-chip cap so one long ref name can't starve the others.
+              maxWidth: 150,
+              boxSizing: "border-box",
               background: st.bg,
               color: st.color,
               border: `1px solid ${st.border}`,

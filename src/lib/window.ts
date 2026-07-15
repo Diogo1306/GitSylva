@@ -11,22 +11,6 @@ export async function winMinimize() {
   }
 }
 
-/** Plays the handoff's winMinimize animation (scale/fade toward the taskbar)
- * before actually minimizing; the style is cleared so restore looks normal. */
-export async function winMinimizeAnimated(animate: boolean) {
-  const root = document.getElementById("root");
-  if (animate && root) {
-    root.style.animation = "winMinimize 600ms ease both";
-    await new Promise((r) => window.setTimeout(r, 280));
-    await winMinimize();
-    window.setTimeout(() => {
-      root.style.animation = "";
-    }, 420);
-  } else {
-    await winMinimize();
-  }
-}
-
 export async function winIsMaximized(): Promise<boolean> {
   try {
     return await getCurrentWindow().isMaximized();

@@ -320,7 +320,9 @@ export function WorkingCopy() {
       <div
         style={{
           width: isStacked ? "auto" : filesW.width,
-          flexShrink: 0,
+          // Stacked: split the height with the diff so the list scrolls inside
+          // its half instead of growing the page.
+          flex: isStacked ? "1 1 0%" : "0 0 auto",
           borderRight: isStacked ? "none" : "1px solid var(--border)",
           borderTop: isStacked ? "1px solid var(--border)" : "none",
           order: isStacked ? 2 : 1,
@@ -332,6 +334,9 @@ export function WorkingCopy() {
         }}
       >
         {!isStacked && <PanelHandle edge="right" handleProps={filesW.handleProps} />}
+        {/* ONE scroll container for both sections (R5.2): a long unstaged list
+            used to push the staged list and the commit box out of reach. */}
+        <div style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
         <div style={{ padding: "12px 16px 8px", display: "flex", alignItems: "center" }}>
           <SectionHead>NÃO PREPARADAS · {unstaged.length}</SectionHead>
           <div
@@ -403,7 +408,7 @@ export function WorkingCopy() {
         <div style={{ padding: "16px 16px 8px", display: "flex", alignItems: "center" }}>
           <SectionHead>PREPARADAS · {staged.length}</SectionHead>
         </div>
-        <div style={{ padding: "0 10px", display: "flex", flexDirection: "column", gap: 1, flex: 1, overflowY: "auto" }}>
+        <div style={{ padding: "0 10px 12px", display: "flex", flexDirection: "column", gap: 1 }}>
           {(() => {
             const items = staged
               .filter((f) => !hiddenPaths.has(f.path))
@@ -439,8 +444,9 @@ export function WorkingCopy() {
             return items;
           })()}
         </div>
+        </div>
 
-        <div style={{ padding: 14, borderTop: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 10, background: "var(--panel)" }}>
+        <div style={{ padding: 14, borderTop: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 10, background: "var(--panel)", flexShrink: 0 }}>
           <textarea
             value={msg}
             onChange={(e) => setMsg(e.target.value)}
