@@ -60,18 +60,23 @@ function Chips({ refs }: { refs: string }) {
   const chips = parseRefs(refs);
   if (chips.length === 0) return null;
   return (
-    <>
+    // The wrapper may shrink and clip: long ref names (origin/fix/…) used to
+    // paint straight over the avatar and hash columns.
+    <span style={{ display: "flex", gap: 6, minWidth: 0, overflow: "hidden", flexShrink: 1 }}>
       {chips.map((ch, i) => {
         const st = chipStyle(ch.kind);
         return (
           <span
             key={i}
+            title={ch.label}
             style={{
               fontFamily: mono,
               fontSize: 10.5,
               padding: "2px 8px",
               borderRadius: 999,
               whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
               background: st.bg,
               color: st.color,
               border: `1px solid ${st.border}`,
@@ -81,7 +86,7 @@ function Chips({ refs }: { refs: string }) {
           </span>
         );
       })}
-    </>
+    </span>
   );
 }
 
