@@ -297,18 +297,35 @@ export function Sidebar() {
               <div
                 onClick={() => setOpenFolders((s) => ({ ...s, [g.name]: !folderOpen(g) }))}
                 className="gs-row"
-                title={`${folderOpen(g) ? "Colapsar" : "Expandir"} ${g.name}/`}
+                title={`${folderOpen(g) ? "Colapsar" : "Expandir"} ${g.name}`}
                 style={{ display: "flex", alignItems: "center", gap: 9, padding: "6px 10px", borderRadius: 8, fontSize: 13, fontFamily: mono, color: "var(--text2)", cursor: "pointer" }}
               >
                 <span style={{ fontSize: 9, color: "var(--muted)", transform: `rotate(${folderOpen(g) ? 90 : 0}deg)`, transition: "transform 0.15s", display: "inline-block", width: 6, flexShrink: 0 }}>▶</span>
-                <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{g.name}/</span>
+                <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{g.name}</span>
                 {/* A closed folder still shows where you are. */}
                 {!folderOpen(g) && g.members.some((m) => m.is_current) && (
                   <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--l0bg)", border: "1.5px solid var(--l0)", boxSizing: "border-box", flexShrink: 0 }} />
                 )}
-                <span style={{ background: "var(--badge)", color: "var(--badgeT)", borderRadius: 999, fontSize: 10.5, fontWeight: 600, padding: "0 6px", flexShrink: 0 }}>
-                  {g.members.length}
-                </span>
+                {/* Instead of a member count (noise), the folder aggregates the
+                    members' pending push/pull (R5.11). */}
+                {(() => {
+                  const up = g.members.reduce((s, m) => s + m.ahead, 0);
+                  const down = g.members.reduce((s, m) => s + m.behind, 0);
+                  return (
+                    <>
+                      {up > 0 && (
+                        <span title={`${up} commit(s) por enviar nas branches desta pasta`} style={{ fontFamily: mono, fontSize: 10, fontWeight: 700, background: "var(--accent)", color: "var(--accentT)", borderRadius: 999, padding: "0 6px", flexShrink: 0 }}>
+                          ↑{up}
+                        </span>
+                      )}
+                      {down > 0 && (
+                        <span title={`${down} commit(s) por integrar nas branches desta pasta`} style={{ fontFamily: mono, fontSize: 10, fontWeight: 700, background: "var(--badge)", color: "var(--badgeT)", borderRadius: 999, padding: "0 6px", flexShrink: 0 }}>
+                          ↓{down}
+                        </span>
+                      )}
+                    </>
+                  );
+                })()}
               </div>
               {folderOpen(g) && (
                 <div style={{ display: "flex", flexDirection: "column", gap: 1, animation: "fadeIn 0.15s ease both" }}>
@@ -346,14 +363,11 @@ export function Sidebar() {
                     <div
                       onClick={() => setOpenFolders((s) => ({ ...s, [`${remote}:${g.name}`]: !(s[`${remote}:${g.name}`] ?? false) }))}
                       className="gs-row"
-                      title={`${openFolders[`${remote}:${g.name}`] ? "Colapsar" : "Expandir"} ${g.name}/`}
+                      title={`${openFolders[`${remote}:${g.name}`] ? "Colapsar" : "Expandir"} ${g.name}`}
                       style={{ display: "flex", alignItems: "center", gap: 9, padding: "5px 10px 5px 20px", borderRadius: 8, fontSize: 12.5, fontFamily: mono, color: "var(--muted)", cursor: "pointer" }}
                     >
                       <span style={{ fontSize: 8, transform: `rotate(${openFolders[`${remote}:${g.name}`] ? 90 : 0}deg)`, transition: "transform 0.15s", display: "inline-block", width: 5, flexShrink: 0 }}>▶</span>
-                      <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{g.name}/</span>
-                      <span style={{ background: "var(--badge)", color: "var(--badgeT)", borderRadius: 999, fontSize: 10, fontWeight: 600, padding: "0 6px", flexShrink: 0 }}>
-                        {g.members.length}
-                      </span>
+                      <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{g.name}</span>
                     </div>
                     {openFolders[`${remote}:${g.name}`] && (
                       <div style={{ display: "flex", flexDirection: "column", gap: 1, animation: "fadeIn 0.15s ease both" }}>

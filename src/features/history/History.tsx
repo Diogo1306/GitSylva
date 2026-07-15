@@ -511,7 +511,9 @@ export function History() {
         </div>
       </div>
 
-      {detailOpen ? (
+      {/* The header "Diff" button is the single show/hide control (R5.11 —
+          the old floating arrow sat on top of the commit-hash chip). */}
+      {detailOpen && (
         <>
           {below && (
             <div
@@ -529,31 +531,9 @@ export function History() {
             }
           >
             {!below && <PanelHandle edge="left" handleProps={detailW.handleProps} />}
-            {/* Collapse the panel entirely — full-width history. */}
-            <div
-              onClick={() => setDetailOpen(false)}
-              title="Fechar o painel de detalhe"
-              className="gs-row"
-              style={{ position: "absolute", top: 8, right: 10, zIndex: 6, width: 22, height: 22, borderRadius: 6, display: "grid", placeItems: "center", color: "var(--muted)", fontSize: 11, cursor: "pointer" }}
-            >
-              {below ? "⌄" : "❯"}
-            </div>
             <DetailPanel repoPath={repo.path} commit={selected} />
           </div>
         </>
-      ) : (
-        <div
-          onClick={() => setDetailOpen(true)}
-          title="Abrir o painel de detalhe"
-          className="gs-row"
-          style={
-            below
-              ? { height: 20, flexShrink: 0, borderTop: "1px solid var(--border)", display: "grid", placeItems: "center", color: "var(--muted)", fontSize: 10, cursor: "pointer", background: "var(--panel)" }
-              : { width: 20, flexShrink: 0, borderLeft: "1px solid var(--border)", display: "grid", placeItems: "center", color: "var(--muted)", fontSize: 10, cursor: "pointer", background: "var(--panel)" }
-          }
-        >
-          {below ? "⌃" : "❮"}
-        </div>
       )}
 
       {menu &&

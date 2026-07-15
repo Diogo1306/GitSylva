@@ -207,7 +207,7 @@ export function Appearance() {
             </div>
           ))}
         </div>
-        <Hint>Em baixo = estilo SourceTree: lista em cima, diff em toda a largura. O painel também se fecha com o botão ❯.</Hint>
+        <Hint>Em baixo = estilo SourceTree: lista em cima, diff em toda a largura. Esconde/mostra com o botão "Diff" na barra do histórico.</Hint>
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
