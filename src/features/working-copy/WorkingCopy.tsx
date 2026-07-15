@@ -8,7 +8,8 @@ import { ConfirmDialog } from "../../components/ConfirmDialog";
 import { ContextMenu, type MenuItem } from "../../components/ui/ContextMenu";
 import { PanelHandle } from "../../components/ui/PanelResize";
 import { usePanelWidth } from "../../lib/usePanelWidth";
-import { statusStyle, isConflict } from "../../lib/status";
+import { statusStyle, statusTitle, isConflict } from "../../lib/status";
+import { FileIcon } from "../../components/FileIcon";
 import { errMsg } from "../../lib/errors";
 import { headMessage, openPath, revealPath } from "../../lib/api";
 import { spawnLeaf } from "../../lib/leaf";
@@ -69,7 +70,9 @@ function FileRow({
         padding: "7px 8px",
         borderRadius: 8,
         cursor: "pointer",
-        background: selected ? "var(--sel)" : "transparent",
+        // Only set when selected — an inline "transparent" would beat the
+        // .gs-row:hover background and kill the hover entirely.
+        background: selected ? "var(--sel)" : undefined,
         // Small per-row stagger, capped so long lists never feel sluggish.
         animation: `fileIn 0.22s cubic-bezier(0.2, 0.9, 0.3, 1) ${entranceDelay}ms both`,
       }}
@@ -88,29 +91,19 @@ function FileRow({
       >
         {checked ? "✓" : ""}
       </div>
-      <span
-        style={{
-          width: 16,
-          height: 16,
-          borderRadius: 4,
-          display: "grid",
-          placeItems: "center",
-          fontFamily: mono,
-          fontSize: 10,
-          fontWeight: 700,
-          background: st.bg,
-          color: st.color,
-          flexShrink: 0,
-        }}
-      >
-        {letter}
-      </span>
+      <FileIcon path={file.path} />
       <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
         <span style={{ fontSize: 13, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name}</span>
         {dir && (
           <span style={{ fontFamily: mono, fontSize: 10.5, color: "var(--muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{dir}</span>
         )}
       </div>
+      <span
+        title={statusTitle(letter)}
+        style={{ fontFamily: mono, fontSize: 10.5, fontWeight: 700, color: st.color, width: 12, textAlign: "center", flexShrink: 0 }}
+      >
+        {letter}
+      </span>
     </div>
   );
 }
@@ -508,10 +501,11 @@ export function WorkingCopy() {
         <div style={{ padding: "13px 20px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 10 }}>
           {effSel ? (
             <>
-              <span style={{ width: 16, height: 16, borderRadius: 4, display: "grid", placeItems: "center", fontFamily: mono, fontSize: 10, fontWeight: 700, background: selSt.bg, color: selSt.color }}>
+              <FileIcon path={effSel.path} />
+              <span style={{ fontFamily: mono, fontSize: 13, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{effSel.path}</span>
+              <span title={statusTitle(selStatus)} style={{ width: 16, height: 16, borderRadius: 4, display: "grid", placeItems: "center", fontFamily: mono, fontSize: 10, fontWeight: 700, background: selSt.bg, color: selSt.color, flexShrink: 0 }}>
                 {selStatus}
               </span>
-              <span style={{ fontFamily: mono, fontSize: 13, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{effSel.path}</span>
             </>
           ) : (
             <span style={{ fontSize: 13, color: "var(--muted)" }}>Selecione um ficheiro para ver o diff</span>
