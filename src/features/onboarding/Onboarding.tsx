@@ -28,7 +28,7 @@ const THEME_ORDER: ThemeKey[] = ["escuro", "claro", "nipon", "gitclassic"];
 const TREE_ORDER: TreeStyleKey[] = ["normal", "sakura", "tropical", "grafo"];
 
 // Tree box heights per onboarding stage (design: obTreeH).
-const TREE_H = [229, 277, 333];
+const TREE_H = [268, 330, 396];
 
 function Splash() {
   // git + tree-S + ylva; side letters animate in then hop away.
@@ -111,7 +111,7 @@ export function Onboarding() {
       <div data-tauri-drag-region style={{ position: "relative", zIndex: 1, display: "flex", alignItems: "center", gap: 60, padding: 24, boxSizing: "border-box" }}>
         {/* Left: the classic growing tree (roots, tapered trunk, crown and
             style-aware foliage), restored by request — R5.24. */}
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, flexShrink: 0, minWidth: 262 }}>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, flexShrink: 0, minWidth: 310 }}>
           <div style={{ height: TREE_H[stage], display: "grid", placeItems: "end center", transition: "height 0.9s cubic-bezier(0.2,0.9,0.3,1)" }}>
             <OnboardTree stage={stage} />
           </div>
