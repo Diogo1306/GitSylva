@@ -15,8 +15,8 @@ pub async fn list_tags_cmd(path: String) -> Result<Vec<TagInfo>, GitError> {
 }
 
 #[tauri::command(rename = "create_tag")]
-pub async fn create_tag_cmd(path: String, name: String, message: String) -> Result<(), GitError> {
-    crate::git::run_mutating("create_tag", path.clone(), move || create_tag(path, name, message)).await
+pub async fn create_tag_cmd(path: String, name: String, message: String, target: Option<String>) -> Result<(), GitError> {
+    crate::git::run_mutating("create_tag", path.clone(), move || create_tag(path, name, message, target)).await
 }
 
 #[tauri::command(rename = "delete_tag")]
@@ -54,8 +54,9 @@ pub fn list_tags(path: String) -> Result<Vec<TagInfo>, GitError> {
     Ok(tags)
 }
 
-/// Create a tag on HEAD. A non-empty message produces an annotated tag.
-pub fn create_tag(path: String, name: String, message: String) -> Result<(), GitError> {
+/// Create a tag on `target` (HEAD when omitted). A non-empty message produces
+/// an annotated tag.
+pub fn create_tag(path: String, name: String, message: String, target: Option<String>) -> Result<(), GitError> {
     if name.trim().is_empty() {
         return Err(GitError {
             code: "empty_name".into(),
@@ -64,11 +65,15 @@ pub fn create_tag(path: String, name: String, message: String) -> Result<(), Git
     }
     let name = name.trim();
     let msg = message.trim();
-    if msg.is_empty() {
-        run_git(&path, &["tag", name]).map(|_| ())
+    let mut args: Vec<&str> = if msg.is_empty() {
+        vec!["tag", name]
     } else {
-        run_git(&path, &["tag", "-a", name, "-m", msg]).map(|_| ())
+        vec!["tag", "-a", name, "-m", msg]
+    };
+    if let Some(t) = target.as_deref() {
+        args.push(t);
     }
+    run_git(&path, &args).map(|_| ())
 }
 
 /// Delete a tag.
@@ -98,8 +103,8 @@ mod tests {
     #[test]
     fn create_list_delete() {
         let p = repo("cycle");
-        create_tag(p.clone(), "v1.0".into(), "primeira".into()).unwrap();
-        create_tag(p.clone(), "v0.9".into(), "".into()).unwrap();
+        create_tag(p.clone(), "v1.0".into(), "primeira".into(), None).unwrap();
+        create_tag(p.clone(), "v0.9".into(), "".into(), None).unwrap();
         let tags = list_tags(p.clone()).unwrap();
         let names: Vec<&str> = tags.iter().map(|t| t.name.as_str()).collect();
         assert!(names.contains(&"v1.0"));

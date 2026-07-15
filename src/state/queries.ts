@@ -22,6 +22,7 @@ import {
   resetTo,
   cherryPick,
   rebase,
+  revertCommit,
   listStashes,
   createStash,
   applyStash,
@@ -133,7 +134,7 @@ export function useBranchActions(path: string) {
       },
     }),
     create: useMutation({
-      mutationFn: (v: { name: string; checkout: boolean }) => createBranch(path, v.name, v.checkout),
+      mutationFn: (v: { name: string; checkout: boolean; from?: string }) => createBranch(path, v.name, v.checkout, v.from),
       onSuccess: (_res, v) => {
         if (v.checkout) setCurrent(v.name);
         refresh();
@@ -169,6 +170,7 @@ export function useRewriteActions(path: string) {
     }),
     cherryPick: useMutation({ mutationFn: (hash: string) => cherryPick(path, hash), onSettled: refresh }),
     rebase: useMutation({ mutationFn: (onto: string) => rebase(path, onto), onSettled: refresh }),
+    revert: useMutation({ mutationFn: (hash: string) => revertCommit(path, hash), onSettled: refresh }),
   };
 }
 
@@ -297,7 +299,7 @@ export function useTagActions(path: string) {
   };
   return {
     create: useMutation({
-      mutationFn: (v: { name: string; message: string }) => createTag(path, v.name, v.message),
+      mutationFn: (v: { name: string; message: string; target?: string }) => createTag(path, v.name, v.message, v.target),
       onSuccess: refresh,
     }),
     remove: useMutation({ mutationFn: (name: string) => deleteTag(path, name), onSuccess: refresh }),

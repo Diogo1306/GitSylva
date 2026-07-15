@@ -6,6 +6,7 @@ import { GitIdentity } from "./sections/GitIdentity";
 import { Commits } from "./sections/Commits";
 import { PushPull } from "./sections/PushPull";
 import { Cleanup } from "./sections/Cleanup";
+import { About } from "./sections/About";
 import { Shortcuts } from "./sections/Shortcuts";
 import { Notifications } from "./sections/Notifications";
 import { StubSection } from "./sections/_shared";
@@ -26,6 +27,7 @@ const NAV: [string, string][] = [
   ["Idioma", "set-idioma"],
   ["Avançado", "set-avancado"],
   ["Limpeza", "set-limpeza"],
+  ["Sobre", "set-sobre"],
 ];
 
 export function Settings() {
@@ -129,6 +131,8 @@ export function Settings() {
           </StubSection>
 
           <Cleanup />
+
+          <About />
         </div>
       </div>
     </div>
