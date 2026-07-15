@@ -5,7 +5,6 @@ import { useThemeStore } from "../../state/themeStore";
 import { Titlebar } from "./Titlebar";
 import { Sidebar } from "./Sidebar";
 import { RepoRail } from "./RepoRail";
-import { ActionBar } from "./ActionBar";
 import { CommandPalette } from "./CommandPalette";
 import { Modals } from "./Modals";
 import { ErrorBoundary } from "../../components/ErrorBoundary";
@@ -176,7 +175,6 @@ export function AppShell() {
           </div>
         </div>
       </div>
-      <ActionBar />
       <CommandPalette />
       <Modals />
       <EphemeralLeaves />
