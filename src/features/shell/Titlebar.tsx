@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAppStore } from "../../state/appStore";
-import { useStatus, queryKeys, useSyncActions, useSyncStatus } from "../../state/queries";
+import { useStatus, queryKeys, useSyncActions } from "../../state/queries";
 import { useThemeStore } from "../../state/themeStore";
 import { discardAll } from "../../lib/api";
 import { winMinimize, winToggleMaximize, winClose, winIsMaximized } from "../../lib/window";
@@ -126,8 +126,6 @@ export function Titlebar({ rail = false }: { rail?: boolean }) {
   const qc = useQueryClient();
   const { data } = useStatus(repo.path);
   const sync = useSyncActions(repo.path);
-  const { data: syncData } = useSyncStatus(repo.path);
-  const setModal = useAppStore((s) => s.setModal);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
   const groups = useAppStore((s) => s.groups);
   const groupOf = useAppStore((s) => s.groupOf);
@@ -271,24 +269,6 @@ export function Titlebar({ rail = false }: { rail?: boolean }) {
         <Tool onClick={refresh} title="Fetch de origin">
           <span style={{ fontSize: 14, lineHeight: 1, display: "inline-block", animation: sync.fetch.isPending ? "spin 0.8s linear infinite" : "none" }}>⟳</span>
           {sync.fetch.isPending ? "A obter…" : "Fetch"}
-        </Tool>
-        {/* Pull/Push moved up here when the bottom action bar was removed
-            (R5.2) — the counters keep the ahead/behind state visible. */}
-        <Tool onClick={() => setModal("pull")} title="Pull do remoto">
-          ↓ Pull
-          {(syncData?.behind ?? 0) > 0 && (
-            <span style={{ background: "var(--badge)", color: "var(--badgeT)", borderRadius: 999, fontSize: 10.5, fontWeight: 700, padding: "1px 6px" }}>
-              {syncData?.behind}
-            </span>
-          )}
-        </Tool>
-        <Tool onClick={() => setModal("push")} title="Push para o remoto">
-          ↑ Push
-          {(syncData?.ahead ?? 0) > 0 && (
-            <span style={{ background: "var(--accent)", color: "var(--accentT)", borderRadius: 999, fontSize: 10.5, fontWeight: 700, padding: "1px 6px" }}>
-              {syncData?.ahead}
-            </span>
-          )}
         </Tool>
         <Tool onClick={onDiscardClick} title="Descartar alterações não preparadas">
           ↩ Descartar

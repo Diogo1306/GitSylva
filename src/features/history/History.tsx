@@ -300,7 +300,13 @@ export function History() {
   // (SourceTree style), and can be collapsed entirely.
   const below = useThemeStore((s) => s.historyLayout) === "baixo";
   const detailH = usePanelHeight("gitsylva-h-history-detail", 340, 160, 720);
-  const [detailOpen, setDetailOpen] = useState(true);
+  // Persisted (R5.10): closing the diff used to reset every time the screen
+  // remounted; now the choice sticks, and the header button shows the state.
+  const [detailOpen, setDetailOpenState] = useState(() => localStorage.getItem("gitsylva-history-detail") !== "off");
+  const setDetailOpen = (v: boolean) => {
+    setDetailOpenState(v);
+    localStorage.setItem("gitsylva-history-detail", v ? "on" : "off");
+  };
 
   // A focused commit (palette pick or a branch click in the sidebar) deeper
   // than the loaded window grows the window instead of silently selecting the
@@ -440,6 +446,26 @@ export function History() {
           />
           <div style={{ fontSize: 12, color: "var(--muted)", fontFamily: mono, whiteSpace: "nowrap" }}>
             {filtered.length} commits
+          </div>
+          <div
+            onClick={() => setDetailOpen(!detailOpen)}
+            title={detailOpen ? "Esconder o painel de detalhe/diff" : "Mostrar o painel de detalhe/diff"}
+            className="gs-lift"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              padding: "5px 11px",
+              borderRadius: 7,
+              background: detailOpen ? "var(--sel)" : "var(--btn)",
+              border: "1px solid var(--btnB)",
+              fontSize: 12,
+              color: "var(--btnT)",
+              cursor: "pointer",
+              whiteSpace: "nowrap",
+            }}
+          >
+            Diff {detailOpen ? "✓" : ""}
           </div>
         </div>
 
