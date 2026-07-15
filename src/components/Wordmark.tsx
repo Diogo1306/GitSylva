@@ -1,40 +1,28 @@
 import { useThemeStore } from "../state/themeStore";
 import type { ThemeKey } from "../theme/themes";
-import sEscuro from "../theme/marks/escuro.png";
-import sClaro from "../theme/marks/claro.png";
-import sGitclassic from "../theme/marks/gitclassic.png";
-import sNipon from "../theme/marks/nipon.png";
+import wmEscuro from "../theme/marks/wordmark-escuro.png";
+import wmClaro from "../theme/marks/wordmark-claro.png";
+import wmGitclassic from "../theme/marks/wordmark-gitclassic.png";
+import wmNipon from "../theme/marks/wordmark-nipon.png";
 
-// The git[S]ylva lockup. The S is the OFFICIAL mark from the design kit
-// (R5.20), themed to match the active palette; the letters stay live text so
-// they keep the theme color and stay crisp at any size.
-const S_BY_THEME: Record<ThemeKey, string> = {
-  escuro: sEscuro,
-  claro: sClaro,
-  gitclassic: sGitclassic,
-  nipon: sNipon,
+// The OFFICIAL git[S]ylva wordmark from the design kit (transparent exports,
+// R5.21), one per theme so letters and the S always sit on-palette.
+const WORDMARK_BY_THEME: Record<ThemeKey, string> = {
+  escuro: wmEscuro,
+  claro: wmClaro,
+  gitclassic: wmGitclassic,
+  nipon: wmNipon,
 };
 
 export function Wordmark({ size = 17 }: { size?: number }) {
   const theme = useThemeStore((s) => s.theme);
   return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "baseline",
-        fontFamily: "'Space Grotesk', sans-serif",
-        fontWeight: 600,
-        fontSize: size,
-        letterSpacing: "0.3px",
-      }}
-    >
-      <span>git</span>
-      <img
-        src={S_BY_THEME[theme] ?? sEscuro}
-        alt=""
-        style={{ display: "inline-block", height: Math.round(size * 1.5), margin: "0 2px", alignSelf: "center", transform: `translateY(${Math.round(size * 0.1)}px)` }}
-      />
-      <span>ylva</span>
-    </div>
+    <img
+      src={WORDMARK_BY_THEME[theme] ?? wmEscuro}
+      alt="GitSylva"
+      // The lockup is ~2.7:1 with the S overshooting the letters; 2.1× the
+      // old font size keeps the letters at roughly their previous height.
+      style={{ display: "block", height: Math.round(size * 2.1) }}
+    />
   );
 }
