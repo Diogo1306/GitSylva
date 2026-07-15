@@ -274,6 +274,23 @@ export function History() {
   // Design: detail panel resizable 300–560, persisted.
   const detailW = usePanelWidth("gitsylva-w-detail", 372, 300, 560, "left");
 
+  // A focused commit (palette pick or a branch click in the sidebar) deeper
+  // than the loaded window grows the window instead of silently selecting the
+  // first row (derive-on-change, render phase). Capped so an unreachable hash
+  // can't grow the log forever.
+  {
+    const loaded = data ?? [];
+    if (
+      focusCommit &&
+      !isFetching &&
+      loaded.length >= limit &&
+      limit < 2000 &&
+      !loaded.some((c) => c.hash === focusCommit)
+    ) {
+      setLimit(limit + 400);
+    }
+  }
+
   // Selecting a commit locally also clears any pending palette focus request.
   const selectHash = useCallback((hash: string) => {
     setSelectedHash(hash);

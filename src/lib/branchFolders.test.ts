@@ -7,6 +7,7 @@ const b = (name: string, is_current = false): BranchInfo => ({
   is_current,
   is_remote: false,
   upstream: null,
+  tip: "0123456789abcdef0123456789abcdef01234567",
 });
 
 describe("groupBranches", () => {
