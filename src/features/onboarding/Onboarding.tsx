@@ -6,7 +6,21 @@ import { useThemeStore } from "../../state/themeStore";
 import { useOnboardStore } from "../../state/onboardStore";
 import { toast } from "../../state/toastStore";
 import { PALETTES, TREE_META, type ThemeKey, type TreeStyleKey } from "../../theme/themes";
-import { winMinimize, winClose } from "../../lib/window";
+import { WinControls } from "../shell/Titlebar";
+
+// Always-on window bar (R5.18): a frameless window must be movable and
+// closable in EVERY onboarding phase, splash included — full-width drag strip
+// with the real minimize / maximize / close controls.
+function OnboardBar() {
+  return (
+    <div
+      data-tauri-drag-region
+      style={{ position: "fixed", top: 0, left: 0, right: 0, height: 40, zIndex: 95, display: "flex", alignItems: "center", justifyContent: "flex-end", paddingRight: 6, boxSizing: "border-box" }}
+    >
+      <WinControls />
+    </div>
+  );
+}
 
 type Phase = "splash" | "login" | "setup" | "grow";
 
@@ -69,7 +83,13 @@ export function Onboarding() {
     return () => clearTimeout(id);
   }, [phase, finish]);
 
-  if (phase === "splash") return <Splash />;
+  if (phase === "splash")
+    return (
+      <>
+        <Splash />
+        <OnboardBar />
+      </>
+    );
 
   const stage = phase === "login" ? 0 : phase === "setup" ? 1 : 2;
   const caption = phase === "login" ? "ENTRAR" : phase === "setup" ? "PERSONALIZAR" : "PLANTADO";
@@ -85,18 +105,7 @@ export function Onboarding() {
     // wasn't where anyone instinctively grabs. Interactive children still get
     // their clicks (the drag only fires when the target IS this element).
     <div data-tauri-drag-region style={{ position: "fixed", inset: 0, zIndex: 85, background: "var(--desk)", display: "grid", placeItems: "center", fontFamily: "var(--font)", color: "var(--text)", overflow: "hidden", animation: "fadeIn 0.45s ease both" }}>
-      {/* Frameless window: without these the onboarding can't be moved or
-          closed at all (R5.14). */}
-      <div data-tauri-drag-region style={{ position: "absolute", top: 0, left: 0, right: 0, height: 36, zIndex: 2 }}>
-        <div style={{ position: "absolute", top: 6, right: 8, display: "flex" }}>
-          <div onClick={() => void winMinimize()} title="Minimizar" className="gs-winbtn" style={{ width: 38, height: 28, display: "grid", placeItems: "center", cursor: "pointer", fontSize: 11, color: "var(--text2)", borderRadius: 6 }}>
-            —
-          </div>
-          <div onClick={() => void winClose()} title="Fechar" className="gs-winclose" style={{ width: 38, height: 28, display: "grid", placeItems: "center", cursor: "pointer", fontSize: 11, color: "var(--text2)", borderRadius: 6 }}>
-            ✕
-          </div>
-        </div>
-      </div>
+      <OnboardBar />
       <FallingLeaves />
       <div data-tauri-drag-region style={{ position: "relative", zIndex: 1, display: "flex", alignItems: "center", gap: 60, padding: 24, boxSizing: "border-box" }}>
         {/* Left: the growing tree + wordmark */}
@@ -184,12 +193,36 @@ export function Onboarding() {
 
             <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
               <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "1.4px", color: "var(--muted)" }}>REPOSITÓRIOS ABERTOS</div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+              {/* Mini previews, same language as the theme cards (R5.18). */}
+              <div style={{ display: "flex", gap: 8 }}>
                 {(["tabs", "rail"] as const).map((k) => {
                   const active = t.repoLayout === k;
                   return (
-                    <div key={k} onClick={() => t.savePrefs({ repoLayout: k })} style={{ display: "flex", alignItems: "center", gap: 7, padding: "6px 13px", borderRadius: 999, border: `2px solid ${active ? "var(--accent)" : "var(--btnB)"}`, fontSize: 12.5, cursor: "pointer", color: active ? "var(--text)" : "var(--text2)" }}>
-                      {k === "tabs" ? "Abas em cima (browser)" : "Barra lateral (estilo Discord)"}
+                    <div key={k} onClick={() => t.savePrefs({ repoLayout: k })} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 5, cursor: "pointer" }}>
+                      <div className="gs-lift" style={{ width: 76, height: 52, borderRadius: 9, border: `2px solid ${active ? "var(--accent)" : "var(--btnB)"}`, background: "var(--win)", overflow: "hidden", display: "flex", flexDirection: "column" }}>
+                        {k === "tabs" ? (
+                          <>
+                            <div style={{ height: 13, background: "var(--panel)", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 3, padding: "0 5px", boxSizing: "border-box" }}>
+                              <span style={{ width: 18, height: 6, borderRadius: 3, background: "var(--sel)", border: "1px solid var(--btnB)", boxSizing: "border-box" }} />
+                              <span style={{ width: 14, height: 6, borderRadius: 3, background: "var(--border)" }} />
+                              <span style={{ width: 14, height: 6, borderRadius: 3, background: "var(--border)" }} />
+                            </div>
+                            <div style={{ flex: 1 }} />
+                          </>
+                        ) : (
+                          <div style={{ flex: 1, display: "flex" }}>
+                            <div style={{ width: 15, background: "var(--panel)", borderRight: "1px solid var(--border)", display: "flex", flexDirection: "column", alignItems: "center", gap: 4, paddingTop: 5, boxSizing: "border-box" }}>
+                              <span style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--l0)" }} />
+                              <span style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--border)" }} />
+                              <span style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--border)" }} />
+                            </div>
+                            <div style={{ flex: 1 }} />
+                          </div>
+                        )}
+                      </div>
+                      <div style={{ fontSize: 11, fontWeight: 600, color: active ? "var(--text)" : "var(--muted)" }}>
+                        {k === "tabs" ? "Abas (browser)" : "Barra lateral"}
+                      </div>
                     </div>
                   );
                 })}
