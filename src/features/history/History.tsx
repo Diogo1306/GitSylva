@@ -147,9 +147,11 @@ function DetailPanel({ repoPath, commit }: { repoPath: string; commit: Commit })
             {commit.hash.slice(0, 7)}
           </div>
         </div>
-        <div className="gs-selectable" style={{ fontSize: 14.5, lineHeight: 1.45, color: "var(--text)" }}>{commit.subject}</div>
+        {/* Not selectable (user request): copying the message goes through the
+            commit's right-click menu instead. */}
+        <div style={{ fontSize: 14.5, lineHeight: 1.45, color: "var(--text)" }}>{commit.subject}</div>
         {body && (
-          <div className="gs-selectable" style={{ fontSize: 12.5, lineHeight: 1.55, color: "var(--text2)", whiteSpace: "pre-wrap", wordBreak: "break-word", maxHeight: 110, overflowY: "auto" }}>
+          <div style={{ fontSize: 12.5, lineHeight: 1.55, color: "var(--text2)", whiteSpace: "pre-wrap", wordBreak: "break-word", maxHeight: 110, overflowY: "auto" }}>
             {body}
           </div>
         )}
@@ -303,12 +305,6 @@ export function History() {
   // Settings → Aparência → Densidade (handoff: conforto 52 / compacta 40).
   const density = useThemeStore((s) => s.density);
   const rowH = density === "compacta" ? 40 : ROW_H;
-  // Design: detail panel resizable 300–560, persisted.
-  const detailW = usePanelWidth("gitsylva-w-detail", 372, 300, 560, "left");
-  // R5.9: the detail/diff panel can sit beside the list (default) or below it
-  // (SourceTree style), and can be collapsed entirely.
-  const below = useThemeStore((s) => s.historyLayout) === "baixo";
-  const detailH = usePanelHeight("gitsylva-h-history-detail", 340, 160, 720);
   // Persisted (R5.10): closing the diff used to reset every time the screen
   // remounted; now the choice sticks, and the header button shows the state.
   const [detailOpen, setDetailOpenState] = useState(() => localStorage.getItem("gitsylva-history-detail") !== "off");
@@ -316,6 +312,18 @@ export function History() {
     setDetailOpenState(v);
     localStorage.setItem("gitsylva-history-detail", v ? "on" : "off");
   };
+  const collapseDetail = useCallback(() => {
+    setDetailOpenState(false);
+    localStorage.setItem("gitsylva-history-detail", "off");
+  }, []);
+  // Design: detail panel resizable 300–560, persisted; dragging well past the
+  // minimum minimizes it (R5.13), same as the header button.
+  const detailW = usePanelWidth("gitsylva-w-detail", 372, 300, 560, "left", collapseDetail);
+  // R5.9: the detail/diff panel can sit beside the list (default) or below it
+  // (SourceTree style); the handle sits ABOVE the bottom panel, so drag down
+  // shrinks and keeps shrinking into a collapse.
+  const below = useThemeStore((s) => s.historyLayout) === "baixo";
+  const detailH = usePanelHeight("gitsylva-h-history-detail", 340, 160, 720, "top", collapseDetail);
 
   // A focused commit (palette pick or a branch click in the sidebar) deeper
   // than the loaded window grows the window instead of silently selecting the
