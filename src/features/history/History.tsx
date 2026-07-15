@@ -308,14 +308,35 @@ export function History() {
   // Persisted (R5.10): closing the diff used to reset every time the screen
   // remounted; now the choice sticks, and the header button shows the state.
   const [detailOpen, setDetailOpenState] = useState(() => localStorage.getItem("gitsylva-history-detail") !== "off");
-  const setDetailOpen = (v: boolean) => {
-    setDetailOpenState(v);
-    localStorage.setItem("gitsylva-history-detail", v ? "on" : "off");
-  };
+  // R5.16: hide plays a short exit animation before the panel unmounts.
+  const [detailClosing, setDetailClosing] = useState(false);
+  const anims = useThemeStore((s) => s.anims);
+  const closeTimer = useRef<number | null>(null);
   const collapseDetail = useCallback(() => {
-    setDetailOpenState(false);
     localStorage.setItem("gitsylva-history-detail", "off");
+    if (!useThemeStore.getState().anims) {
+      setDetailOpenState(false);
+      return;
+    }
+    setDetailClosing(true);
+    if (closeTimer.current) window.clearTimeout(closeTimer.current);
+    closeTimer.current = window.setTimeout(() => {
+      setDetailClosing(false);
+      setDetailOpenState(false);
+    }, 190);
   }, []);
+  useEffect(() => () => {
+    if (closeTimer.current) window.clearTimeout(closeTimer.current);
+  }, []);
+  const setDetailOpen = (v: boolean) => {
+    if (!v) {
+      collapseDetail();
+      return;
+    }
+    localStorage.setItem("gitsylva-history-detail", "on");
+    setDetailClosing(false);
+    setDetailOpenState(true);
+  };
   // Design: detail panel resizable 300–560, persisted; dragging well past the
   // minimum minimizes it (R5.13), same as the header button.
   const detailW = usePanelWidth("gitsylva-w-detail", 372, 300, 560, "left", collapseDetail);
@@ -530,8 +551,9 @@ export function History() {
       </div>
 
       {/* The header "Diff" button is the single show/hide control (R5.11 —
-          the old floating arrow sat on top of the commit-hash chip). */}
-      {detailOpen && (
+          the old floating arrow sat on top of the commit-hash chip). Entrance
+          and exit are short slides so the toggle never feels jarring. */}
+      {(detailOpen || detailClosing) && (
         <>
           {below && (
             <div
@@ -542,11 +564,16 @@ export function History() {
             />
           )}
           <div
-            style={
-              below
-                ? { height: detailH.height, flexShrink: 0, background: "var(--panel)", minWidth: 0, position: "relative", display: "flex", flexDirection: "column" }
-                : { width: detailW.width, flexShrink: 0, background: "var(--panel)", minHeight: 0, position: "relative" }
-            }
+            style={{
+              ...(below
+                ? { height: detailH.height, flexShrink: 0, background: "var(--panel)", minWidth: 0, position: "relative" as const, display: "flex", flexDirection: "column" as const }
+                : { width: detailW.width, flexShrink: 0, background: "var(--panel)", minHeight: 0, position: "relative" as const }),
+              animation: !anims
+                ? undefined
+                : detailClosing
+                  ? `${below ? "panelOutY" : "panelOutX"} 0.18s var(--ease-standard) both`
+                  : `${below ? "panelInY" : "panelInX"} 0.22s var(--ease-pop) both`,
+            }}
           >
             {!below && <PanelHandle edge="left" handleProps={detailW.handleProps} />}
             <DetailPanel repoPath={repo.path} commit={selected} />
@@ -562,6 +589,7 @@ export function History() {
             rewrite.reset.mutate({ target: h, mode }, { onSuccess: () => toast(`Reset ${mode} para ${short}`), onError: (e: unknown) => toast((e as { message?: string })?.message ?? "erro no reset", "error") });
           const subject = commits.find((c) => c.hash === h)?.subject ?? "";
           const items: MenuItem[] = [
+            { label: "Ir para este commit…", onClick: () => setConfirmGoto(h) },
             { label: "Criar branch daqui…", onClick: () => { setBranchName(""); setBranchFrom(h); } },
             { label: "Criar tag neste commit…", onClick: () => { setTagName(""); setTagAt(h); } },
             { label: "", onClick: () => {}, divider: true },
