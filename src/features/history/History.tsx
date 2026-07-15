@@ -80,8 +80,10 @@ function Chips({ refs }: { refs: string }) {
               whiteSpace: "nowrap",
               overflow: "hidden",
               textOverflow: "ellipsis",
-              // Per-chip cap so one long ref name can't starve the others.
+              // Per-chip cap so one long ref name can't starve the others —
+              // but the HEAD chip (where you ARE) never gives up its space.
               maxWidth: 150,
+              flexShrink: ch.kind === "head" ? 0 : 1,
               boxSizing: "border-box",
               background: st.bg,
               color: st.color,
@@ -225,6 +227,9 @@ const CommitRow = memo(function CommitRow({
   onSelect: (hash: string) => void;
   onContext: (hash: string, x: number, y: number) => void;
 }) {
+  // Where HEAD is (the commit you're standing on) gets a left accent bar so
+  // it's findable at a glance even with the chips scrolled out of view.
+  const isHead = commit.refs.includes("HEAD");
   return (
     <div
       onClick={() => onSelect(commit.hash)}
@@ -243,6 +248,7 @@ const CommitRow = memo(function CommitRow({
         boxSizing: "border-box",
         // undefined (not "transparent") so .gs-row:hover still paints.
         background: selected ? "var(--sel)" : undefined,
+        boxShadow: isHead ? "inset 3px 0 0 var(--l0)" : undefined,
         borderBottom: "1px solid var(--bsoft)",
         // Skip painting rows scrolled out of view; the box keeps its height so
         // the graph overlay stays aligned.

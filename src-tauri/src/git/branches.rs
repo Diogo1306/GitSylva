@@ -10,6 +10,25 @@ pub struct BranchInfo {
     pub upstream: Option<String>,
     /// Full hash of the branch tip — the sidebar focuses it in the history.
     pub tip: String,
+    /// Commits ahead/behind the upstream (0/0 when there is no upstream).
+    pub ahead: u32,
+    pub behind: u32,
+}
+
+/// Parse "%(upstream:track)" output — "[ahead 2, behind 1]", "[ahead 2]",
+/// "[behind 3]", "[gone]" or "" — into (ahead, behind).
+fn parse_track(track: &str) -> (u32, u32) {
+    let num_after = |key: &str| -> u32 {
+        track
+            .split(key)
+            .nth(1)
+            .and_then(|rest| {
+                let digits: String = rest.trim_start().chars().take_while(|c| c.is_ascii_digit()).collect();
+                digits.parse().ok()
+            })
+            .unwrap_or(0)
+    };
+    (num_after("ahead "), num_after("behind "))
 }
 
 #[tauri::command(rename = "list_branches")]
@@ -50,7 +69,7 @@ pub fn list_branches(path: String) -> Result<Vec<BranchInfo>, GitError> {
         &[
             "for-each-ref",
             "--sort=-committerdate",
-            "--format=%(refname)%1f%(refname:short)%1f%(HEAD)%1f%(upstream:short)%1f%(objectname)",
+            "--format=%(refname)%1f%(refname:short)%1f%(HEAD)%1f%(upstream:short)%1f%(objectname)%1f%(upstream:track)",
             "refs/heads",
             "refs/remotes",
         ],
@@ -75,12 +94,15 @@ pub fn list_branches(path: String) -> Result<Vec<BranchInfo>, GitError> {
             .filter(|s| !s.is_empty())
             .map(|s| s.to_string());
         let tip = f.get(4).copied().unwrap_or("").to_string();
+        let (ahead, behind) = parse_track(f.get(5).copied().unwrap_or(""));
         branches.push(BranchInfo {
             name,
             is_current,
             is_remote,
             upstream,
             tip,
+            ahead,
+            behind,
         });
     }
     Ok(branches)
@@ -179,6 +201,15 @@ mod tests {
         create_branch(p.clone(), "dev".into(), true, None).unwrap();
         let branches = list_branches(p).unwrap();
         assert!(branches.iter().find(|b| b.name == "dev").unwrap().is_current);
+    }
+
+    #[test]
+    fn parse_track_variants() {
+        assert_eq!(parse_track(""), (0, 0));
+        assert_eq!(parse_track("[gone]"), (0, 0));
+        assert_eq!(parse_track("[ahead 2]"), (2, 0));
+        assert_eq!(parse_track("[behind 13]"), (0, 13));
+        assert_eq!(parse_track("[ahead 2, behind 1]"), (2, 1));
     }
 
     #[test]
