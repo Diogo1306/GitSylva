@@ -43,10 +43,16 @@ npx vitest run         # frontend tests
 cargo test             # Rust tests (from src-tauri/)
 ```
 
-Release build:
+Release build (the updater signs every bundle, so the private key must be loaded — the script handles it):
+
+```powershell
+powershell -File scripts/build-installer.ps1
+```
+
+For a quick local binary without the installer/signing step:
 
 ```bash
-npx tauri build --bundles nsis
+npx tauri build --no-bundle   # exe at src-tauri/target/release/app.exe
 ```
 
 Performance harness (mocked 2,000-commit repo, dev only):
