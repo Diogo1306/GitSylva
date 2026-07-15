@@ -80,11 +80,14 @@ export function DiffView({
           {tab("split", "Lado a lado")}
         </div>
       </div>
-      {mode === "split" ? (
-        <DiffSplit patch={visiblePatch} />
-      ) : (
-        <DiffLines patch={visiblePatch} fontSize={fontSize} onStageHunk={onStageHunk} stageLabel={stageLabel} partialTail={partialTail} />
-      )}
+      {/* Diff text IS content — it stays selectable/copyable (R5.12). */}
+      <div className="gs-selectable" style={{ display: "contents" }}>
+        {mode === "split" ? (
+          <DiffSplit patch={visiblePatch} />
+        ) : (
+          <DiffLines patch={visiblePatch} fontSize={fontSize} onStageHunk={onStageHunk} stageLabel={stageLabel} partialTail={partialTail} />
+        )}
+      </div>
       {hidden > 0 && (
         <div
           onClick={() => setPages((p) => p + 1)}

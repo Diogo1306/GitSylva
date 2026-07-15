@@ -14,6 +14,7 @@ import { graphRows } from "../../graph/layout";
 import { CommitGraphSvg } from "../../components/CommitGraphSvg";
 import { DiffView } from "../../components/DiffView";
 import { statusStyle, statusTitle } from "../../lib/status";
+import { openRepo as openRepoInfo } from "../../lib/api";
 import { FileIcon } from "../../components/FileIcon";
 import { errMsg } from "../../lib/errors";
 import {
@@ -146,9 +147,9 @@ function DetailPanel({ repoPath, commit }: { repoPath: string; commit: Commit })
             {commit.hash.slice(0, 7)}
           </div>
         </div>
-        <div style={{ fontSize: 14.5, lineHeight: 1.45, color: "var(--text)" }}>{commit.subject}</div>
+        <div className="gs-selectable" style={{ fontSize: 14.5, lineHeight: 1.45, color: "var(--text)" }}>{commit.subject}</div>
         {body && (
-          <div style={{ fontSize: 12.5, lineHeight: 1.55, color: "var(--text2)", whiteSpace: "pre-wrap", wordBreak: "break-word", maxHeight: 110, overflowY: "auto" }}>
+          <div className="gs-selectable" style={{ fontSize: 12.5, lineHeight: 1.55, color: "var(--text2)", whiteSpace: "pre-wrap", wordBreak: "break-word", maxHeight: 110, overflowY: "auto" }}>
             {body}
           </div>
         )}
@@ -219,6 +220,7 @@ const CommitRow = memo(function CommitRow({
   rowH,
   gutter,
   onSelect,
+  onGoto,
   onContext,
 }: {
   commit: Commit;
@@ -228,6 +230,8 @@ const CommitRow = memo(function CommitRow({
   /** Left space for the graph — grows with the number of parallel lanes. */
   gutter: number;
   onSelect: (hash: string) => void;
+  /** Double click: confirm-and-checkout this commit (branch-row pattern). */
+  onGoto: (hash: string) => void;
   onContext: (hash: string, x: number, y: number) => void;
 }) {
   // Where HEAD is (the commit you're standing on) gets a left accent bar so
@@ -236,11 +240,13 @@ const CommitRow = memo(function CommitRow({
   return (
     <div
       onClick={() => onSelect(commit.hash)}
+      onDoubleClick={() => onGoto(commit.hash)}
       onContextMenu={(e) => {
         e.preventDefault();
         onContext(commit.hash, e.clientX, e.clientY);
       }}
       className="gs-row"
+      title="1 clique: ver · 2 cliques: ir para este commit · botão direito: opções"
       style={{
         height: rowH,
         display: "flex",
@@ -285,6 +291,9 @@ export function History() {
   const [confirmRebase, setConfirmRebase] = useState<string | null>(null);
   // R5.6 context-menu extras: revert, branch-from-here, tag-here.
   const [confirmRevert, setConfirmRevert] = useState<string | null>(null);
+  // R5.12: double-click a commit = confirm-and-checkout (branch-row pattern).
+  const [confirmGoto, setConfirmGoto] = useState<string | null>(null);
+  const onGoto = useCallback((hash: string) => setConfirmGoto(hash), []);
   const [branchFrom, setBranchFrom] = useState<string | null>(null);
   const [branchName, setBranchName] = useState("");
   const [tagAt, setTagAt] = useState<string | null>(null);
@@ -493,6 +502,7 @@ export function History() {
                   rowH={rowH}
                   gutter={gutter}
                   onSelect={selectHash}
+                  onGoto={onGoto}
                   onContext={onContext}
                 />
               ))}
@@ -589,6 +599,28 @@ export function History() {
               { target, mode: "hard" },
               { onSuccess: () => toast(`Reset hard para ${target.slice(0, 7)}`), onError: (e: unknown) => toast((e as { message?: string })?.message ?? "erro no reset", "error") },
             );
+          }}
+        />
+      )}
+
+      {confirmGoto && (
+        <ConfirmDialog
+          message={`Ir para o commit ${confirmGoto.slice(0, 7)}? A cópia de trabalho passa a refletir esse ponto em modo solto (detached HEAD). Para continuar trabalho a partir daqui, usa o botão direito → "Criar branch daqui…".`}
+          confirmLabel="Ir para o commit"
+          onCancel={() => setConfirmGoto(null)}
+          onConfirm={() => {
+            const hash = confirmGoto;
+            setConfirmGoto(null);
+            if (branchActions.checkout.isPending) return;
+            branchActions.checkout.mutate(hash, {
+              onSuccess: () => {
+                toast(`Em ${hash.slice(0, 7)} (HEAD solto)`);
+                // Refresh the repo info properly — a detached HEAD has no
+                // branch name for setCurrent to guess.
+                void openRepoInfo(repo.path).then((info) => useAppStore.getState().updateRepo(repo.path, info)).catch(() => {});
+              },
+              onError: (e: unknown) => toast((e as { message?: string })?.message ?? "não foi possível ir para o commit", "error"),
+            });
           }}
         />
       )}
