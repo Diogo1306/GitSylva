@@ -85,7 +85,7 @@ export function Notifications() {
   return (
     <div
       aria-live="polite"
-      style={{ position: "fixed", bottom: 16, right: 16, zIndex: 80, display: "flex", flexDirection: "column", gap: 10, alignItems: "flex-end" }}
+      style={{ position: "fixed", bottom: 66, right: 16, zIndex: 80, display: "flex", flexDirection: "column", gap: 10, alignItems: "flex-end" }}
     >
       {notifications.map((n) => (
         <div
