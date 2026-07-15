@@ -49,8 +49,9 @@ function TrafficLights() {
 }
 
 // Windows: min / max-restore / close on the RIGHT; close hover turns red
-// (#E81123) per the interaction spec.
-function WinControls() {
+// (#E81123) per the interaction spec. Exported: the no-repo picker shell and
+// other bare screens need the same controls.
+export function WinControls() {
   const [maxed, setMaxed] = useState(false);
   useEffect(() => {
     void winIsMaximized().then(setMaxed);
