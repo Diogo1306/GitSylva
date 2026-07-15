@@ -1,75 +1,67 @@
-# React + TypeScript + Vite
+# GitSylva
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+**A git client where your history grows like a tree.**
 
-Currently, two official plugins are available:
+GitSylva is a fast, animated desktop git client for Windows. The commit graph is drawn as a living tree — oak leaves, cherry blossoms, palm trees, or plain classic nodes if that's your thing — on top of a full-featured, keyboard-friendly git workflow.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+![GitSylva](docs/screenshot.png)
 
-## React Compiler
+## Download
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Grab the installer from the [latest release](https://github.com/Diogo1306/GitSylva/releases/latest) (`GitSylva_x.y.z_x64-setup.exe`).
 
-## Expanding the ESLint configuration
+- Windows 10/11 x64. WebView2 is installed automatically if missing.
+- The app checks for updates on startup and installs them in one click (releases are cryptographically signed).
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## Features
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+- **Living history** — the commit graph grows as an animated tree, with four visual styles and recolorable branch palettes. Virtualized rendering keeps 2,000+ commit histories smooth.
+- **Working copy** — stage and unstage per file or per hunk, unified or side-by-side diffs, blame view, per-file-type icons, huge diffs paginated and capped so nothing ever freezes.
+- **Branches, stashes, tags** — slashed branch names (`feature/x`) group into collapsible folders, stashes preview their files, merge/rebase/cherry-pick with a persistent conflict banner.
+- **Multi-repository** — tabs across the top or a VS Code-style rail, with color-coded, renamable repo groups.
+- **Themes** — dark, light, nipon and git-classic; tree styles, branch palettes, accent colors and fonts, all exportable to a JSON file.
+- **Command palette** — `Ctrl+K` searches commits, branches, files, repositories and git actions in one place. Every shortcut is rebindable.
+- **Stability first** — all git operations run off the UI thread with per-repo write locking, crash/panic capture to a local log, and release-build telemetry (`window.__gsPerf()`).
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+The UI is currently in Portuguese; full English localization is on the roadmap.
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## Development
 
+Prerequisites: [Node.js](https://nodejs.org) 20+, [Rust](https://rustup.rs) (stable), and the [Tauri 2 Windows toolchain](https://v2.tauri.app/start/prerequisites/).
+
+```bash
+npm install
+npx tauri dev          # run the app with hot reload
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Checks:
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
+```bash
+npx tsc --noEmit       # typecheck
+npx eslint src         # lint
+npx vitest run         # frontend tests
+cargo test             # Rust tests (from src-tauri/)
 ```
+
+Release build:
+
+```bash
+npx tauri build --bundles nsis
+```
+
+Performance harness (mocked 2,000-commit repo, dev only):
+
+```bash
+VITE_PERF_MOCK=1 npm run build && npm run preview
+```
+
+## Tech stack
+
+- [Tauri 2](https://v2.tauri.app) — Rust backend shelling out to the system `git`, no libgit2
+- [React 19](https://react.dev) + TypeScript + [Vite](https://vite.dev)
+- [zustand](https://github.com/pmndrs/zustand) for state, [TanStack Query](https://tanstack.com/query) for git data
+- Hand-rolled SVG commit graph — no chart library
+
+## Project notes
+
+Design specs live in `docs/design/` and the full audit/engineering log in `docs/GITSYLVA_FINAL_AUDIT.md` (in Portuguese). Runtime logs are written to `%LOCALAPPDATA%\com.gitsylva.app\logs\gitsylva.log`.
