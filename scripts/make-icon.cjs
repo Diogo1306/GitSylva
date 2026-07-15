@@ -5,14 +5,22 @@
 const zlib = require("zlib");
 const fs = require("fs");
 
-const SS = 2048;
-const OUT = 1024;
+// argv: [target] [bgHex] [leafHex] [size] — defaults reproduce the original
+// 1024px brand icon; the themed window icons pass their own colors/size.
+const hexArg = (s, fallback) => {
+  if (!s || !/^#?[0-9a-fA-F]{6}$/.test(s)) return fallback;
+  const h = s.replace("#", "");
+  return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16), 255];
+};
+
+const OUT = parseInt(process.argv[5], 10) || 1024;
+const SS = OUT * 2;
 const SCALE = SS / 64;
 
 const buf = new Uint8Array(SS * SS * 4);
 
-const BG = [0x14, 0x18, 0x1b, 255];
-const GREEN = [0x7b, 0xc8, 0x96, 255];
+const BG = hexArg(process.argv[3], [0x14, 0x18, 0x1b, 255]);
+const GREEN = hexArg(process.argv[4], [0x7b, 0xc8, 0x96, 255]);
 
 function put(x, y, c) {
   if (x < 0 || y < 0 || x >= SS || y >= SS) return;
