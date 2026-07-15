@@ -1,0 +1,26 @@
+/* Bundled variable fonts (latin subset, woff2). No network dependency.
+ * woff2 keeps the bundle light (~110KB total vs ~1.3MB as TTF) and parses fast. */
+
+/* Primary UI font. Stands in for the design's Instrument Sans. */
+@font-face {
+  font-family: "Inter";
+  src: url("./fonts/inter.woff2") format("woff2");
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+/* Wordmark font (git + tree-S + ylva). */
+@font-face {
+  font-family: "Space Grotesk";
+  src: url("./fonts/space-grotesk.woff2") format("woff2");
+  font-weight: 300 700;
+  font-display: swap;
+}
+
+/* Monospace for hashes, paths, diffs and code. */
+@font-face {
+  font-family: "JetBrains Mono";
+  src: url("./fonts/jetbrains-mono.woff2") format("woff2");
+  font-weight: 100 800;
+  font-display: swap;
+}

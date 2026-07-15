@@ -1,0 +1,212 @@
+/*
+ * Base document styles and the full animation keyframe library, ported from
+ * the GitSylva design handoff. Theme color variables are NOT declared here;
+ * they are written onto :root at runtime by useApplyTheme() from themes.ts.
+ * A neutral fallback set lives in :root so the very first paint is not blank.
+ */
+
+:root {
+  --desk: radial-gradient(120% 90% at 50% 0%, #1b1d1f 0%, #0b0c0d 62%);
+  --win: #141618;
+  --winB: rgba(255, 255, 255, 0.08);
+  --shadow: 0 0 0 1px rgba(0, 0, 0, 0.55), 0 24px 80px rgba(0, 0, 0, 0.55);
+  --panel: #101214;
+  --panel2: #0c0e10;
+  --border: #272b2e;
+  --bsoft: rgba(255, 255, 255, 0.05);
+  --text: #eaecee;
+  --text2: #a5acb2;
+  --muted: #7b838b;
+  --sel: rgba(234, 236, 238, 0.08);
+  --hover: rgba(234, 236, 238, 0.05);
+  --btn: #1b1e21;
+  --btnB: #2d3134;
+  --btnT: #c8cdd2;
+  --badge: #262a2e;
+  --badgeT: #aeb5bb;
+  --input: #181b1d;
+  --accent: #eaecee;
+  --accentT: #111315;
+  --leaf: #82c99b;
+  --trunk: #8a5a33;
+  --l0: #82c99b;
+  --l0bg: rgba(130, 201, 155, 0.12);
+  --l0bd: rgba(130, 201, 155, 0.28);
+  --l1: #7fa6d9;
+  --l1bg: rgba(127, 166, 217, 0.12);
+  --l1bd: rgba(127, 166, 217, 0.28);
+  --l2: #d9a96b;
+  --l2bg: rgba(217, 169, 107, 0.13);
+  --l2bd: rgba(217, 169, 107, 0.3);
+  --tagbd: #31363a;
+  --dhB: rgba(127, 166, 217, 0.08);
+  --dhT: #7fa6d9;
+  --dcT: #8c9399;
+  --daB: rgba(130, 201, 155, 0.1);
+  --daT: #a9ddbc;
+  --ddB: rgba(228, 122, 122, 0.1);
+  --ddT: #e4a3a3;
+  --danger: #c25555;
+  --dangerT: #ffffff;
+  --stMB: rgba(217, 169, 107, 0.14);
+  --stMT: #dcbe93;
+  --stAB: rgba(130, 201, 155, 0.14);
+  --stAT: #a9ddbc;
+  --stDB: rgba(228, 122, 122, 0.14);
+  --stDT: #e4a3a3;
+  --font: "Inter", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --radius: 14px;
+  --radius-sm: 8px;
+  --radius-pill: 999px;
+
+  /* Spacing scale (4px base). */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 28px;
+
+  /* Elevation. */
+  --shadow-1: 0 6px 18px rgba(0, 0, 0, 0.12);
+  --shadow-2: 0 24px 80px rgba(0, 0, 0, 0.35);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--win);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--btnB, #ddddd5);
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Visible keyboard focus for accessibility (only on keyboard navigation). */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+  border-radius: 4px;
+}
+button:focus-visible {
+  outline-offset: 2px;
+}
+
+/* ── Animation library (from the design) ───────────────────────────────── */
+@keyframes vineDraw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+@keyframes nodePop { from { transform: scale(0); } to { transform: scale(1); } }
+@keyframes leafPop {
+  0% { transform: scale(0) rotate(-50deg); }
+  70% { transform: scale(1.15) rotate(3deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+/* Motion tokens (handoff animation-specs): micro 120–150ms · UI 150–250ms ·
+ * panel/screen 250–450ms · ambient 7–22s. Entrance easing = "pop". */
+:root {
+  --motion-micro: 120ms;
+  --motion-fast: 150ms;
+  --motion-normal: 250ms;
+  --motion-slow: 450ms;
+  --ease-pop: cubic-bezier(0.2, 0.9, 0.3, 1);
+  --ease-standard: ease;
+  --ease-out: ease-out;
+}
+
+@keyframes fadeUp { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: none; } }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+@keyframes popIn { from { opacity: 0; transform: scale(0.94) translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes splashSeq { 0% { opacity: 1; } 72% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes logoIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: none; } }
+@keyframes letterHop {
+  0% { opacity: 1; transform: none; }
+  45% { transform: translateY(-14px); opacity: 1; }
+  100% { transform: translateY(10px); opacity: 0; }
+}
+@keyframes themeSwapA { 0% { opacity: 0.45; } 100% { opacity: 1; } }
+@keyframes toastIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes toastOut { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(10px); } }
+@keyframes notifIn { from { opacity: 0; transform: translateX(28px) scale(0.97); } to { opacity: 1; transform: none; } }
+@keyframes notifOut { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateX(36px) scale(0.94); } }
+@keyframes modalOut { from { opacity: 1; transform: none; } to { opacity: 0; transform: scale(0.96) translateY(8px); } }
+@keyframes obFade { from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(1.05); } }
+@keyframes recPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
+@keyframes winMinimize {
+  0% { transform: none; opacity: 1; }
+  45% { transform: translateY(64px) scale(0.86); opacity: 0; }
+  60% { transform: translateY(64px) scale(0.86); opacity: 0; }
+  100% { transform: none; opacity: 1; }
+}
+@keyframes fxFall {
+  0% { transform: translateY(0) rotate(0deg); opacity: 0; }
+  12% { opacity: 0.9; }
+  100% { transform: translateY(340px) translateX(-18px) rotate(230deg); opacity: 0; }
+}
+@keyframes sway { from { transform: rotate(-1.1deg); } to { transform: rotate(1.4deg); } }
+@keyframes fileIn { from { opacity: 0; transform: translateX(-8px) scale(0.98); } to { opacity: 1; transform: none; } }
+@keyframes fileOut { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateX(-8px) scale(0.98); } }
+@keyframes letterL { from { opacity: 0; transform: translateX(16px) scale(0.85); } to { opacity: 1; transform: none; } }
+@keyframes letterR { from { opacity: 0; transform: translateX(-16px) scale(0.85); } to { opacity: 1; transform: none; } }
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+@keyframes leafFall {
+  0% { transform: translate(0, -6vh) rotate(0deg); opacity: 0; }
+  10% { opacity: 0.75; }
+  55% { transform: translate(26px, 48vh) rotate(160deg); }
+  88% { opacity: 0.65; }
+  100% { transform: translate(-14px, 106vh) rotate(330deg); opacity: 0; }
+}
+
+/* Ambient loops (falling leaves, sway) pause while the window is blurred,
+ * minimized or the tab hidden — no CPU/GPU burn when nobody is looking. */
+:root[data-win-hidden] .gs-ambient,
+:root[data-win-hidden] .gs-ambient * {
+  animation-play-state: paused !important;
+}
+
+/*
+ * Motion gating. Turning off "Animações decorativas" is a real master switch:
+ * every CSS animation collapses (entrances, leaves, theme flash), matching the
+ * OS-level reduced-motion behaviour below. Spinners lose their rotation but
+ * pending states still read through their text ("A obter…").
+ */
+:root[data-anims="off"] *,
+:root[data-anims="off"] *::before,
+:root[data-anims="off"] *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

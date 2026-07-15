@@ -1,39 +1,67 @@
 # GitSylva
 
-Desktop Git client where history is shown as a living tree.
+**A git client where your history grows like a tree.**
 
-The goal is a clean and simple app for everyday git work: open a repository, see
-your changes, stage files, commit, and view history as a tree graph.
+GitSylva is a fast, animated desktop git client for Windows. The commit graph is drawn as a living tree — oak leaves, cherry blossoms, palm trees, or plain classic nodes if that's your thing — on top of a full-featured, keyboard-friendly git workflow.
 
-## Status
+![GitSylva](docs/screenshot.png)
 
-In development. Starting with the MVP.
+## Download
 
-Phased roadmap:
+Grab the installer from the [latest release](https://github.com/Diogo1306/GitSylva/releases/latest) (`GitSylva_x.y.z_x64-setup.exe`).
 
-- Phase 0. Foundation: project set up, design system and base theme, connection
-  to the system git, open a repository.
-- Phase 1. Commit MVP: view changes, stage per file, discard, write a message,
-  make a real commit, view the history graph and the diff.
-- Phase 2. Sync: pull, push, fetch, switch and create branches.
-- Phase 3. Power: stashes, tags, merge, quick search, multiple repositories.
-- Phase 4. Polish: themes, tree styles, animations, onboarding, settings.
+- Windows 10/11 x64. WebView2 is installed automatically if missing.
+- The app checks for updates on startup and installs them in one click (releases are cryptographically signed).
 
-## Tech
+## Features
 
-- Tauri 2 for the desktop shell.
-- React, TypeScript and Vite for the interface.
-- Rust backend that talks to the system git through a subprocess.
+- **Living history** — the commit graph grows as an animated tree, with four visual styles and recolorable branch palettes. Virtualized rendering keeps 2,000+ commit histories smooth.
+- **Working copy** — stage and unstage per file or per hunk, unified or side-by-side diffs, blame view, per-file-type icons, huge diffs paginated and capped so nothing ever freezes.
+- **Branches, stashes, tags** — slashed branch names (`feature/x`) group into collapsible folders, stashes preview their files, merge/rebase/cherry-pick with a persistent conflict banner.
+- **Multi-repository** — tabs across the top or a VS Code-style rail, with color-coded, renamable repo groups.
+- **Themes** — dark, light, nipon and git-classic; tree styles, branch palettes, accent colors and fonts, all exportable to a JSON file.
+- **Command palette** — `Ctrl+K` searches commits, branches, files, repositories and git actions in one place. Every shortcut is rebindable.
+- **Stability first** — all git operations run off the UI thread with per-repo write locking, crash/panic capture to a local log, and release-build telemetry (`window.__gsPerf()`).
 
-The app uses the git already installed on the machine, so commits keep your
-identity and push and pull use your existing credentials.
+The UI is currently in Portuguese; full English localization is on the roadmap.
 
-## Requirements
+## Development
 
-- Git installed and configured.
-- Node.js and npm.
-- Rust, to build the app.
+Prerequisites: [Node.js](https://nodejs.org) 20+, [Rust](https://rustup.rs) (stable), and the [Tauri 2 Windows toolchain](https://v2.tauri.app/start/prerequisites/).
 
-## License
+```bash
+npm install
+npx tauri dev          # run the app with hot reload
+```
 
-Personal project.
+Checks:
+
+```bash
+npx tsc --noEmit       # typecheck
+npx eslint src         # lint
+npx vitest run         # frontend tests
+cargo test             # Rust tests (from src-tauri/)
+```
+
+Release build:
+
+```bash
+npx tauri build --bundles nsis
+```
+
+Performance harness (mocked 2,000-commit repo, dev only):
+
+```bash
+VITE_PERF_MOCK=1 npm run build && npm run preview
+```
+
+## Tech stack
+
+- [Tauri 2](https://v2.tauri.app) — Rust backend shelling out to the system `git`, no libgit2
+- [React 19](https://react.dev) + TypeScript + [Vite](https://vite.dev)
+- [zustand](https://github.com/pmndrs/zustand) for state, [TanStack Query](https://tanstack.com/query) for git data
+- Hand-rolled SVG commit graph — no chart library
+
+## Project notes
+
+Design specs live in `docs/design/` and the full audit/engineering log in `docs/GITSYLVA_FINAL_AUDIT.md` (in Portuguese). Runtime logs are written to `%LOCALAPPDATA%\com.gitsylva.app\logs\gitsylva.log`.

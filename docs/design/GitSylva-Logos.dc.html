@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400..700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600&family=Young+Serif&family=Space+Grotesk:wght@400;500;600&family=Newsreader:ital,opsz,wght@0,6..72,400..600;1,6..72,400..600&family=Bricolage+Grotesque:opsz,wght@12..96,400..700&family=Cormorant+Garamond:wght@500;600&family=Space+Mono&display=swap" rel="stylesheet">
+  <style>
+    html, body { margin: 0; padding: 0; background: #0C0E10; }
+    a { color: #7BC896; text-decoration: none; }
+    a:hover { opacity: 0.8; }
+    ::-webkit-scrollbar { width: 10px; }
+    ::-webkit-scrollbar-thumb { background: #2A2E32; border-radius: 8px; }
+    @keyframes vineDraw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+    @keyframes nodePop { from { transform: scale(0); } to { transform: scale(1); } }
+    @keyframes leafPop { 0% { transform: scale(0) rotate(-50deg); } 70% { transform: scale(1.15) rotate(3deg); } 100% { transform: scale(1) rotate(0deg); } }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes popIn { from { opacity: 0; transform: scale(0.94) translateY(8px); } to { opacity: 1; transform: none; } }
+    @keyframes letterL { from { opacity: 0; transform: translateX(16px) scale(0.85); } to { opacity: 1; transform: none; } }
+    @keyframes letterR { from { opacity: 0; transform: translateX(-16px) scale(0.85); } to { opacity: 1; transform: none; } }
+    @keyframes treeGrow { from { opacity: 0; transform: scale(0.55); } to { opacity: 1; transform: scale(1); } }
+  </style>
+</helmet>
+
+<div data-screen-label="Logos GitSylva" style="min-height: 100vh; box-sizing: border-box; padding: 56px 40px 72px; background: radial-gradient(120% 80% at 50% 0%, #14181B 0%, #0A0C0D 65%); font-family: 'Instrument Sans', sans-serif; color: #EAECEE; display: flex; justify-content: center;">
+  <div style="width: 1060px; max-width: 100%; display: flex; flex-direction: column; gap: 28px;">
+
+    <div style="display: flex; flex-direction: column; gap: 6px; animation: fadeUp 0.4s ease both;">
+      <div style="font-size: 11px; font-weight: 700; letter-spacing: 2px; color: #61686E;">GITSYLVA · IDENTIDADE</div>
+      <div style="font-size: 26px; font-weight: 700; letter-spacing: -0.3px;">O "S" que é uma árvore</div>
+      <div style="font-size: 14px; color: #A5ACB2; max-width: 560px; text-wrap: pretty;">O S do wordmark é uma ramificação — tronco afilado, galhos, nós de commit e folhas — e adapta-se a cada tema. Clica em qualquer cartão para repetir a animação.</div>
+    </div>
+
+    <!-- Hero -->
+    <div onClick="{{ replayHero }}" style="border: 1px solid #272B2E; border-radius: 18px; background: #101315; padding: 44px 32px 38px; display: flex; flex-direction: column; align-items: center; gap: 22px; cursor: pointer; animation: fadeUp 0.4s ease 0.08s both;" style-hover="border-color: #3A4045">
+      <div style="width: 108px; height: 108px; border-radius: 26px; background: #14181B; border: 1px solid #272B2E; box-shadow: 0 16px 50px rgba(0,0,0,0.4); display: grid; place-items: center;">{{ heroIcon }}</div>
+      <div style="display: flex; align-items: baseline; font-family: {{ heroFont }}; font-weight: {{ heroWeight }}; font-size: {{ heroFs }}px; letter-spacing: 0.5px;">
+        <span style="display: inline-block; animation: letterL 0.32s ease 1.08s both;">g</span>
+        <span style="display: inline-block; animation: letterL 0.32s ease 0.96s both;">i</span>
+        <span style="display: inline-block; animation: letterL 0.32s ease 0.84s both; margin-right: 6px;">t</span>
+        <span style="display: inline-block;">{{ heroS }}</span>
+        <span style="display: inline-block; animation: letterR 0.32s ease 0.84s both; margin-left: 6px;">y</span>
+        <span style="display: inline-block; animation: letterR 0.32s ease 0.96s both;">l</span>
+        <span style="display: inline-block; animation: letterR 0.32s ease 1.08s both;">v</span>
+        <span style="display: inline-block; animation: letterR 0.32s ease 1.2s both;">a</span>
+      </div>
+      <div style="font-size: 11.5px; color: #61686E; letter-spacing: 1.5px; text-transform: uppercase;">Principal — copa no topo (folhas + nós de commit), base limpa · clica para repetir</div>
+    </div>
+
+    <!-- Tipografia do wordmark -->
+    <div style="display: flex; flex-direction: column; gap: 14px; animation: fadeUp 0.4s ease 0.1s both;">
+      <div style="font-size: 11px; font-weight: 700; letter-spacing: 2px; color: #61686E;">TIPOGRAFIA DO WORDMARK · clica para aplicar no hero</div>
+      <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
+        <sc-for list="{{ fontCards }}" as="fc" hint-placeholder-count="6">
+          <div onClick="{{ fc.pick }}" style="border: 2px solid {{ fc.ring }}; border-radius: 14px; background: #101315; padding: 16px 20px 14px; display: flex; align-items: center; gap: 18px; cursor: pointer; transition: transform 0.15s ease, border-color 0.15s ease;" style-hover="transform: translateY(-2px)">
+            <div style="flex: 1; min-width: 0;">
+              <div style="display: flex; align-items: baseline; font-size: {{ fc.fs }}px; font-family: {{ fc.stack }}; font-weight: {{ fc.weight }}; white-space: nowrap;">
+                <span>git</span>
+                <span style="display: inline-block; margin: 0 1px;">{{ fc.word }}</span>
+                <span>ylva</span>
+              </div>
+            </div>
+            <div style="text-align: right; flex-shrink: 0;">
+              <div style="font-size: 12.5px; font-weight: 600;">{{ fc.name }}</div>
+              <div style="font-size: 11.5px; color: #7C838A; margin-top: 2px; max-width: 150px; text-wrap: pretty;">{{ fc.note }}</div>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+    <!-- A mesma árvore em cada tema -->
+    <div style="display: flex; flex-direction: column; gap: 14px; animation: fadeUp 0.4s ease 0.2s both;">
+      <div style="font-size: 11px; font-weight: 700; letter-spacing: 2px; color: #61686E;">A MESMA ÁRVORE EM CADA TEMA · tronco afilado</div>
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;">
+        <sc-for list="{{ themed }}" as="th" hint-placeholder-count="6">
+          <div onClick="{{ th.replay }}" style="border: 1px solid {{ th.cardBd }}; border-radius: 16px; background: {{ th.cardBg }}; color: {{ th.text }}; padding: 20px 18px 16px; display: flex; flex-direction: column; align-items: center; gap: 12px; cursor: pointer; transition: transform 0.15s ease; animation: fadeUp 0.4s ease {{ th.delay }}s both;" style-hover="transform: translateY(-3px)">
+            <div style="width: 84px; height: 84px; border-radius: 20px; background: {{ th.iconBg }}; border: 1px solid {{ th.cardBd }}; display: grid; place-items: center;">{{ th.svg }}</div>
+            <div style="display: flex; align-items: baseline; font-family: 'Space Grotesk', sans-serif; font-weight: 500; font-size: 22px;">
+              <span>git</span>
+              <span style="display: inline-block; margin: 0 1px;">{{ th.word }}</span>
+              <span>ylva</span>
+            </div>
+            <div style="font-size: 12.5px; font-weight: 600; opacity: 0.8;">{{ th.name }}</div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+    <!-- Escalas do ícone -->
+    <div style="border: 1px solid #272B2E; border-radius: 16px; background: #101315; padding: 22px 24px; display: flex; align-items: center; gap: 28px; animation: fadeUp 0.4s ease 0.5s both;">
+      <div style="flex: 1;">
+        <div style="font-size: 13.5px; font-weight: 600;">Escalas do ícone (árvore afilada)</div>
+        <div style="font-size: 12px; color: #7C838A; margin-top: 3px;">Dock · barra de menus · favicon — os nós mantêm-se legíveis até 20px.</div>
+      </div>
+      <div style="display: flex; align-items: flex-end; gap: 22px;">
+        <div style="width: 72px; height: 72px; border-radius: 18px; background: #14181B; border: 1px solid #272B2E; display: grid; place-items: center;">{{ size1 }}</div>
+        <div style="width: 46px; height: 46px; border-radius: 12px; background: #14181B; border: 1px solid #272B2E; display: grid; place-items: center;">{{ size2 }}</div>
+        <div style="width: 28px; height: 28px; border-radius: 8px; background: #14181B; border: 1px solid #272B2E; display: grid; place-items: center;">{{ size3 }}</div>
+      </div>
+    </div>
+
+    <div style="font-size: 12px; color: #61686E;">Aberto no app: a variação B já está aplicada no splash e na titlebar do <a href="GitSylva Floresta.dc.html">GitSylva Floresta</a>.</div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;: {&quot;width&quot;: 1160, &quot;height&quot;: 900}}">
+class Component extends DCLogic {
+  state = { ticks: {}, fontSel: 'space' };
+
+  fonts = [
+    ['young', 'Young Serif', "'Young Serif', serif", 400, 'Quente e robusta — madeira e papel', 0.94],
+    ['instrument', 'Instrument Serif', "'Instrument Serif', serif", 400, 'A atual — elegante e fina', 1.06],
+    ['newsreader', 'Newsreader', "'Newsreader', serif", 500, 'Editorial, curvas suaves', 1.02],
+    ['cormorant', 'Cormorant Garamond', "'Cormorant Garamond', serif", 600, 'Clássica de alto contraste', 1.14],
+    ['bricolage', 'Bricolage Grotesque', "'Bricolage Grotesque', sans-serif", 500, 'Moderna com personalidade', 0.96],
+    ['space', 'Space Grotesk', "'Space Grotesk', sans-serif", 500, 'Técnica — lado dev da marca', 0.97],
+    ['jetbrains', 'JetBrains Mono', "'JetBrains Mono', monospace", 500, 'A fonte do código — 100% dev', 0.9],
+    ['spacemono', 'Space Mono', "'Space Mono', monospace", 400, 'Mono retro, par da Grotesk', 0.92],
+  ];
+
+  GREEN = '#7BC896';
+  BG = '#14181B';
+
+  els(variant, animated, keyBase) {
+    const g = this.GREEN;
+    const anim = (a) => (animated ? a : 'none');
+    const P = (d, delay, w, color) => React.createElement('path', {
+      key: keyBase + d, d, fill: 'none', pathLength: 1,
+      style: {
+        stroke: color || g, strokeWidth: w || 7, strokeLinecap: 'round', strokeDasharray: 1,
+        animation: anim(`vineDraw 0.5s ease-out ${delay || 0}s both`),
+      },
+    });
+    const N = (cx, cy, r, delay, filled, color) => React.createElement('circle', {
+      key: `${keyBase}n${cx}-${cy}`, cx, cy, r,
+      style: {
+        fill: filled ? (color || g) : this.BG, stroke: color || g, strokeWidth: 4,
+        transformBox: 'fill-box', transformOrigin: 'center',
+        animation: anim(`nodePop 0.3s cubic-bezier(0.2, 0.9, 0.3, 1) ${delay}s both`),
+      },
+    });
+    const L = (x, y, rot, s, delay, color) => React.createElement('g', {
+      key: `${keyBase}l${x}-${y}`, transform: `translate(${x}, ${y}) rotate(${rot}) scale(${s})`,
+    }, React.createElement('path', {
+      d: 'M0,0 Q5,-4.5 10.5,-1 Q5.5,3.5 0,0 Z',
+      style: { fill: color || g, opacity: 0.95, transformBox: 'fill-box', transformOrigin: 'left center', animation: anim(`leafPop 0.45s cubic-bezier(0.2, 0.9, 0.3, 1) ${delay}s both`) },
+    }));
+    const B = (x, y, s, delay, pink) => {
+      const petals = [];
+      for (let a = 0; a < 5; a++) {
+        const ang = (a / 5) * Math.PI * 2 - Math.PI / 2;
+        petals.push(React.createElement('circle', { key: `p${a}`, cx: Math.cos(ang) * 3.4, cy: Math.sin(ang) * 3.4, r: 2.3, style: { fill: pink } }));
+      }
+      petals.push(React.createElement('circle', { key: 'c', r: 1.5, style: { fill: this.BG } }));
+      return React.createElement('g', { key: `${keyBase}b${x}-${y}`, transform: `translate(${x}, ${y}) scale(${s})` },
+        React.createElement('g', { style: { animation: anim(`nodePop 0.35s ease ${delay}s both`), transformBox: 'fill-box', transformOrigin: 'center' } }, petals));
+    };
+    const MAIN = 'M34,12 C31,4 14,4 13,14 C12,24 33,32 33,44 C34,56 13,58 12,48';
+    switch (variant) {
+      case 'A': return [
+        P(MAIN, 0), P('M26,32 C31,34 35,37 38,41', 0.22, 4.5),
+        N(34, 12, 4.5, 0.3), N(12, 48, 4.5, 0.4), N(38, 41, 3.5, 0.5, true),
+      ];
+      case 'B': return [
+        P(MAIN, 0),
+        P('M26,32 C31,34 35,37 38,41', 0.2, 4.5),
+        P('M13.5,13.5 C10,10.5 7.5,7.5 5,4.5', 0.3, 4),
+        P('M28,51 C31.5,53.5 34,55.5 36.5,58', 0.4, 4),
+        N(34, 12, 4, 0.45), N(12, 48, 4, 0.5), N(38, 41, 3.2, 0.55, true), N(5, 4.5, 3, 0.6, true),
+        L(36, 57, -25, 0.85, 0.7),
+      ];
+      case 'C': return [
+        P(MAIN, 0),
+        L(28, 5, -40, 0.85, 0.3), L(11, 20, -140, 0.75, 0.45), L(34, 38, -15, 0.8, 0.6),
+        N(34, 12, 4, 0.7), N(12, 48, 4, 0.78),
+      ];
+      case 'D': return [
+        P(MAIN, 0, 6.5, '#9C6B5E'),
+        P('M26,32 C31,34 35,37 38,41', 0.2, 4, '#9C6B5E'),
+        B(34, 12, 1, 0.35, '#E8A0BF'), B(12, 48, 1, 0.45, '#E8A0BF'), B(38, 41, 0.8, 0.55, '#E8A0BF'),
+      ];
+      case 'E': return [
+        P(MAIN, 0, 5),
+        N(34, 12, 4, 0.3), N(23, 28, 4, 0.42), N(12, 48, 4, 0.54), N(13, 14, 2.6, 0.62, true), N(33, 44, 2.6, 0.7, true),
+      ];
+      case 'F': return [
+        P(MAIN, 0, 6),
+        N(12, 48, 4.5, 0.4, true),
+      ];
+      default: return [];
+    }
+  }
+
+  bezPoint(s, t) {
+    const u = 1 - t;
+    return [
+      u * u * u * s[0][0] + 3 * u * u * t * s[1][0] + 3 * u * t * t * s[2][0] + t * t * t * s[3][0],
+      u * u * u * s[0][1] + 3 * u * u * t * s[1][1] + 3 * u * t * t * s[2][1] + t * t * t * s[3][1],
+    ];
+  }
+
+  // tronco com espessura variável (grosso na base, fino na ponta) — path preenchido
+  taperEl(segs, w0, w1, color, animated, delay, key) {
+    const pts = [];
+    const N = 16;
+    segs.forEach((s, si) => {
+      for (let i = si === 0 ? 0 : 1; i <= N; i++) pts.push(this.bezPoint(s, i / N));
+    });
+    const left = [], right = [];
+    for (let i = 0; i < pts.length; i++) {
+      const a = pts[Math.max(0, i - 1)], b = pts[Math.min(pts.length - 1, i + 1)];
+      const dx = b[0] - a[0], dy = b[1] - a[1];
+      const len = Math.hypot(dx, dy) || 1;
+      const nx = -dy / len, ny = dx / len;
+      const w = (w0 + (w1 - w0) * (i / (pts.length - 1))) / 2;
+      left.push([pts[i][0] + nx * w, pts[i][1] + ny * w]);
+      right.push([pts[i][0] - nx * w, pts[i][1] - ny * w]);
+    }
+    const fmt = (p) => p[0].toFixed(1) + ',' + p[1].toFixed(1);
+    const d = 'M' + left.map(fmt).join(' L') + ' L' + right.reverse().map(fmt).join(' L') + ' Z';
+    return React.createElement('path', { key, d, style: { fill: color, animation: animated ? `fadeIn 0.35s ease ${delay}s both` : 'none' } });
+  }
+
+  // S-árvore com tronco afilado; style: nodes | leaves | blossom | palm
+  mkTree(opts, h, animated, keyBase) {
+    const { trunk, leaf, bg, style } = opts;
+    const anim = (a) => (animated ? a : 'none');
+    const kids = [
+      // raízes na base
+      this.taperEl([[[12, 47.5], [8.5, 51], [5.5, 53.5], [2, 56.5]]], 6, 1, trunk, animated, 0.05, keyBase + 'r1'),
+      this.taperEl([[[12, 47.5], [14.5, 51.5], [17, 54], [20, 57]]], 6, 1, trunk, animated, 0.08, keyBase + 'r2'),
+      // tronco em S de letra (dois arcos + espinha), grosso na base → fino na ponta
+      this.taperEl([[[34, 12], [31, 4], [14, 4], [13, 14]], [[13, 14], [12, 24], [33, 32], [33, 44]], [[33, 44], [34, 56], [13, 58], [12, 48]]], 2.6, 9, trunk, animated, 0.05, keyBase + 't'),
+    ];
+    // galhos (a palmeira tem tronco limpo — só coroa no topo)
+    if (style === 'crown') {
+      // principal: ramificação só em cima, base limpa (tronco + raízes)
+      kids.push(
+        this.taperEl([[[13.5, 13.5], [10, 10.5], [7.5, 7.5], [5, 4.5]]], 3, 1.2, trunk, animated, 0.18, keyBase + 'c1'),
+        this.taperEl([[[24, 4.8], [21.5, 3.2], [19.5, 2.2], [17, 1]]], 2.6, 1.1, trunk, animated, 0.24, keyBase + 'c2'),
+        this.taperEl([[[30, 6.5], [32, 4.5], [33.5, 3], [35.5, 1.5]]], 2.4, 1, trunk, animated, 0.3, keyBase + 'c3'),
+      );
+    } else if (style !== 'palm') {
+      kids.push(
+        this.taperEl([[[26, 32], [31, 34], [35, 37], [38, 41]]], 3.4, 1.3, trunk, animated, 0.18, keyBase + 'b1'),
+        this.taperEl([[[13.5, 13.5], [10, 10.5], [7.5, 7.5], [5, 4.5]]], 3, 1.2, trunk, animated, 0.24, keyBase + 'b2'),
+        this.taperEl([[[28, 51], [31.5, 53.5], [34, 55.5], [36.5, 58]]], 2.6, 1.1, trunk, animated, 0.3, keyBase + 'b3'),
+      );
+    }
+    const node = (cx, cy, r, delay, filled) => React.createElement('circle', {
+      key: `${keyBase}n${cx}`, cx, cy, r,
+      style: {
+        fill: filled ? trunk : bg, stroke: trunk, strokeWidth: 3.4,
+        transformBox: 'fill-box', transformOrigin: 'center',
+        animation: anim(`nodePop 0.3s cubic-bezier(0.2, 0.9, 0.3, 1) ${delay}s both`),
+      },
+    });
+    const leafEl = (x, y, rot, s, delay, d) => React.createElement('g', {
+      key: `${keyBase}l${x}-${y}`, transform: `translate(${x}, ${y}) rotate(${rot}) scale(${s})`,
+    }, React.createElement('path', {
+      d: d || 'M0,0 Q5,-4.5 10.5,-1 Q5.5,3.5 0,0 Z',
+      style: { fill: leaf || trunk, opacity: 0.95, transformBox: 'fill-box', transformOrigin: 'left center', animation: anim(`leafPop 0.45s cubic-bezier(0.2, 0.9, 0.3, 1) ${delay}s both`) },
+    }));
+    const blossom = (x, y, s, delay) => {
+      const petals = [];
+      for (let a = 0; a < 5; a++) {
+        const ang = (a / 5) * Math.PI * 2 - Math.PI / 2;
+        petals.push(React.createElement('circle', { key: `p${a}`, cx: Math.cos(ang) * 3.4, cy: Math.sin(ang) * 3.4, r: 2.3, style: { fill: leaf } }));
+      }
+      petals.push(React.createElement('circle', { key: 'c', r: 1.5, style: { fill: bg } }));
+      return React.createElement('g', { key: `${keyBase}bl${x}`, transform: `translate(${x}, ${y}) scale(${s})` },
+        React.createElement('g', { style: { animation: anim(`nodePop 0.35s ease ${delay}s both`), transformBox: 'fill-box', transformOrigin: 'center' } }, petals));
+    };
+    // tufo: 3 folhas em leque a partir do mesmo ponto — copa de ponta de galho
+    const tuft = (x, y, rot, s, delay) => React.createElement('g', {
+      key: `${keyBase}tf${x}-${y}`, transform: `translate(${x}, ${y}) rotate(${rot}) scale(${s})`,
+    }, [[-44, 0.8, 0.08], [0, 1, 0], [42, 0.78, 0.14]].map(([dr, ds, dd], k) =>
+      React.createElement('g', { key: k, transform: `rotate(${dr}) scale(${ds})` },
+        React.createElement('path', {
+          d: 'M0,0 Q5,-4.5 10.5,-1 Q5.5,3.5 0,0 Z',
+          style: { fill: leaf || trunk, opacity: 0.95, transformBox: 'fill-box', transformOrigin: 'left center', animation: anim(`leafPop 0.45s cubic-bezier(0.2, 0.9, 0.3, 1) ${delay + dd}s both`) },
+        }))));
+    if (style === 'crown') {
+      // copa: folhas + coisas de git, tudo no topo
+      kids.push(
+        node(34, 12, 3.8, 0.42),
+        tuft(17, 1, -105, 0.9, 0.5),
+        tuft(35.5, 1.5, -55, 0.62, 0.6),
+        node(5, 4.5, 2.8, 0.7, true),
+        leafEl(9, 9, -55, 0.55, 0.78),
+        leafEl(12.5, 20, 170, 0.5, 0.85),
+      );
+    } else if (style === 'nodes') {
+      // cada galho termina num nó — como cada branch termina num commit
+      kids.push(node(34, 12, 3.8, 0.4), node(5, 4.5, 2.8, 0.5, true), node(38, 41, 3, 0.6, true), node(36.5, 58, 2.4, 0.7, true));
+    } else if (style === 'leaves') {
+      // copa: um tufo de folhas na ponta de cada galho
+      kids.push(tuft(34, 12, -55, 0.95, 0.4), tuft(5, 4.5, -125, 0.75, 0.5), tuft(38, 41, -12, 0.8, 0.6), tuft(36.5, 58, 8, 0.65, 0.7));
+    } else if (style === 'blossom') {
+      kids.push(blossom(34, 12, 1, 0.4), blossom(38, 41, 0.8, 0.5), blossom(5, 4.5, 0.75, 0.6), blossom(36.5, 57.5, 0.65, 0.7));
+    } else if (style === 'palm') {
+      // coroa completa no topo do tronco: leque de palmas a toda a volta + cocos
+      const FROND = 'M0,0 Q9,-5.5 19,-2 Q9,1.5 0,0 Z';
+      [[-178, 0.92, 0.3], [-142, 1.02, 0.37], [-104, 1.08, 0.44], [-64, 1.02, 0.51], [-26, 0.94, 0.58], [12, 0.82, 0.65]].forEach(([rot, s, dl], k) => {
+        kids.push(React.createElement('g', { key: `${keyBase}f${k}`, transform: `translate(34, 12)` }, leafEl(0, 0, rot, s, dl, FROND)));
+      });
+      kids.push(React.createElement('circle', { key: keyBase + 'coco', cx: 31.4, cy: 16.2, r: 2.3, style: { fill: trunk, stroke: bg, strokeWidth: 1, transformBox: 'fill-box', transformOrigin: 'center', animation: anim('nodePop 0.35s ease 0.72s both') } }));
+      kids.push(React.createElement('circle', { key: keyBase + 'coco2', cx: 35.8, cy: 17, r: 2.3, style: { fill: trunk, stroke: bg, strokeWidth: 1, transformBox: 'fill-box', transformOrigin: 'center', animation: anim('nodePop 0.35s ease 0.78s both') } }));
+    }
+    const vbH = opts.crop ? 52 : 62;
+    return React.createElement('svg', {
+      key: keyBase,
+      viewBox: `0 0 46 ${vbH}`, width: Math.round(h * 46 / vbH * (opts.xScale || 1)), height: h,
+      preserveAspectRatio: opts.xScale ? 'none' : 'xMidYMid meet',
+      style: { display: 'block', overflow: 'visible' },
+    }, React.createElement('g', {
+      key: keyBase + 'g',
+      style: { animation: anim('treeGrow 0.5s cubic-bezier(0.2, 0.9, 0.3, 1) both'), transformBox: 'view-box', transformOrigin: '50% 85%' },
+    }, kids));
+  }
+
+  mk(variant, h, animated, keyBase) {
+    if (variant === 'G') return this.mkTree({ trunk: this.GREEN, bg: this.BG, style: 'nodes' }, h, animated, keyBase);
+    if (variant === 'H') return this.mkTree({ trunk: this.GREEN, leaf: this.GREEN, bg: this.BG, style: 'leaves' }, h, animated, keyBase);
+    return React.createElement('svg', {
+      key: keyBase,
+      viewBox: '0 0 46 62', width: Math.round(h * 46 / 62), height: h,
+      style: { display: 'block', overflow: 'visible' },
+    }, this.els(variant, animated, keyBase));
+  }
+
+  renderVals() {
+    const t = this.state.ticks;
+    const replay = (id) => () => this.setState((s) => ({ ticks: { ...s.ticks, [id]: (s.ticks[id] || 0) + 1 } }));
+
+    const heroOpts = { trunk: this.GREEN, leaf: this.GREEN, bg: this.BG, style: 'crown' };
+    const selFont = this.fonts.find((f) => f[0] === this.state.fontSel) || this.fonts[0];
+    const wordOpts = { ...heroOpts, xScale: 1.22, crop: true };
+    const heroFs = Math.round(58 * selFont[5]);
+    return {
+      heroFont: selFont[2],
+      heroWeight: selFont[3],
+      heroFs,
+      heroSH: Math.round(heroFs * 0.8),
+      fontCards: this.fonts.map(([key, name, stack, weight, note, factor]) => {
+        const fs = Math.round(30 * factor);
+        return {
+          name, stack, weight, note, fs,
+          ring: key === this.state.fontSel ? this.GREEN : '#272B2E',
+          word: this.mkTree(wordOpts, Math.round(fs * 0.8), false, `fw${key}`),
+          pick: () => this.setState({ fontSel: key }),
+        };
+      }),
+      heroIcon: this.mkTree(heroOpts, 62, true, `hi-${t.hero || 0}`),
+      heroS: this.mkTree(wordOpts, Math.round(heroFs * 0.8), true, `hs-${t.hero || 0}`),
+      replayHero: replay('hero'),
+
+      themed: [
+        ['Clássica · Batman', 'nodes', '#7BC896', '#7BC896', '#14181B', '#101315', '#272B2E', '#EAECEE'],
+        ['Sakura', 'blossom', '#9C6B5E', '#E8A0BF', '#14181B', '#101315', '#272B2E', '#EAECEE'],
+        ['Tropical', 'palm', '#A5754A', '#4FCE6B', '#14181B', '#101315', '#272B2E', '#EAECEE'],
+        ['Clássico (claro)', 'nodes', '#191C1A', '#191C1A', '#FFFFFF', '#FFFFFF', '#E3E3DC', '#191C1A'],
+        ['Nipon', 'blossom', '#7E564B', '#D983A8', '#FFF8F9', '#FFF8F9', '#EFDCE2', '#241D1E'],
+        ['Git Classic', 'nodes', '#3FB950', '#3FB950', '#0D1117', '#0D1117', '#21262D', '#E6EDF3'],
+      ].map(([name, style, trunk, leaf, iconBg, cardBg, cardBd, text], i) => ({
+        name, cardBg, cardBd, text, iconBg,
+        delay: 0.15 + i * 0.05,
+        svg: this.mkTree({ trunk, leaf, bg: iconBg, style }, 54, true, `th${i}-${t['th' + i] || 0}`),
+        word: this.mkTree({ trunk, leaf, bg: iconBg, style, xScale: 1.22, crop: true }, 18, false, `thw${i}`),
+        replay: replay('th' + i),
+      })),
+      size1: this.mkTree(heroOpts, 46, false, 's1'),
+      size2: this.mkTree(heroOpts, 30, false, 's2'),
+      size3: this.mkTree(heroOpts, 18, false, 's3'),
+    };
+  }
+}
+</script>
+</body>
+</html>
