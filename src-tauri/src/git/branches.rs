@@ -8,6 +8,8 @@ pub struct BranchInfo {
     pub is_current: bool,
     pub is_remote: bool,
     pub upstream: Option<String>,
+    /// Full hash of the branch tip — the sidebar focuses it in the history.
+    pub tip: String,
 }
 
 #[tauri::command(rename = "list_branches")]
@@ -48,7 +50,7 @@ pub fn list_branches(path: String) -> Result<Vec<BranchInfo>, GitError> {
         &[
             "for-each-ref",
             "--sort=-committerdate",
-            "--format=%(refname)%1f%(refname:short)%1f%(HEAD)%1f%(upstream:short)",
+            "--format=%(refname)%1f%(refname:short)%1f%(HEAD)%1f%(upstream:short)%1f%(objectname)",
             "refs/heads",
             "refs/remotes",
         ],
@@ -72,11 +74,13 @@ pub fn list_branches(path: String) -> Result<Vec<BranchInfo>, GitError> {
             .copied()
             .filter(|s| !s.is_empty())
             .map(|s| s.to_string());
+        let tip = f.get(4).copied().unwrap_or("").to_string();
         branches.push(BranchInfo {
             name,
             is_current,
             is_remote,
             upstream,
+            tip,
         });
     }
     Ok(branches)
@@ -159,6 +163,8 @@ mod tests {
         assert!(names.contains(&"main"));
         assert!(names.contains(&"feature/x"));
         assert!(branches.iter().find(|b| b.name == "main").unwrap().is_current);
+        // Every branch carries its tip hash (full 40-hex object name).
+        assert!(branches.iter().all(|b| b.tip.len() == 40 && b.tip.chars().all(|c| c.is_ascii_hexdigit())));
 
         checkout_branch(p.clone(), "feature/x".into()).unwrap();
         let branches = list_branches(p).unwrap();

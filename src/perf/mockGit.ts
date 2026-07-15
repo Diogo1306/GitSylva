@@ -78,6 +78,7 @@ const handlers: Record<string, (a: Args) => unknown> = {
       is_current: i === 0,
       is_remote: i > 140,
       upstream: i === 0 ? "origin/main" : null,
+      tip: hash(i % 50),
     })),
   list_stashes: () => [{ index: 0, message: "WIP perf", relative_date: "há 2 dias" }],
   stash_files: () => ["src/a.ts", "src/b.ts"],

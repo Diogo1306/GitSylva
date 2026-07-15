@@ -25,6 +25,7 @@ export function Sidebar() {
   const view = useAppStore((s) => s.view);
   const setView = useAppStore((s) => s.setView);
   const setModal = useAppStore((s) => s.setModal);
+  const setFocusCommit = useAppStore((s) => s.setFocusCommit);
   const repo = useAppStore((s) => s.repo)!;
   const { data } = useStatus(repo.path);
   const wcCount = (data ?? []).length;
@@ -48,13 +49,23 @@ export function Sidebar() {
   const folderOpen = (g: Extract<BranchGroup, { kind: "folder" }>) =>
     openFolders[g.name] ?? g.members.some((m) => m.is_current);
 
-  // One remote-branch row (checkout by tracking name); shared by flat entries
-  // and folder members, which indent deeper and drop the prefix.
-  function remoteRow(remote: string, shortName: string, display: string, padLeft: number) {
+  // Show a branch's tip commit in the history (single click, user request
+  // R5.1). Double click still checks the branch out.
+  function focusBranch(tip: string) {
+    if (!tip) return;
+    setFocusCommit(tip);
+    if (view !== "history") setView("history");
+  }
+
+  // One remote-branch row (single click shows the tip, double click checks out
+  // a local tracking branch); shared by flat entries and folder members, which
+  // indent deeper and drop the prefix.
+  function remoteRow(remote: string, shortName: string, display: string, padLeft: number, tip: string) {
     return (
       <div
         key={`${remote}/${shortName}`}
-        onClick={() =>
+        onClick={() => focusBranch(tip)}
+        onDoubleClick={() =>
           !checkout.isPending &&
           checkout.mutate(shortName, {
             onSuccess: () => toast(`Em ${shortName}`),
@@ -62,7 +73,7 @@ export function Sidebar() {
           })
         }
         className="gs-row"
-        title={`Checkout local de ${remote}/${shortName}`}
+        title={`1 clique: ver no histórico · 2 cliques: checkout local de ${remote}/${shortName}`}
         style={{ display: "flex", alignItems: "center", gap: 9, padding: `5px 10px 5px ${padLeft}px`, borderRadius: 8, fontSize: 12.5, fontFamily: mono, color: "var(--muted)", cursor: "pointer" }}
       >
         <span style={{ width: 5, height: 5, borderRadius: "50%", background: "var(--muted)", flexShrink: 0 }} />
@@ -73,13 +84,19 @@ export function Sidebar() {
 
   // One row per branch, shared by flat entries and folder members (members
   // show the name without the folder prefix and indent under the caret).
+  // Single click focuses the tip commit in the history; DOUBLE click switches
+  // branch (R5.1 — switching was too easy to trigger by accident).
   function branchRow(b: BranchInfo, display: string, indent: boolean) {
     return (
       <div
         key={b.name}
         onClick={() => {
-          // One checkout at a time: clicking two branches quickly must not
-          // queue a second switch behind the first.
+          if (renaming === b.name) return;
+          focusBranch(b.tip);
+        }}
+        onDoubleClick={() => {
+          // One checkout at a time: double-clicking two branches quickly must
+          // not queue a second switch behind the first.
           if (b.is_current || renaming === b.name || checkout.isPending) return;
           checkout.mutate(b.name, {
             onSuccess: () => toast(`Em ${b.name}`),
@@ -91,7 +108,11 @@ export function Sidebar() {
           setMenu({ x: e.clientX, y: e.clientY, name: b.name });
         }}
         className="gs-row"
-        title={b.is_current ? "Branch atual" : `Mudar para ${b.name} · botão direito para opções`}
+        title={
+          b.is_current
+            ? "Branch atual · 1 clique: ver no histórico"
+            : `1 clique: ver no histórico · 2 cliques: mudar para ${b.name} · botão direito para opções`
+        }
         style={{
           display: "flex",
           alignItems: "center",
@@ -102,19 +123,16 @@ export function Sidebar() {
           fontFamily: mono,
           color: b.is_current ? "var(--l0)" : "var(--text2)",
           fontWeight: b.is_current ? 600 : 400,
-          cursor: b.is_current ? "default" : "pointer",
+          cursor: "pointer",
         }}
       >
+        {/* Active branch: filled dot with a halo ring, unmissable at a glance. */}
         <span
-          style={{
-            width: 6,
-            height: 6,
-            borderRadius: "50%",
-            background: b.is_current ? "var(--l0bg)" : undefined,
-            border: `1.5px solid ${b.is_current ? "var(--l0)" : "var(--muted)"}`,
-            boxSizing: "border-box",
-            flexShrink: 0,
-          }}
+          style={
+            b.is_current
+              ? { width: 8, height: 8, borderRadius: "50%", background: "var(--l0)", boxShadow: "0 0 0 3px var(--l0bg)", flexShrink: 0 }
+              : { width: 6, height: 6, borderRadius: "50%", border: "1.5px solid var(--muted)", boxSizing: "border-box", flexShrink: 0 }
+          }
         />
         {renaming === b.name ? (
           <Input
@@ -220,6 +238,9 @@ export function Sidebar() {
         background: "var(--panel)",
         padding: "14px 10px",
         overflowY: "auto",
+        // Long branch names ellipsize — a horizontal scrollbar at the bottom
+        // of the panel was pure noise (R5.1).
+        overflowX: "hidden",
         display: "flex",
         flexDirection: "column",
         gap: 20,
@@ -312,7 +333,7 @@ export function Sidebar() {
                   .map((b) => ({ ...b, name: b.name.slice(remote.length + 1) })),
               ).map((g) =>
                 g.kind === "branch" ? (
-                  remoteRow(remote, g.branch.name, g.branch.name, 20)
+                  remoteRow(remote, g.branch.name, g.branch.name, 20, g.branch.tip)
                 ) : (
                   <div key={`pasta-${remote}:${g.name}`} style={{ display: "flex", flexDirection: "column", gap: 1 }}>
                     <div
@@ -329,7 +350,7 @@ export function Sidebar() {
                     </div>
                     {openFolders[`${remote}:${g.name}`] && (
                       <div style={{ display: "flex", flexDirection: "column", gap: 1, animation: "fadeIn 0.15s ease both" }}>
-                        {g.members.map((m) => remoteRow(remote, m.name, m.name.slice(g.name.length + 1), 34))}
+                        {g.members.map((m) => remoteRow(remote, m.name, m.name.slice(g.name.length + 1), 34, m.tip))}
                       </div>
                     )}
                   </div>
