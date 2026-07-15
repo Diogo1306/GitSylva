@@ -30,7 +30,7 @@ export function Sidebar() {
   const { data } = useStatus(repo.path);
   const wcCount = (data ?? []).length;
   const { data: branchData } = useBranches(repo.path);
-  const { checkout, remove, rename } = useBranchActions(repo.path);
+  const { checkout, remove, rename, merge } = useBranchActions(repo.path);
   const { rebase } = useRewriteActions(repo.path);
   const tagActions = useTagActions(repo.path);
   const [menu, setMenu] = useState<{ x: number; y: number; name: string } | null>(null);
@@ -38,6 +38,10 @@ export function Sidebar() {
   const [renameVal, setRenameVal] = useState("");
   const [confirmDelete, setConfirmDelete] = useState<{ name: string; force: boolean } | null>(null);
   const [confirmRebase, setConfirmRebase] = useState<string | null>(null);
+  // Switching branches asks first (R5.8) — a double-click is easy to land on
+  // the wrong row and the working tree changes underneath you.
+  const [confirmSwitch, setConfirmSwitch] = useState<string | null>(null);
+  const [confirmMerge, setConfirmMerge] = useState<string | null>(null);
   const [tagMenu, setTagMenu] = useState<{ x: number; y: number; name: string } | null>(null);
   const [confirmDeleteTag, setConfirmDeleteTag] = useState<string | null>(null);
   // Design: sidebar resizable 180–340, persisted.
@@ -65,13 +69,7 @@ export function Sidebar() {
       <div
         key={`${remote}/${shortName}`}
         onClick={() => focusBranch(tip)}
-        onDoubleClick={() =>
-          !checkout.isPending &&
-          checkout.mutate(shortName, {
-            onSuccess: () => toast(`Em ${shortName}`),
-            onError: (e: unknown) => toast((e as { message?: string })?.message ?? "não foi possível fazer checkout", "error"),
-          })
-        }
+        onDoubleClick={() => !checkout.isPending && setConfirmSwitch(shortName)}
         className="gs-row"
         title={`1 clique: ver no histórico · 2 cliques: checkout local de ${remote}/${shortName}`}
         style={{ display: "flex", alignItems: "center", gap: 9, padding: `5px 10px 5px ${padLeft}px`, borderRadius: 8, fontSize: 12.5, fontFamily: mono, color: "var(--muted)", cursor: "pointer" }}
@@ -98,10 +96,7 @@ export function Sidebar() {
           // One checkout at a time: double-clicking two branches quickly must
           // not queue a second switch behind the first.
           if (b.is_current || renaming === b.name || checkout.isPending) return;
-          checkout.mutate(b.name, {
-            onSuccess: () => toast(`Em ${b.name}`),
-            onError: (e: unknown) => toast((e as { message?: string })?.message ?? "não foi possível mudar de branch", "error"),
-          });
+          setConfirmSwitch(b.name);
         }}
         onContextMenu={(e) => {
           e.preventDefault();
@@ -409,11 +404,16 @@ export function Sidebar() {
         (() => {
           const name = menu.name;
           const isCurrent = localBranches.find((b) => b.name === name)?.is_current;
-          const items: MenuItem[] = [
-            { label: "Renomear", onClick: () => { setRenaming(name); setRenameVal(name); } },
-          ];
+          const items: MenuItem[] = [];
           if (!isCurrent) {
+            items.push({ label: `Mudar para ${name}…`, onClick: () => setConfirmSwitch(name) });
+            items.push({ label: `Merge de ${name} na branch atual…`, onClick: () => setConfirmMerge(name) });
             items.push({ label: `Rebase da atual sobre ${name}…`, onClick: () => setConfirmRebase(name) });
+            items.push({ label: "", onClick: () => {}, divider: true });
+          }
+          items.push({ label: "Renomear", onClick: () => { setRenaming(name); setRenameVal(name); } });
+          items.push({ label: "Copiar nome", onClick: () => void navigator.clipboard?.writeText(name).then(() => toast("Nome copiado")) });
+          if (!isCurrent) {
             items.push({ label: "Apagar branch…", danger: true, onClick: () => setConfirmDelete({ name, force: false }) });
           }
           return <ContextMenu x={menu.x} y={menu.y} items={items} onClose={() => setMenu(null)} />;
@@ -459,6 +459,39 @@ export function Sidebar() {
             tagActions.remove.mutate(name, {
               onSuccess: () => toast(`Tag ${name} apagada`),
               onError: (e: unknown) => toast((e as { message?: string })?.message ?? "não foi possível apagar a tag", "error"),
+            });
+          }}
+        />
+      )}
+
+      {confirmSwitch && (
+        <ConfirmDialog
+          message={`Mudar para a branch ${confirmSwitch}? A cópia de trabalho passa a refletir essa branch.`}
+          confirmLabel="Mudar"
+          onCancel={() => setConfirmSwitch(null)}
+          onConfirm={() => {
+            const name = confirmSwitch;
+            setConfirmSwitch(null);
+            if (checkout.isPending) return;
+            checkout.mutate(name, {
+              onSuccess: () => toast(`Em ${name}`),
+              onError: (e: unknown) => toast((e as { message?: string })?.message ?? "não foi possível mudar de branch", "error"),
+            });
+          }}
+        />
+      )}
+
+      {confirmMerge && (
+        <ConfirmDialog
+          message={`Merge de ${confirmMerge} na branch atual (${repo.current_branch})? Em caso de conflito, a Cópia de trabalho mostra os ficheiros por resolver.`}
+          confirmLabel="Merge"
+          onCancel={() => setConfirmMerge(null)}
+          onConfirm={() => {
+            const name = confirmMerge;
+            setConfirmMerge(null);
+            merge.mutate(name, {
+              onSuccess: () => toast(`Merge de ${name} concluído`),
+              onError: (e: unknown) => toast((e as { message?: string })?.message ?? "conflito no merge — vê a Cópia de trabalho", "error"),
             });
           }}
         />

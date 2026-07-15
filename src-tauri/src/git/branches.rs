@@ -23,8 +23,8 @@ pub async fn checkout_branch_cmd(path: String, name: String) -> Result<(), GitEr
 }
 
 #[tauri::command(rename = "create_branch")]
-pub async fn create_branch_cmd(path: String, name: String, checkout: bool) -> Result<(), GitError> {
-    crate::git::run_mutating("create_branch", path.clone(), move || create_branch(path, name, checkout)).await
+pub async fn create_branch_cmd(path: String, name: String, checkout: bool, from: Option<String>) -> Result<(), GitError> {
+    crate::git::run_mutating("create_branch", path.clone(), move || create_branch(path, name, checkout, from)).await
 }
 
 #[tauri::command(rename = "merge_branch")]
@@ -107,14 +107,16 @@ fn validate_branch_name(path: &str, name: &str) -> Result<(), GitError> {
     })
 }
 
-/// Create a new branch from HEAD, optionally checking it out.
-pub fn create_branch(path: String, name: String, checkout: bool) -> Result<(), GitError> {
+/// Create a new branch from `from` (HEAD when omitted), optionally checking
+/// it out — the history's "criar branch daqui" passes a commit hash.
+pub fn create_branch(path: String, name: String, checkout: bool, from: Option<String>) -> Result<(), GitError> {
     validate_branch_name(&path, &name)?;
-    if checkout {
-        run_git(&path, &["checkout", "-b", &name]).map(|_| ())
-    } else {
-        run_git(&path, &["branch", &name]).map(|_| ())
+    let name = name.trim();
+    let mut args: Vec<&str> = if checkout { vec!["checkout", "-b", name] } else { vec!["branch", name] };
+    if let Some(f) = from.as_deref() {
+        args.push(f);
     }
+    run_git(&path, &args).map(|_| ())
 }
 
 /// Merge a branch into the current one. On conflict, git leaves the tree in a
@@ -157,7 +159,7 @@ mod tests {
     #[test]
     fn create_list_and_checkout() {
         let p = repo("checkout");
-        create_branch(p.clone(), "feature/x".into(), false).unwrap();
+        create_branch(p.clone(), "feature/x".into(), false, None).unwrap();
         let branches = list_branches(p.clone()).unwrap();
         let names: Vec<&str> = branches.iter().map(|b| b.name.as_str()).collect();
         assert!(names.contains(&"main"));
@@ -174,15 +176,28 @@ mod tests {
     #[test]
     fn create_with_checkout() {
         let p = repo("create");
-        create_branch(p.clone(), "dev".into(), true).unwrap();
+        create_branch(p.clone(), "dev".into(), true, None).unwrap();
         let branches = list_branches(p).unwrap();
         assert!(branches.iter().find(|b| b.name == "dev").unwrap().is_current);
     }
 
     #[test]
+    fn create_from_commit_points_at_it() {
+        let p = repo("from");
+        let first = run_git(&p, &["rev-parse", "HEAD"]).unwrap().trim().to_string();
+        fs::write(format!("{p}/b.txt"), "2").unwrap();
+        run_git(&p, &["add", "-A"]).unwrap();
+        run_git(&p, &["commit", "-m", "segundo"]).unwrap();
+        // Branch created FROM the first commit, not from HEAD.
+        create_branch(p.clone(), "daqui".into(), false, Some(first.clone())).unwrap();
+        let tip = run_git(&p, &["rev-parse", "daqui"]).unwrap().trim().to_string();
+        assert_eq!(tip, first);
+    }
+
+    #[test]
     fn rename_moves_branch() {
         let p = repo("rename");
-        create_branch(p.clone(), "old-name".into(), false).unwrap();
+        create_branch(p.clone(), "old-name".into(), false, None).unwrap();
         rename_branch(p.clone(), "old-name".into(), "new-name".into()).unwrap();
         let names: Vec<String> = list_branches(p).unwrap().into_iter().map(|b| b.name).collect();
         assert!(names.contains(&"new-name".to_string()));
@@ -193,7 +208,7 @@ mod tests {
     fn merge_and_delete() {
         let p = repo("merge");
         // Commit on a feature branch, then merge it into main.
-        create_branch(p.clone(), "feature".into(), true).unwrap();
+        create_branch(p.clone(), "feature".into(), true, None).unwrap();
         fs::write(format!("{p}/b.txt"), "hi").unwrap();
         run_git(&p, &["add", "-A"]).unwrap();
         run_git(&p, &["commit", "-m", "feature work"]).unwrap();

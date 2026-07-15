@@ -73,6 +73,10 @@ export function rebase(path: string, onto: string): Promise<void> {
   return invoke("rebase", { path, onto });
 }
 
+export function revertCommit(path: string, hash: string): Promise<void> {
+  return invoke("revert_commit", { path, hash });
+}
+
 export function renameBranch(path: string, old: string, name: string): Promise<void> {
   return invoke("rename_branch", { path, old, new: name });
 }
@@ -102,8 +106,8 @@ export function checkoutBranch(path: string, name: string): Promise<void> {
   return invoke("checkout_branch", { path, name });
 }
 
-export function createBranch(path: string, name: string, checkout: boolean): Promise<void> {
-  return invoke("create_branch", { path, name, checkout });
+export function createBranch(path: string, name: string, checkout: boolean, from?: string): Promise<void> {
+  return invoke("create_branch", { path, name, checkout, from: from ?? null });
 }
 
 export function mergeBranch(path: string, name: string): Promise<void> {
@@ -142,8 +146,8 @@ export function listTags(path: string): Promise<TagInfo[]> {
   return invoke<TagInfo[]>("list_tags", { path });
 }
 
-export function createTag(path: string, name: string, message: string): Promise<void> {
-  return invoke("create_tag", { path, name, message });
+export function createTag(path: string, name: string, message: string, target?: string): Promise<void> {
+  return invoke("create_tag", { path, name, message, target: target ?? null });
 }
 
 export function deleteTag(path: string, name: string): Promise<void> {

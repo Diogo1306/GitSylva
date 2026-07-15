@@ -1,6 +1,9 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAppStore } from "../../state/appStore";
-import { useLog, useCommitDetail, useRewriteActions } from "../../state/queries";
+import { useLog, useCommitDetail, useRewriteActions, useBranchActions, useTagActions } from "../../state/queries";
+import { Modal } from "../../components/ui/Modal";
+import { Input } from "../../components/ui/Input";
+import { Button } from "../../components/ui/Button";
 import { ContextMenu, type MenuItem } from "../../components/ui/ContextMenu";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
 import { PanelHandle } from "../../components/ui/PanelResize";
@@ -271,6 +274,14 @@ export function History() {
   const [menu, setMenu] = useState<{ x: number; y: number; hash: string } | null>(null);
   const [confirmHardReset, setConfirmHardReset] = useState<string | null>(null);
   const [confirmRebase, setConfirmRebase] = useState<string | null>(null);
+  // R5.6 context-menu extras: revert, branch-from-here, tag-here.
+  const [confirmRevert, setConfirmRevert] = useState<string | null>(null);
+  const [branchFrom, setBranchFrom] = useState<string | null>(null);
+  const [branchName, setBranchName] = useState("");
+  const [tagAt, setTagAt] = useState<string | null>(null);
+  const [tagName, setTagName] = useState("");
+  const branchActions = useBranchActions(repo.path);
+  const tagActions = useTagActions(repo.path);
   // Settings → Aparência → Densidade (handoff: conforto 52 / compacta 40).
   const density = useThemeStore((s) => s.density);
   const rowH = density === "compacta" ? 40 : ROW_H;
@@ -464,14 +475,21 @@ export function History() {
           const short = h.slice(0, 7);
           const reset = (mode: "soft" | "mixed" | "hard") => () =>
             rewrite.reset.mutate({ target: h, mode }, { onSuccess: () => toast(`Reset ${mode} para ${short}`), onError: (e: unknown) => toast((e as { message?: string })?.message ?? "erro no reset", "error") });
+          const subject = commits.find((c) => c.hash === h)?.subject ?? "";
           const items: MenuItem[] = [
+            { label: "Criar branch daqui…", onClick: () => { setBranchName(""); setBranchFrom(h); } },
+            { label: "Criar tag neste commit…", onClick: () => { setTagName(""); setTagAt(h); } },
+            { label: "", onClick: () => {}, divider: true },
+            { label: "Cherry-pick para a branch atual", onClick: () => rewrite.cherryPick.mutate(h, { onSuccess: () => toast("Cherry-pick aplicado"), onError: (e: unknown) => toast((e as { message?: string })?.message ?? "conflito no cherry-pick", "error") }) },
+            { label: "Reverter este commit…", onClick: () => setConfirmRevert(h) },
+            { label: "Rebase da atual sobre este commit…", onClick: () => setConfirmRebase(h) },
+            { label: "", onClick: () => {}, divider: true },
             { label: `Reset suave para ${short}`, onClick: reset("soft") },
             { label: `Reset misto para ${short}`, onClick: reset("mixed") },
             { label: `Reset forçado (hard) para ${short}…`, onClick: () => setConfirmHardReset(h), danger: true },
             { label: "", onClick: () => {}, divider: true },
-            { label: "Cherry-pick para a branch atual", onClick: () => rewrite.cherryPick.mutate(h, { onSuccess: () => toast("Cherry-pick aplicado"), onError: (e: unknown) => toast((e as { message?: string })?.message ?? "conflito no cherry-pick", "error") }) },
-            { label: "Rebase da atual sobre este commit…", onClick: () => setConfirmRebase(h) },
             { label: "Copiar hash", onClick: () => navigator.clipboard?.writeText(h).then(() => toast("Hash copiado")) },
+            { label: "Copiar mensagem", onClick: () => navigator.clipboard?.writeText(subject).then(() => toast("Mensagem copiada")) },
           ];
           return <ContextMenu x={menu.x} y={menu.y} items={items} onClose={() => setMenu(null)} />;
         })()}
@@ -506,6 +524,87 @@ export function History() {
             );
           }}
         />
+      )}
+
+      {confirmRevert && (
+        <ConfirmDialog
+          message={`Reverter ${confirmRevert.slice(0, 7)}? Cria um commit novo na branch atual que desfaz as alterações deste (o histórico não é reescrito).`}
+          confirmLabel="Reverter"
+          onCancel={() => setConfirmRevert(null)}
+          onConfirm={() => {
+            const h = confirmRevert;
+            setConfirmRevert(null);
+            rewrite.revert.mutate(h, {
+              onSuccess: () => toast(`Commit ${h.slice(0, 7)} revertido`),
+              onError: (e: unknown) => toast((e as { message?: string })?.message ?? "conflito no revert — vê a Cópia de trabalho", "error"),
+            });
+          }}
+        />
+      )}
+
+      {branchFrom && (
+        <Modal title={`Criar branch a partir de ${branchFrom.slice(0, 7)}`} onClose={() => setBranchFrom(null)} width={400}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            <Input
+              autoFocus
+              mono
+              value={branchName}
+              onChange={(e) => setBranchName(e.target.value)}
+              placeholder="feature/a-minha-branch"
+            />
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+              {([false, true] as const).map((doCheckout) => (
+                <Button
+                  key={String(doCheckout)}
+                  variant={doCheckout ? "primary" : "ghost"}
+                  disabled={!branchName.trim() || branchActions.create.isPending}
+                  onClick={() => {
+                    const from = branchFrom;
+                    const name = branchName.trim();
+                    setBranchFrom(null);
+                    branchActions.create.mutate(
+                      { name, checkout: doCheckout, from },
+                      {
+                        onSuccess: () => toast(doCheckout ? `Em ${name}` : `Branch ${name} criada em ${from.slice(0, 7)}`),
+                        onError: (e: unknown) => toast((e as { message?: string })?.message ?? "não foi possível criar a branch", "error"),
+                      },
+                    );
+                  }}
+                >
+                  {doCheckout ? "Criar e mudar" : "Criar"}
+                </Button>
+              ))}
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {tagAt && (
+        <Modal title={`Criar tag em ${tagAt.slice(0, 7)}`} onClose={() => setTagAt(null)} width={400}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            <Input autoFocus mono value={tagName} onChange={(e) => setTagName(e.target.value)} placeholder="v1.2.3" />
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+              <Button
+                variant="primary"
+                disabled={!tagName.trim() || tagActions.create.isPending}
+                onClick={() => {
+                  const target = tagAt;
+                  const name = tagName.trim();
+                  setTagAt(null);
+                  tagActions.create.mutate(
+                    { name, message: "", target },
+                    {
+                      onSuccess: () => toast(`Tag ${name} criada em ${target.slice(0, 7)}`),
+                      onError: (e: unknown) => toast((e as { message?: string })?.message ?? "não foi possível criar a tag", "error"),
+                    },
+                  );
+                }}
+              >
+                Criar tag
+              </Button>
+            </div>
+          </div>
+        </Modal>
       )}
     </div>
   );

@@ -16,6 +16,11 @@ pub async fn rebase_cmd(path: String, onto: String) -> Result<(), GitError> {
     crate::git::run_mutating("rebase", path.clone(), move || rebase(path, onto)).await
 }
 
+#[tauri::command(rename = "revert_commit")]
+pub async fn revert_commit_cmd(path: String, hash: String) -> Result<(), GitError> {
+    crate::git::run_mutating("revert_commit", path.clone(), move || revert_commit(path, hash)).await
+}
+
 /// Move the current branch to `target` with the given reset mode.
 /// mode: "soft" | "mixed" | "hard".
 pub fn reset_to(path: String, target: String, mode: String) -> Result<(), GitError> {
@@ -36,6 +41,12 @@ pub fn cherry_pick(path: String, hash: String) -> Result<(), GitError> {
 /// leaves the rebase in progress and this returns the error message.
 pub fn rebase(path: String, onto: String) -> Result<(), GitError> {
     run_git(&path, &["rebase", &onto]).map(|_| ())
+}
+
+/// Create a new commit that undoes `hash`. On conflict git leaves the revert
+/// in progress — the conflict banner takes over from there.
+pub fn revert_commit(path: String, hash: String) -> Result<(), GitError> {
+    run_git(&path, &["revert", "--no-edit", &hash]).map(|_| ())
 }
 
 #[cfg(test)]
@@ -90,6 +101,22 @@ mod tests {
         rebase(p.clone(), "main".into()).unwrap();
         assert!(std::path::Path::new(&format!("{p}/c.txt")).exists());
         assert_eq!(run_git(&p, &["rev-list", "--count", "HEAD"]).unwrap().trim(), "3");
+    }
+
+    #[test]
+    fn revert_creates_undo_commit() {
+        let p = repo("revert");
+        fs::write(format!("{p}/a.txt"), "um\n").unwrap();
+        run_git(&p, &["add", "-A"]).unwrap();
+        run_git(&p, &["commit", "-m", "um"]).unwrap();
+        fs::write(format!("{p}/a.txt"), "dois\n").unwrap();
+        run_git(&p, &["commit", "-am", "dois"]).unwrap();
+        let hash = run_git(&p, &["rev-parse", "HEAD"]).unwrap().trim().to_string();
+        revert_commit(p.clone(), hash).unwrap();
+        // A third commit exists and the file is back to the first content.
+        assert_eq!(run_git(&p, &["rev-list", "--count", "HEAD"]).unwrap().trim(), "3");
+        // autocrlf may rewrite the checkout with CRLF on Windows — normalize.
+        assert_eq!(fs::read_to_string(format!("{p}/a.txt")).unwrap().replace("\r\n", "\n"), "um\n");
     }
 
     #[test]
