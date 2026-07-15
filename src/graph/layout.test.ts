@@ -52,4 +52,34 @@ describe("graphRows", () => {
     const rows = graphRows(commits);
     expect(rows[0].parentRows).toEqual([]);
   });
+
+  it("a fork keeps the child's lane reserved down to the fork row", () => {
+    // f branches from root (which main's line also reaches); a NEW tip (t)
+    // appearing between them must NOT be given f's lane — the renderer draws
+    // f's line all the way down to root.
+    const commits = [
+      c("m2", ["m1"]), // main tip, lane 0
+      c("f", ["root"]), // fork child, lane 1 (line runs down to root)
+      c("t", ["m1"]), // another fork child appearing later
+      c("m1", ["root"]),
+      c("root", []),
+    ];
+    const rows = graphRows(commits);
+    const laneOf = (h: string) => rows.find((r) => r.commit.hash === h)!.lane;
+    expect(laneOf("m2")).toBe(0);
+    expect(laneOf("f")).toBe(1);
+    // t must take a THIRD lane: lane 1 is still occupied by f's line.
+    expect(laneOf("t")).toBe(2);
+    // The fork point lands on the lowest waiting lane (the trunk).
+    expect(laneOf("root")).toBe(0);
+    expect(laneOf("m1")).toBe(0);
+  });
+
+  it("two children of the same commit keep distinct lines until the fork", () => {
+    const commits = [c("a", ["root"]), c("b", ["root"]), c("root", [])];
+    const rows = graphRows(commits);
+    expect(rows[0].lane).toBe(0);
+    expect(rows[1].lane).toBe(1);
+    expect(rows[2].lane).toBe(0);
+  });
 });

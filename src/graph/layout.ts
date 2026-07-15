@@ -27,21 +27,37 @@ export function graphRows(commits: Commit[]): GraphCommit[] {
 
   const out: GraphCommit[] = [];
   for (const commit of commits) {
-    let lane = lanes.indexOf(commit.hash);
-    if (lane === -1) lane = claim(commit.hash);
-    // Free this lane, then let the first parent reuse it and others claim lanes.
-    lanes[lane] = null;
+    // Every lane waiting for this commit: a branch point has one lane per
+    // child still drawing its line down to this row (see the fork rule
+    // below). The node sits on the lowest of them; all are released here.
+    const waiting: number[] = [];
+    lanes.forEach((h, idx) => {
+      if (h === commit.hash) waiting.push(idx);
+    });
+    const lane = waiting.length > 0 ? waiting[0] : claim(commit.hash);
+    for (const idx of waiting) lanes[idx] = null;
+    if (waiting.length === 0) lanes[lane] = null;
+
+    const merge = commit.parents.length > 1;
     commit.parents.forEach((parent, k) => {
-      let target = lanes.indexOf(parent);
-      if (target === -1) {
-        target = k === 0 ? lane : claim(parent);
-        lanes[target] = parent;
+      const existing = lanes.indexOf(parent);
+      if (k === 0) {
+        // First parent continues in this lane. On a fork (parent already has
+        // a lane elsewhere) THIS lane stays reserved down to the fork row —
+        // the renderer draws that line, so nothing new may land on it. The
+        // R4-era version freed it immediately and a later branch tip could
+        // claim the lane and sit on top of the drawn line. A merge whose
+        // first parent already has a lane curves away at once instead.
+        if (existing === -1 || !merge) lanes[lane] = parent;
+      } else if (existing === -1) {
+        claim(parent);
       }
     });
+
     const parentRows = commit.parents
       .map((p) => indexOf.get(p))
       .filter((i): i is number => i !== undefined);
-    out.push({ commit, lane, parentRows, merge: commit.parents.length > 1 });
+    out.push({ commit, lane, parentRows, merge });
   }
   return out;
 }

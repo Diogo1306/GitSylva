@@ -25,7 +25,12 @@ pub fn get_log(path: String, limit: u32, skip: u32) -> Result<Vec<Commit>, GitEr
     let arg = format!("--pretty=format:{FMT}");
     let n = format!("-{limit}");
     let sk = format!("--skip={skip}");
-    match run_git(&path, &["log", &n, &sk, &arg]) {
+    // ALL branches/remotes/tags, not just HEAD's history (the graph audit's
+    // root cause: unmerged branches never appeared at all), in --topo-order
+    // so parallel branches don't interleave by date and tangle the lanes.
+    // HEAD is listed explicitly for the detached case. refs/stash is NOT
+    // included (--all would pull it in).
+    match run_git(&path, &["log", "--branches", "--remotes", "--tags", "HEAD", "--topo-order", &n, &sk, &arg]) {
         Ok(out) => Ok(parse_log(&out)),
         Err(e) => {
             // A repository with no commits yet has no HEAD; that's an empty
@@ -100,6 +105,29 @@ mod tests {
         let older = get_log(p, 10, 1).unwrap();
         assert_eq!(older.len(), 1);
         assert_eq!(older[0].subject, "one");
+    }
+
+    #[test]
+    fn log_includes_unmerged_branches() {
+        let dir = std::env::temp_dir().join("gitsylva-log-test-branches");
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir).unwrap();
+        let p = dir.to_string_lossy().to_string();
+        run_git(&p, &["init", "-b", "main"]).unwrap();
+        run_git(&p, &["config", "user.email", "t@t.com"]).unwrap();
+        run_git(&p, &["config", "user.name", "T"]).unwrap();
+        fs::write(format!("{p}/a.txt"), "1").unwrap();
+        run_git(&p, &["add", "-A"]).unwrap();
+        run_git(&p, &["commit", "-m", "base"]).unwrap();
+        // A commit on a side branch, NOT merged into main.
+        run_git(&p, &["checkout", "-b", "lado"]).unwrap();
+        fs::write(format!("{p}/b.txt"), "2").unwrap();
+        run_git(&p, &["add", "-A"]).unwrap();
+        run_git(&p, &["commit", "-m", "so-na-lado"]).unwrap();
+        run_git(&p, &["checkout", "main"]).unwrap();
+        // The graph must still show the side branch's commit.
+        let commits = get_log(p, 10, 0).unwrap();
+        assert!(commits.iter().any(|c| c.subject == "so-na-lado"));
     }
 
     #[test]
