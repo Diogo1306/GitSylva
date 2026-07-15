@@ -34,3 +34,34 @@ export function usePanelWidth(key: string, initial: number, min: number, max: nu
 
   return { width, handleProps, edge };
 }
+
+// Vertical sibling: a draggable section HEIGHT (the working copy's split
+// between unstaged and staged lists). Drag down = grow.
+export function usePanelHeight(key: string, initial: number, min: number, max: number) {
+  const [height, setHeight] = useState(() => {
+    const saved = Number(localStorage.getItem(key));
+    return Number.isFinite(saved) && saved >= min && saved <= max ? saved : initial;
+  });
+  const drag = useRef<{ y: number; h: number } | null>(null);
+  const heightRef = useRef(height);
+
+  const handleProps = {
+    onPointerDown: (e: React.PointerEvent) => {
+      drag.current = { y: e.clientY, h: heightRef.current };
+      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    },
+    onPointerMove: (e: React.PointerEvent) => {
+      if (!drag.current) return;
+      const next = Math.min(max, Math.max(min, drag.current.h + (e.clientY - drag.current.y)));
+      heightRef.current = next;
+      setHeight(next);
+    },
+    onPointerUp: () => {
+      if (!drag.current) return;
+      drag.current = null;
+      localStorage.setItem(key, String(heightRef.current));
+    },
+  };
+
+  return { height, handleProps };
+}

@@ -7,7 +7,8 @@ import { BlameView } from "../../components/BlameView";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
 import { ContextMenu, type MenuItem } from "../../components/ui/ContextMenu";
 import { PanelHandle } from "../../components/ui/PanelResize";
-import { usePanelWidth } from "../../lib/usePanelWidth";
+import { usePanelWidth, usePanelHeight } from "../../lib/usePanelWidth";
+import { groupFilesByFolder } from "../../lib/fileGroups";
 import { statusStyle, statusTitle, isConflict } from "../../lib/status";
 import { FileIcon } from "../../components/FileIcon";
 import { errMsg } from "../../lib/errors";
@@ -35,6 +36,7 @@ function FileRow({
   selected,
   conflicted,
   stagger = 0,
+  inFolder = false,
   onToggle,
   onSelect,
   onContext,
@@ -46,6 +48,8 @@ function FileRow({
   conflicted?: boolean;
   /** Row index for the entrance stagger (animation spec §File stage/unstage). */
   stagger?: number;
+  /** Nested under a folder header: indent and drop the dir subtitle. */
+  inFolder?: boolean;
   onToggle: () => void;
   onSelect: () => void;
   onContext?: (x: number, y: number) => void;
@@ -67,7 +71,7 @@ function FileRow({
         display: "flex",
         alignItems: "center",
         gap: 9,
-        padding: "7px 8px",
+        padding: inFolder ? "6px 8px 6px 30px" : "7px 8px",
         borderRadius: 8,
         cursor: "pointer",
         // Only set when selected — an inline "transparent" would beat the
@@ -94,7 +98,7 @@ function FileRow({
       <FileIcon path={file.path} />
       <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
         <span style={{ fontSize: 13, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name}</span>
-        {dir && (
+        {dir && !inFolder && (
           <span style={{ fontFamily: mono, fontSize: 10.5, color: "var(--muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{dir}</span>
         )}
       </div>
@@ -111,6 +115,40 @@ function FileRow({
 function SectionHead({ children }: { children: React.ReactNode }) {
   return (
     <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: "1.2px", color: "var(--muted)", flex: 1 }}>{children}</div>
+  );
+}
+
+// Header row for a folded directory (R5.4): its checkbox stages/unstages the
+// whole folder in one click; the files keep their own rows below it.
+function FolderRow({ dir, count, checked, title, onToggle }: { dir: string; count: number; checked: boolean; title: string; onToggle: () => void }) {
+  return (
+    <div
+      onClick={onToggle}
+      title={title}
+      className="gs-row"
+      style={{ display: "flex", alignItems: "center", gap: 9, padding: "7px 8px", borderRadius: 8, cursor: "pointer" }}
+    >
+      <div
+        style={
+          checked
+            ? { width: 17, height: 17, borderRadius: 5, background: "var(--accent)", flexShrink: 0, display: "grid", placeItems: "center", color: "var(--accentT)", fontSize: 11, fontWeight: 800 }
+            : { width: 17, height: 17, borderRadius: 5, border: "1.5px solid var(--btnB)", boxSizing: "border-box", flexShrink: 0 }
+        }
+      >
+        {checked ? "✓" : ""}
+      </div>
+      <span aria-hidden style={{ width: 16, height: 16, borderRadius: 4, background: "rgba(201,168,58,0.16)", color: "#C9A83A", display: "grid", placeItems: "center", flexShrink: 0 }}>
+        <svg width="72%" height="72%" viewBox="0 0 16 16">
+          <path d="M2 5 a1.6 1.6 0 0 1 1.6-1.6 h3 l1.6 1.8 h4.8 A1.6 1.6 0 0 1 14.6 6.8 v4.6 a1.6 1.6 0 0 1-1.6 1.6 H3.6 A1.6 1.6 0 0 1 2 11.4 z" fill="currentColor" />
+        </svg>
+      </span>
+      <span style={{ flex: 1, fontFamily: mono, fontSize: 12, color: "var(--text2)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", direction: "rtl", textAlign: "left" }}>
+        {dir}/
+      </span>
+      <span style={{ background: "var(--badge)", color: "var(--badgeT)", borderRadius: 999, fontSize: 10.5, fontWeight: 600, padding: "0 7px", flexShrink: 0 }}>
+        {count}
+      </span>
+    </div>
   );
 }
 
@@ -142,6 +180,8 @@ export function WorkingCopy() {
   const isStacked = stacked || narrow;
   // Design: files panel resizable 320–540, persisted.
   const filesW = usePanelWidth("gitsylva-w-working", 400, 320, 540, "right");
+  // R5.4: the unstaged pane's height is user-adjustable (drag the split).
+  const unstagedH = usePanelHeight("gitsylva-h-unstaged", 240, 96, 640);
 
   // Exit animation for rows leaving a list (R3 §9): AFTER the git operation
   // succeeds, the real row is hidden and a non-interactive ghost plays a short
@@ -313,6 +353,90 @@ export function WorkingCopy() {
     );
   }
 
+  // One renderer for both lists (R5.4): directories with >4 changed entries
+  // fold under a folder header whose checkbox stages/unstages them all; the
+  // files keep individual rows (indented) so single picks still work. Ghosts
+  // (rows animating out) are injected at their original index BEFORE grouping
+  // so they leave from inside their folder.
+  type Entry = { f: FileChange; ghost?: Ghost };
+  function stageEntry(f: FileChange, listKey: "u" | "s") {
+    // Already animating out of this list — a second trigger would queue a
+    // duplicate operation and a duplicate ghost.
+    if (hiddenPaths.has(f.path)) return;
+    if (listKey === "u") {
+      const idx = unstaged.indexOf(f);
+      actions.stage.mutate(f.path, {
+        onSuccess: () => exitRow(f, "u", f.worktree_status, idx),
+        onError: (e: unknown) => toast(errMsg(e, `não foi possível preparar ${f.path}`), "error"),
+      });
+    } else {
+      const idx = staged.indexOf(f);
+      actions.unstage.mutate(f.path, {
+        onSuccess: () => exitRow(f, "s", f.index_status, idx),
+        onError: (e: unknown) => toast(errMsg(e, `não foi possível retirar ${f.path}`), "error"),
+      });
+    }
+  }
+  function fileList(listKey: "u" | "s") {
+    const src = listKey === "u" ? unstaged : staged;
+    const entries: Entry[] = src.filter((f) => !hiddenPaths.has(f.path)).map((f) => ({ f }));
+    for (const g of ghosts.filter((x) => x.list === listKey))
+      entries.splice(Math.min(g.idx, entries.length), 0, { f: g.file, ghost: g });
+    let rowIdx = 0;
+    const rowEl = (e: Entry, inFolder: boolean) => {
+      const conflicted = listKey === "u" && isConflict(e.f.index_status, e.f.worktree_status);
+      const letter = e.ghost ? e.ghost.letter : listKey === "u" ? (conflicted ? "U" : e.f.worktree_status) : e.f.index_status;
+      const el = (
+        <FileRow
+          key={listKey + e.f.path}
+          file={e.f}
+          letter={letter}
+          checked={listKey === "s"}
+          selected={!e.ghost && effSel?.path === e.f.path && effSel.staged === (listKey === "s")}
+          conflicted={conflicted}
+          stagger={rowIdx++}
+          inFolder={inFolder}
+          onToggle={() => {
+            if (!e.ghost) stageEntry(e.f, listKey);
+          }}
+          onSelect={() => {
+            if (!e.ghost) select(e.f.path, listKey === "s");
+          }}
+          onContext={e.ghost ? undefined : (x, y) => setFileMenu({ x, y, file: e.f })}
+        />
+      );
+      return e.ghost ? (
+        <div key={`ghost${e.ghost.id}`} style={{ animation: "fileOut 200ms var(--ease-out) both", pointerEvents: "none" }}>
+          {el}
+        </div>
+      ) : (
+        el
+      );
+    };
+    return groupFilesByFolder(entries, (e) => e.f.path).map((g) => {
+      if (g.kind === "file") return rowEl(g.item, false);
+      const real = g.items.filter((e) => !e.ghost && !(listKey === "u" && isConflict(e.f.index_status, e.f.worktree_status)));
+      return (
+        <div key={`dir-${listKey}-${g.dir}`} style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+          <FolderRow
+            dir={g.dir}
+            count={g.items.filter((e) => !e.ghost).length}
+            checked={listKey === "s"}
+            title={
+              listKey === "u"
+                ? `Preparar os ${real.length} ficheiros de ${g.dir}/`
+                : `Retirar os ${real.length} ficheiros de ${g.dir}/`
+            }
+            onToggle={() => {
+              for (const e of real) stageEntry(e.f, listKey);
+            }}
+          />
+          {g.items.map((e) => rowEl(e, true))}
+        </div>
+      );
+    });
+  }
+
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, minHeight: 0, animation: "fadeUp 0.25s ease both" }}>
       <div style={{ flex: 1, display: "flex", flexDirection: isStacked ? "column" : "row", minWidth: 0, minHeight: 0 }}>
@@ -334,10 +458,10 @@ export function WorkingCopy() {
         }}
       >
         {!isStacked && <PanelHandle edge="right" handleProps={filesW.handleProps} />}
-        {/* ONE scroll container for both sections (R5.2): a long unstaged list
-            used to push the staged list and the commit box out of reach. */}
-        <div style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
-        <div style={{ padding: "12px 16px 8px", display: "flex", alignItems: "center" }}>
+        {/* R5.4: each list scrolls inside its own pane, the split between the
+            two is draggable, and the commit box below never moves. */}
+        <div style={{ height: unstagedH.height, minHeight: 96, flexShrink: 0, display: "flex", flexDirection: "column" }}>
+        <div style={{ padding: "12px 16px 8px", display: "flex", alignItems: "center", flexShrink: 0 }}>
           <SectionHead>NÃO PREPARADAS · {unstaged.length}</SectionHead>
           <div
             onClick={() =>
@@ -365,84 +489,27 @@ export function WorkingCopy() {
             Descartar
           </div>
         </div>
-        <div style={{ padding: "0 10px", display: "flex", flexDirection: "column", gap: 1 }}>
-          {(() => {
-            const items = unstaged
-              .filter((f) => !hiddenPaths.has(f.path))
-              .map((f, rowIdx) => (
-                <FileRow
-                  key={"u" + f.path}
-                  file={f}
-                  letter={isConflict(f.index_status, f.worktree_status) ? "U" : f.worktree_status}
-                  checked={false}
-                  selected={effSel?.path === f.path && !effSel.staged}
-                  conflicted={isConflict(f.index_status, f.worktree_status)}
-                  stagger={rowIdx}
-                  onToggle={() => {
-                    // Already animating out of this list — a second click would
-                    // queue a duplicate stage and a duplicate ghost.
-                    if (hiddenPaths.has(f.path)) return;
-                    const idx = unstaged.indexOf(f);
-                    actions.stage.mutate(f.path, {
-                      onSuccess: () => exitRow(f, "u", f.worktree_status, idx),
-                      onError: (e: unknown) => toast(errMsg(e, `não foi possível preparar ${f.path}`), "error"),
-                    });
-                  }}
-                  onSelect={() => select(f.path, false)}
-                  onContext={(x, y) => setFileMenu({ x, y, file: f })}
-                />
-              ));
-            for (const g of ghosts.filter((x) => x.list === "u")) {
-              items.splice(
-                Math.min(g.idx, items.length),
-                0,
-                <div key={`ghost${g.id}`} style={{ animation: "fileOut 200ms var(--ease-out) both", pointerEvents: "none" }}>
-                  <FileRow file={g.file} letter={g.letter} checked={false} selected={false} onToggle={() => {}} onSelect={() => {}} />
-                </div>,
-              );
-            }
-            return items;
-          })()}
+        <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "0 10px 8px", display: "flex", flexDirection: "column", gap: 1 }}>
+          {fileList("u")}
+        </div>
         </div>
 
-        <div style={{ padding: "16px 16px 8px", display: "flex", alignItems: "center" }}>
+        {/* Draggable split between the two lists (R5.4). */}
+        <div
+          {...unstagedH.handleProps}
+          className="gs-resize"
+          title="Arrastar para ajustar o tamanho das listas"
+          style={{ height: 9, flexShrink: 0, cursor: "ns-resize", display: "flex", alignItems: "center", padding: "0 10px", touchAction: "none", boxSizing: "border-box" }}
+        >
+          <div style={{ height: 1, width: "100%", background: "var(--border)" }} />
+        </div>
+
+        <div style={{ flex: 1, minHeight: 96, display: "flex", flexDirection: "column" }}>
+        <div style={{ padding: "6px 16px 8px", display: "flex", alignItems: "center", flexShrink: 0 }}>
           <SectionHead>PREPARADAS · {staged.length}</SectionHead>
         </div>
-        <div style={{ padding: "0 10px 12px", display: "flex", flexDirection: "column", gap: 1 }}>
-          {(() => {
-            const items = staged
-              .filter((f) => !hiddenPaths.has(f.path))
-              .map((f, rowIdx) => (
-                <FileRow
-                  key={"s" + f.path}
-                  file={f}
-                  letter={f.index_status}
-                  checked
-                  selected={effSel?.path === f.path && effSel.staged}
-                  stagger={rowIdx}
-                  onToggle={() => {
-                    if (hiddenPaths.has(f.path)) return;
-                    const idx = staged.indexOf(f);
-                    actions.unstage.mutate(f.path, {
-                      onSuccess: () => exitRow(f, "s", f.index_status, idx),
-                      onError: (e: unknown) => toast(errMsg(e, `não foi possível retirar ${f.path}`), "error"),
-                    });
-                  }}
-                  onSelect={() => select(f.path, true)}
-                  onContext={(x, y) => setFileMenu({ x, y, file: f })}
-                />
-              ));
-            for (const g of ghosts.filter((x) => x.list === "s")) {
-              items.splice(
-                Math.min(g.idx, items.length),
-                0,
-                <div key={`ghost${g.id}`} style={{ animation: "fileOut 200ms var(--ease-out) both", pointerEvents: "none" }}>
-                  <FileRow file={g.file} letter={g.letter} checked selected={false} onToggle={() => {}} onSelect={() => {}} />
-                </div>,
-              );
-            }
-            return items;
-          })()}
+        <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "0 10px 10px", display: "flex", flexDirection: "column", gap: 1 }}>
+          {fileList("s")}
         </div>
         </div>
 
