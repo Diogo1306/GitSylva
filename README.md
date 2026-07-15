@@ -1,8 +1,5 @@
 <p align="center">
-  <img src="docs/design/logos/batman/logo-s.png" height="110" alt="GitSylva S (Batman)" />&nbsp;&nbsp;
-  <img src="docs/design/logos/classic/logo-s.png" height="110" alt="GitSylva S (Clássico)" />&nbsp;&nbsp;
-  <img src="docs/design/logos/nipon/logo-s.png" height="110" alt="GitSylva S (Nipon)" />&nbsp;&nbsp;
-  <img src="docs/design/logos/gitclassic/logo-s.png" height="110" alt="GitSylva S (Git Classic)" />
+  <img src="docs/design/logos/gitsylva-logo-s.png" height="140" alt="GitSylva" />
 </p>
 
 # GitSylva
