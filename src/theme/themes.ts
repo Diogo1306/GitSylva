@@ -351,6 +351,19 @@ export const BRANCH_COLOR_META: { key: BranchColorKey; name: string; swatch: str
   { key: "uva", name: "Uva", swatch: "linear-gradient(90deg, #A48FD9, #FF6FB5)" },
 ];
 
+/**
+ * The leaf color a tree style would have under a given theme — used by the
+ * pickers so each option previews with ITS OWN color (sakura pink, tropical
+ * green…), not whatever the currently applied style painted onto --leaf.
+ */
+export function treeLeafColor(theme: ThemeKey, style: TreeStyleKey): string {
+  const dark = theme !== "claro" && theme !== "nipon";
+  if (style === "sakura") return dark ? "#E8A0BF" : "#D983A8";
+  if (style === "tropical") return dark ? "#4FCE6B" : "#3FA45C";
+  if (style === "grafo") return PALETTES[theme].vars["--text"];
+  return PALETTES[theme].vars["--leaf"];
+}
+
 export type ThemePrefs = {
   theme: ThemeKey;
   treeStyle: TreeStyleKey;

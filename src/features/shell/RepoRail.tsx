@@ -2,7 +2,8 @@ import { useState } from "react";
 import { useAppStore } from "../../state/appStore";
 import type { RepoInfo } from "../../lib/types";
 import { ContextMenu, type MenuItem } from "../../components/ui/ContextMenu";
-import { Input } from "../../components/ui/Input";
+import { GroupEditModal } from "./GroupEditModal";
+import { groupColor } from "../../lib/groupColors";
 
 const mono = "'JetBrains Mono', monospace";
 
@@ -18,14 +19,12 @@ export function RepoRail() {
   const closeRepo = useAppStore((s) => s.closeRepo);
   const setView = useAppStore((s) => s.setView);
   const addGroup = useAppStore((s) => s.addGroup);
-  const renameGroup = useAppStore((s) => s.renameGroup);
   const removeGroup = useAppStore((s) => s.removeGroup);
   const toggleGroupCollapsed = useAppStore((s) => s.toggleGroupCollapsed);
   const setRepoGroup = useAppStore((s) => s.setRepoGroup);
 
   const [menu, setMenu] = useState<{ x: number; y: number; kind: "repo" | "group"; id: string } | null>(null);
-  const [renaming, setRenaming] = useState<string | null>(null);
-  const [renameVal, setRenameVal] = useState("");
+  const [editGroup, setEditGroup] = useState<string | null>(null);
 
   const ungrouped = repos.filter((r) => !groupOf[r.path] || !groups.some((g) => g.id === groupOf[r.path]));
 
@@ -38,7 +37,7 @@ export function RepoRail() {
         onClick={() => switchRepo(r.path)}
         onContextMenu={(e) => { e.preventDefault(); setMenu({ x: e.clientX, y: e.clientY, kind: "repo", id: r.path }); }}
         className="gs-row"
-        style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 8px", borderRadius: 8, cursor: "pointer", background: active ? "var(--sel)" : "transparent" }}
+        style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 8px", borderRadius: 8, cursor: "pointer", background: active ? "var(--sel)" : undefined }}
       >
         <span style={{ width: 7, height: 7, borderRadius: "50%", background: `var(--l${i % 3})`, flexShrink: 0 }} />
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -54,6 +53,7 @@ export function RepoRail() {
     <div style={{ width: 176, flexShrink: 0, borderRight: "1px solid var(--border)", background: "var(--panel2)", padding: "12px 8px", display: "flex", flexDirection: "column", gap: 3, overflowY: "auto", boxSizing: "border-box", animation: "fadeUp 0.25s ease both" }}>
       {groups.map((g) => {
         const members = repos.filter((r) => groupOf[r.path] === g.id);
+        const gc = groupColor(g.color);
         return (
           <div key={g.id} style={{ display: "flex", flexDirection: "column", gap: 2 }}>
             <div
@@ -62,23 +62,8 @@ export function RepoRail() {
               className="gs-row"
               style={{ display: "flex", alignItems: "center", gap: 6, padding: "5px 6px", borderRadius: 7, cursor: "pointer" }}
             >
-              <span style={{ fontSize: 9, color: `var(--l${g.color})`, transform: `rotate(${g.collapsed ? 0 : 90}deg)`, transition: "transform 0.15s", display: "inline-block" }}>▶</span>
-              {renaming === g.id ? (
-                <Input
-                  autoFocus
-                  value={renameVal}
-                  onClick={(e) => e.stopPropagation()}
-                  onChange={(e) => setRenameVal(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Escape") setRenaming(null);
-                    if (e.key === "Enter" && renameVal.trim()) { renameGroup(g.id, renameVal.trim()); setRenaming(null); }
-                  }}
-                  onBlur={() => setRenaming(null)}
-                  style={{ flex: 1, minWidth: 0, padding: "2px 6px", fontSize: 10.5 }}
-                />
-              ) : (
-                <span style={{ flex: 1, fontSize: 10.5, fontWeight: 700, letterSpacing: "0.6px", color: `var(--l${g.color})`, textTransform: "uppercase", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{g.name}</span>
-              )}
+              <span style={{ fontSize: 9, color: gc.fg, transform: `rotate(${g.collapsed ? 0 : 90}deg)`, transition: "transform 0.15s", display: "inline-block" }}>▶</span>
+              <span style={{ flex: 1, fontSize: 10.5, fontWeight: 700, letterSpacing: "0.6px", color: gc.fg, textTransform: "uppercase", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{g.name}</span>
               <span style={{ fontSize: 10, color: "var(--muted)" }}>{members.length}</span>
             </div>
             {!g.collapsed && <div style={{ paddingLeft: 6 }}>{members.map((r) => repoRow(r, repos.indexOf(r)))}</div>}
@@ -97,7 +82,7 @@ export function RepoRail() {
         (() => {
           if (menu.kind === "group") {
             const items: MenuItem[] = [
-              { label: "Renomear grupo", onClick: () => { setRenaming(menu.id); setRenameVal(groups.find((g) => g.id === menu.id)?.name ?? ""); } },
+              { label: "Editar nome e cor…", onClick: () => setEditGroup(menu.id) },
               { label: "Apagar grupo", danger: true, onClick: () => removeGroup(menu.id) },
             ];
             return <ContextMenu x={menu.x} y={menu.y} items={items} onClose={() => setMenu(null)} />;
@@ -110,6 +95,8 @@ export function RepoRail() {
           if (groupOf[path]) items.push({ label: "Remover do grupo", onClick: () => setRepoGroup(path, undefined) });
           return <ContextMenu x={menu.x} y={menu.y} items={items} onClose={() => setMenu(null)} />;
         })()}
+
+      {editGroup && <GroupEditModal groupId={editGroup} onClose={() => setEditGroup(null)} />}
     </div>
   );
 }

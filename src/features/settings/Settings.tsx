@@ -79,7 +79,7 @@ export function Settings() {
               scrollRef.current?.querySelector(`#${id}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
             }}
             className="gs-row"
-            style={{ padding: "7px 11px", borderRadius: 8, fontSize: 13, textDecoration: "none", color: active === id ? "var(--text)" : "var(--text2)", background: active === id ? "var(--sel)" : "transparent", fontWeight: active === id ? 600 : 400 }}
+            style={{ padding: "7px 11px", borderRadius: 8, fontSize: 13, textDecoration: "none", color: active === id ? "var(--text)" : "var(--text2)", background: active === id ? "var(--sel)" : undefined, fontWeight: active === id ? 600 : 400 }}
           >
             {name}
           </a>

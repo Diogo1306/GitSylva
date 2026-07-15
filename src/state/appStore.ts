@@ -33,6 +33,7 @@ type AppState = {
   closeRepo: (path: string) => void;
   addGroup: (name: string) => string;
   renameGroup: (id: string, name: string) => void;
+  setGroupColor: (id: string, color: number) => void;
   removeGroup: (id: string) => void;
   toggleGroupCollapsed: (id: string) => void;
   setRepoGroup: (path: string, groupId: string | undefined) => void;
@@ -97,6 +98,7 @@ export const useAppStore = create<AppState>()(
     return id;
   },
   renameGroup: (id, name) => set((s) => ({ groups: s.groups.map((g) => (g.id === id ? { ...g, name } : g)) })),
+  setGroupColor: (id, color) => set((s) => ({ groups: s.groups.map((g) => (g.id === id ? { ...g, color } : g)) })),
   removeGroup: (id) =>
     set((s) => {
       const groupOf = { ...s.groupOf };

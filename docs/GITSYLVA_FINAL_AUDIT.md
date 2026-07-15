@@ -531,3 +531,21 @@ encontradas e fechadas:
 | Tab bar appear = `fadeUp` | barra de tabs montava sem entrada | `fadeUp` 250ms |
 
 vitest 69/69, tsc+eslint limpos, exe reconstruído e árvore re-verificada ao vivo via CDP.
+
+## 10. Ronda 5 — polimento de UI e primeira release (2026-07-15, branch `feat/ui-polish-r5`)
+
+Pedidos do utilizador nesta ronda, todos entregues e verificados ao vivo no exe via CDP:
+
+| Pedido | Entrega |
+|---|---|
+| Notificações todas em baixo à direita, "de forma igual" | Toaster + Notifications fundidos num só stack (bottom 66 / right 16, por cima da ActionBar), mesmo cartão/vinha/dot/animações (`notifIn`/`notifOut`). Bónus: a camada passou para o App root — durante o onboarding e o picker os toasts nunca tinham aparecido (bug latente). |
+| Ícones por tipo de ficheiro em vez de letras | `lib/fileIcons.ts` (~60 extensões + nomes especiais: Dockerfile, Makefile, LICENSE, .gitignore…) + `components/FileIcon.tsx` (tile 16px, cor de marca com alpha). A letra de estado git (M/A/D/U) mudou para a margem direita com tooltip PT. Aplicado: rows da Cópia de trabalho, cabeçalho do diff, lista de ficheiros do commit no History. |
+| Grupos com nome e cor editáveis | Paleta própria de 8 cores (`lib/groupColors.ts`, independente do tema — antes usava as 3 lanes), `setGroupColor` no appStore, `GroupEditModal` (nome + swatches) via botão direito no chip, em abas E no rail. |
+| Mais espaço em cima (arrastar + abas) | Titlebar em 2 filas no modo abas: fila 1 = wordmark + faixa larga arrastável + ferramentas + controlos; fila 2 = largura toda para as abas (espaços vazios também arrastam). Modo rail mantém 1 fila. EphemeralLeaves acompanha a nova altura. |
+| Swatches com a cor certa de cada opção | Os ícones de estilo de árvore liam o `--leaf` vivo (todos ficavam da cor do estilo aplicado) → `treeLeafColor(theme, style)` em themes.ts. O swatch "Auto" lia `--l1/--l2` já recoloridos pela paleta ativa → par `vivid` do próprio tema (Settings e onboarding = o bug do "ecrã inicial das cores"). |
+| Hover no fundo do painel esquerdo | Causa: `background: "transparent"` inline vence o `.gs-row:hover` da classe. Varridos 9 componentes (Sidebar navRow/branchRow/Definições, FileRow, CommitRow, tabs, rail, Settings nav, RepoPicker) → `undefined` quando não selecionado. |
+| Ctrl+K em vez de ⌘K no Windows | `lib/platform.ts` (isMac + comboHint) usado no Titlebar (hint segue o atalho REGRAVÁVEL da palette), rodapé da palette e NOVIDADES do onboarding. |
+
+**Release 0.1.0 + auto-update:** versões alinhadas em 0.1.0; `tauri-plugin-updater` + `tauri-plugin-process` (relaunch); keypair minisign em `%USERPROFILE%\.tauri\gitsylva.key` (privada FORA do git); `createUpdaterArtifacts` + endpoint `github.com/Diogo1306/GitSylva/releases/latest/download/latest.json`; `UpdatePrompt` no arranque (check 5s depois do arranque, nunca bloqueia; diálogo → download → relaunch). ⚠️ O repo é PRIVADO: o auto-update e os downloads públicos só funcionam quando o dono tornar o repo público (decisão do utilizador, não foi alterada).
+
+Validação: tsc 0, eslint 0, vitest 76/76 (+4 fileIcons), cargo check ok; CDP no exe real: hint "Ctrl+K", 3 zonas de arrasto (40/38px), tiles de tipo + letras de estado no detalhe do commit, cartão de notificação a right-gap 16 / bottom-gap 66.

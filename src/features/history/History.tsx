@@ -10,7 +10,8 @@ import { useThemeStore } from "../../state/themeStore";
 import { graphRows } from "../../graph/layout";
 import { CommitGraphSvg } from "../../components/CommitGraphSvg";
 import { DiffView } from "../../components/DiffView";
-import { statusStyle } from "../../lib/status";
+import { statusStyle, statusTitle } from "../../lib/status";
+import { FileIcon } from "../../components/FileIcon";
 import { errMsg } from "../../lib/errors";
 import {
   relativeTime,
@@ -153,23 +154,7 @@ function DetailPanel({ repoPath, commit }: { repoPath: string; commit: Commit })
           const st = statusStyle(f.status);
           return (
             <div key={f.path} onClick={() => scrollToFile(f.path)} title="Ver o diff deste ficheiro" className="gs-row" style={{ display: "flex", alignItems: "center", gap: 9, padding: "6px 8px", borderRadius: 7, cursor: "pointer" }}>
-              <span
-                style={{
-                  width: 16,
-                  height: 16,
-                  borderRadius: 4,
-                  display: "grid",
-                  placeItems: "center",
-                  fontFamily: mono,
-                  fontSize: 10,
-                  fontWeight: 700,
-                  background: st.bg,
-                  color: st.color,
-                  flexShrink: 0,
-                }}
-              >
-                {f.status}
-              </span>
+              <FileIcon path={f.path} />
               <span
                 style={{
                   flex: 1,
@@ -184,6 +169,12 @@ function DetailPanel({ repoPath, commit }: { repoPath: string; commit: Commit })
                 }}
               >
                 {f.path}
+              </span>
+              <span
+                title={statusTitle(f.status)}
+                style={{ fontFamily: mono, fontSize: 10.5, fontWeight: 700, color: st.color, width: 12, textAlign: "center", flexShrink: 0 }}
+              >
+                {f.status}
               </span>
             </div>
           );
@@ -239,7 +230,8 @@ const CommitRow = memo(function CommitRow({
         padding: filtering ? "0 16px" : "0 16px 0 96px",
         cursor: "pointer",
         boxSizing: "border-box",
-        background: selected ? "var(--sel)" : "transparent",
+        // undefined (not "transparent") so .gs-row:hover still paints.
+        background: selected ? "var(--sel)" : undefined,
         borderBottom: "1px solid var(--bsoft)",
         // Skip painting rows scrolled out of view; the box keeps its height so
         // the graph overlay stays aligned.

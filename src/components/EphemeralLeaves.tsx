@@ -40,8 +40,11 @@ export function EphemeralLeaves() {
   }, []);
 
   if (leaves.length === 0) return null;
+  // Spawn line sits just below the (two-row) titlebar in tab mode; the rail
+  // keeps the original single-row height.
+  const top = useThemeStore.getState().repoLayout === "rail" ? 54 : 82;
   return (
-    <div style={{ position: "fixed", top: 54, left: 0, right: 0, height: 0, pointerEvents: "none", zIndex: 45 }}>
+    <div style={{ position: "fixed", top, left: 0, right: 0, height: 0, pointerEvents: "none", zIndex: 45 }}>
       {leaves.map((l) => (
         <div key={l.id} style={{ position: "absolute", top: 0, left: l.left, animation: "fxFall 2.4s ease-in both" }}>
           <LeafMark style={treeStyle} />

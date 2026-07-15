@@ -5,6 +5,8 @@ import { useApplyTheme } from "./theme/useApplyTheme";
 import { OpenRepo } from "./features/repo/OpenRepo";
 import { AppShell } from "./features/shell/AppShell";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+import { Notifications } from "./components/Notifications";
+import { UpdatePrompt } from "./components/UpdatePrompt";
 
 // Onboarding is first-run only, so it ships as its own chunk.
 const Onboarding = lazy(() => import("./features/onboarding/Onboarding").then((m) => ({ default: m.Onboarding })));
@@ -48,6 +50,10 @@ export default function App() {
   return (
     <ErrorBoundary>
       <Root />
+      {/* App-level so toasts also show during onboarding and the repo picker
+          (inside AppShell they only existed after a repo was open). */}
+      <Notifications />
+      <UpdatePrompt />
     </ErrorBoundary>
   );
 }

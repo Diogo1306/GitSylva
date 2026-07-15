@@ -1,9 +1,11 @@
 import { useNotificationStore, type NotifKind } from "../state/notificationStore";
+import { useToastStore, type ToastKind } from "../state/toastStore";
 import { useThemeStore } from "../state/themeStore";
 
-// Top-right notification stack (handoff §9): card 310px, dot per severity,
-// title + optional description, ✕, notifIn/notifOut, hover pauses the timer.
-// A small vine flourish hugs the card corner (decorative, gated by anims).
+// One notification corner for everything (user request R5): notification
+// cards AND quick toasts share the same stack at the bottom right, above the
+// action bar, with the same card look and the same in/out motion. Toasts are
+// click-to-dismiss; notifications keep ✕ and hover-pauses-the-timer.
 
 const DOT: Record<NotifKind, string> = {
   success: "var(--leaf)",
@@ -12,7 +14,35 @@ const DOT: Record<NotifKind, string> = {
   error: "var(--ddT)",
 };
 
-// Shared with the Toaster (spec §Toast: "small vine flourish frames it").
+const TOAST_DOT: Record<ToastKind, string> = {
+  info: "var(--accent)",
+  success: "var(--daT)",
+  error: "var(--ddT)",
+};
+
+// Card chrome shared by both kinds so the stack reads as one system.
+function cardStyle(error: boolean, exiting: boolean, exitMs: number): React.CSSProperties {
+  return {
+    position: "relative",
+    width: 310,
+    boxSizing: "border-box",
+    background: "var(--win)",
+    border: `1px solid ${error ? "var(--ddT)" : "var(--border)"}`,
+    borderRadius: 12,
+    boxShadow: "var(--shadow-1)",
+    padding: "13px 15px",
+    display: "flex",
+    gap: 11,
+    alignItems: "flex-start",
+    fontFamily: "var(--font)",
+    animation: exiting
+      ? `notifOut ${exitMs}ms var(--ease-standard) both`
+      : "notifIn 300ms var(--ease-pop) both",
+  };
+}
+
+// Small vine flourish hugging the card corner (animation spec §Toast),
+// decorative and gated by the anims preference.
 export function Vine({ treeStyle }: { treeStyle: string }) {
   // Static flourish — one curved stem plus a leaf/blossom, no animation loops.
   return (
@@ -46,38 +76,24 @@ export function Notifications() {
   const dismiss = useNotificationStore((s) => s.dismiss);
   const pause = useNotificationStore((s) => s.pause);
   const resume = useNotificationStore((s) => s.resume);
+  const toasts = useToastStore((s) => s.toasts);
+  const dismissToast = useToastStore((s) => s.dismiss);
   const anims = useThemeStore((s) => s.anims);
   const treeStyle = useThemeStore((s) => s.treeStyle);
 
-  if (notifications.length === 0) return null;
+  if (notifications.length === 0 && toasts.length === 0) return null;
   return (
     <div
       aria-live="polite"
-      style={{ position: "fixed", top: 58, right: 16, zIndex: 72, display: "flex", flexDirection: "column", gap: 10, alignItems: "flex-end" }}
+      style={{ position: "fixed", bottom: 66, right: 16, zIndex: 80, display: "flex", flexDirection: "column", gap: 10, alignItems: "flex-end" }}
     >
       {notifications.map((n) => (
         <div
-          key={n.id}
+          key={`n${n.id}`}
           role={n.kind === "error" ? "alert" : "status"}
           onMouseEnter={() => pause(n.id)}
           onMouseLeave={() => resume(n.id)}
-          style={{
-            position: "relative",
-            width: 310,
-            boxSizing: "border-box",
-            background: "var(--win)",
-            border: `1px solid ${n.kind === "error" ? "var(--ddT)" : "var(--border)"}`,
-            borderRadius: 12,
-            boxShadow: "var(--shadow-1)",
-            padding: "13px 15px",
-            display: "flex",
-            gap: 11,
-            alignItems: "flex-start",
-            fontFamily: "var(--font)",
-            animation: n.exiting
-              ? "notifOut 340ms var(--ease-standard) both"
-              : "notifIn 300ms var(--ease-pop) both",
-          }}
+          style={cardStyle(n.kind === "error", n.exiting, 340)}
         >
           {anims && <Vine treeStyle={treeStyle} />}
           <span style={{ width: 9, height: 9, borderRadius: "50%", background: DOT[n.kind], marginTop: 4, flexShrink: 0 }} />
@@ -95,6 +111,23 @@ export function Notifications() {
           >
             ✕
           </button>
+        </div>
+      ))}
+      {toasts.map((t) => (
+        <div
+          key={`t${t.id}`}
+          onClick={() => dismissToast(t.id)}
+          title="Fechar"
+          role={t.kind === "error" ? "alert" : "status"}
+          // The store removes the toast 220ms after dismiss — the exit must
+          // not outlive that window.
+          style={{ ...cardStyle(t.kind === "error", t.exiting, 200), cursor: "pointer" }}
+        >
+          {anims && <Vine treeStyle={treeStyle} />}
+          <span style={{ width: 9, height: 9, borderRadius: "50%", background: TOAST_DOT[t.kind], marginTop: 4, flexShrink: 0 }} />
+          <span style={{ flex: 1, minWidth: 0, fontSize: 13, color: "var(--text)", lineHeight: 1.4, overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical" }}>
+            {t.text}
+          </span>
         </div>
       ))}
     </div>

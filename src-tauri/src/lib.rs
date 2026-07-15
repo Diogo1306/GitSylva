@@ -33,6 +33,10 @@ pub fn run() {
   install_panic_hook();
   tauri::Builder::default()
     .plugin(tauri_plugin_dialog::init())
+    // Auto-update: startup check lives in the frontend (UpdatePrompt); the
+    // download/install runs here. process powers the relaunch afterwards.
+    .plugin(tauri_plugin_updater::Builder::new().build())
+    .plugin(tauri_plugin_process::init())
     .plugin(
       // Release builds log too (INFO+): freezes/crashes in real use are
       // undiagnosable without a trail. File lives in the app's log dir

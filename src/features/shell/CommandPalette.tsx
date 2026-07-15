@@ -5,6 +5,8 @@ import { toast } from "../../state/toastStore";
 import { notify } from "../../state/notificationStore";
 import { spawnLeaf } from "../../lib/leaf";
 import { fold, foldChars } from "../../lib/fold";
+import { comboHint } from "../../lib/platform";
+import { useShortcutsStore } from "../../state/shortcutsStore";
 import type { View } from "../../state/appStore";
 
 const mono = "'JetBrains Mono', monospace";
@@ -269,7 +271,7 @@ export function CommandPalette() {
           <span>↑↓ navegar</span>
           <span>↵ abrir</span>
           <span>esc fechar</span>
-          <span>⌘K / Ctrl+K em qualquer ecrã</span>
+          <span>{comboHint(useShortcutsStore.getState().bindings.palette)} em qualquer ecrã</span>
         </div>
       </div>
     </div>

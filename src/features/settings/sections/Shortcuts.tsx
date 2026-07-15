@@ -9,12 +9,11 @@ import {
   SHORTCUT_LABELS,
   type ShortcutAction,
 } from "../../../state/shortcutsStore";
+import { isMac } from "../../../lib/platform";
 
 // Rebindable shortcuts (handoff: click a row → record → key applies, Esc
 // cancels; the kbd pulses while recording). Combos always require Ctrl/⌘ so
 // plain typing can never fire a git action.
-
-const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform);
 
 const ACTIONS: ShortcutAction[] = ["palette", "commit", "push", "pull", "fetch", "branch", "stash"];
 

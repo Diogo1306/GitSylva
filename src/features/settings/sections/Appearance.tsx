@@ -1,7 +1,7 @@
 import { useRef } from "react";
 import { useThemeStore } from "../../../state/themeStore";
 import { toast } from "../../../state/toastStore";
-import { PALETTES, FONTS, TREE_META, BRANCH_COLOR_META, type ThemeKey, type TreeStyleKey, type FontKey } from "../../../theme/themes";
+import { PALETTES, FONTS, TREE_META, BRANCH_COLOR_META, treeLeafColor, type ThemeKey, type TreeStyleKey, type FontKey } from "../../../theme/themes";
 import { Toggle } from "../../../components/ui/misc";
 import { Button } from "../../../components/ui/Button";
 import { SectionTitle, FieldLabel, Hint } from "./_shared";
@@ -37,13 +37,16 @@ function ThemeCard({ themeKey, active, onPick }: { themeKey: ThemeKey; active: b
   );
 }
 
-function TreeIcon({ kind }: { kind: TreeStyleKey }) {
+// Each style previews with its OWN leaf color (via treeLeafColor) — reading
+// the live --leaf here made every icon take the color of whichever style is
+// currently applied.
+function TreeIcon({ kind, leaf }: { kind: TreeStyleKey; leaf: string }) {
   if (kind === "sakura")
     return (
       <svg width={20} height={20} viewBox="0 0 16 16">
         {[0, 1, 2, 3, 4].map((a) => {
           const ang = (a / 5) * Math.PI * 2 - Math.PI / 2;
-          return <circle key={a} cx={8 + Math.cos(ang) * 3.2} cy={8 + Math.sin(ang) * 3.2} r={2.1} fill="var(--leaf)" />;
+          return <circle key={a} cx={8 + Math.cos(ang) * 3.2} cy={8 + Math.sin(ang) * 3.2} r={2.1} fill={leaf} />;
         })}
         <circle cx={8} cy={8} r={1.3} fill="var(--win)" />
       </svg>
@@ -51,8 +54,8 @@ function TreeIcon({ kind }: { kind: TreeStyleKey }) {
   if (kind === "tropical")
     return (
       <svg width={22} height={16} viewBox="0 0 18 13">
-        <path d="M9,11 Q10,4 17,2 Q11,8 9,11 Z" fill="var(--leaf)" />
-        <path d="M9,11 Q8,4 1,2 Q7,8 9,11 Z" fill="var(--leaf)" opacity={0.8} />
+        <path d="M9,11 Q10,4 17,2 Q11,8 9,11 Z" fill={leaf} />
+        <path d="M9,11 Q8,4 1,2 Q7,8 9,11 Z" fill={leaf} opacity={0.8} />
       </svg>
     );
   if (kind === "grafo")
@@ -65,7 +68,7 @@ function TreeIcon({ kind }: { kind: TreeStyleKey }) {
     );
   return (
     <svg width={20} height={16} viewBox="0 0 16 12">
-      <path d="M1,10 Q6,2 15,4 Q7,9 1,10 Z" fill="var(--l0)" />
+      <path d="M1,10 Q6,2 15,4 Q7,9 1,10 Z" fill={leaf} />
     </svg>
   );
 }
@@ -73,6 +76,11 @@ function TreeIcon({ kind }: { kind: TreeStyleKey }) {
 export function Appearance() {
   const t = useThemeStore();
   const accents = PALETTES[t.theme].accents;
+  // "Auto" previews the CURRENT THEME's own vivid pair — the live --l1/--l2
+  // vars are already recolored by the selected palette, so reading them made
+  // Auto mirror whatever palette was active instead of the theme default.
+  const vivid = PALETTES[t.theme].vivid;
+  const autoSwatch = `linear-gradient(90deg, ${vivid[0]}, ${vivid[1]})`;
   const fileRef = useRef<HTMLInputElement>(null);
 
   function exportTheme() {
@@ -121,7 +129,7 @@ export function Appearance() {
             const active = t.treeStyle === k;
             return (
               <div key={k} onClick={() => t.savePrefs({ treeStyle: k })} className="gs-lift" style={{ border: `2px solid ${active ? "var(--accent)" : "var(--btnB)"}`, borderRadius: 12, padding: "12px 14px", cursor: "pointer", display: "flex", alignItems: "center", gap: 11, background: "var(--panel)" }}>
-                <TreeIcon kind={k} />
+                <TreeIcon kind={k} leaf={treeLeafColor(t.theme, k)} />
                 <div>
                   <div style={{ fontSize: 13, fontWeight: 600 }}>{TREE_META[k].name}</div>
                   <div style={{ fontSize: 11.5, color: "var(--muted)" }}>{TREE_META[k].desc}</div>
@@ -138,7 +146,7 @@ export function Appearance() {
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
           {BRANCH_COLOR_META.map((lc) => (
             <div key={lc.key} onClick={() => t.savePrefs({ branchColor: lc.key })} style={pillStyle(t.branchColor === lc.key)}>
-              <span style={{ width: 16, height: 16, borderRadius: "50%", background: lc.swatch }} />
+              <span style={{ width: 16, height: 16, borderRadius: "50%", background: lc.key === "auto" ? autoSwatch : lc.swatch }} />
               <span>{lc.name}</span>
             </div>
           ))}

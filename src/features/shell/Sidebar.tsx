@@ -110,7 +110,7 @@ export function Sidebar() {
             width: 6,
             height: 6,
             borderRadius: "50%",
-            background: b.is_current ? "var(--l0bg)" : "transparent",
+            background: b.is_current ? "var(--l0bg)" : undefined,
             border: `1.5px solid ${b.is_current ? "var(--l0)" : "var(--muted)"}`,
             boxSizing: "border-box",
             flexShrink: 0,
@@ -197,7 +197,8 @@ export function Sidebar() {
         fontSize: 13.5,
         color: "var(--text)",
         cursor: "pointer",
-        background: view === key ? "var(--sel)" : "transparent",
+        // undefined (not "transparent") so .gs-row:hover still paints.
+        background: view === key ? "var(--sel)" : undefined,
       }}
     >
       {dot}
@@ -376,7 +377,7 @@ export function Sidebar() {
           fontSize: 13.5,
           color: "var(--text2)",
           cursor: "pointer",
-          background: view === "settings" ? "var(--sel)" : "transparent",
+          background: view === "settings" ? "var(--sel)" : undefined,
         }}
       >
         <span style={{ width: 9, height: 9, borderRadius: "50%", border: "2px solid var(--muted)", boxSizing: "border-box", flexShrink: 0 }} />
