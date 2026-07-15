@@ -7,7 +7,7 @@ const mono = "'JetBrains Mono', monospace";
 // code. Consecutive lines from the same commit share a gutter tint.
 export function BlameView({ lines }: { lines: BlameLine[] }) {
   return (
-    <div style={{ padding: "6px 0" }}>
+    <div className="gs-selectable" style={{ padding: "6px 0" }}>
       {lines.map((l, i) => {
         const sameAsPrev = i > 0 && lines[i - 1].hash === l.hash;
         const av = avatarColor(l.author);

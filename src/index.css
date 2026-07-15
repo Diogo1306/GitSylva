@@ -5,3 +5,19 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+/* Native-app feel (R5.12): chrome text isn't selectable — accidental drags
+   don't highlight labels. Real CONTENT stays selectable: form fields, diffs,
+   blame and the commit message (anything tagged .gs-selectable). Everything
+   else copies via the context menus (hash, message, path, branch name). */
+body {
+  -webkit-user-select: none;
+  user-select: none;
+}
+input,
+textarea,
+.gs-selectable,
+.gs-selectable * {
+  -webkit-user-select: text;
+  user-select: text;
+}
