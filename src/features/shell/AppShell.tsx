@@ -8,9 +8,7 @@ import { RepoRail } from "./RepoRail";
 import { ActionBar } from "./ActionBar";
 import { CommandPalette } from "./CommandPalette";
 import { Modals } from "./Modals";
-import { Toaster } from "../../components/Toaster";
 import { ErrorBoundary } from "../../components/ErrorBoundary";
-import { Notifications } from "../../components/Notifications";
 import { EphemeralLeaves } from "../../components/EphemeralLeaves";
 import { spawnLeaf } from "../../lib/leaf";
 import { ConflictBanner } from "../working-copy/ConflictBanner";
@@ -181,8 +179,6 @@ export function AppShell() {
       <ActionBar />
       <CommandPalette />
       <Modals />
-      <Toaster />
-      <Notifications />
       <EphemeralLeaves />
     </div>
   );
