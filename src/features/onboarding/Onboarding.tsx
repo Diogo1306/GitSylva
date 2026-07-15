@@ -81,7 +81,10 @@ export function Onboarding() {
   ];
 
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 85, background: "var(--desk)", display: "grid", placeItems: "center", fontFamily: "var(--font)", color: "var(--text)", overflow: "hidden", animation: "fadeIn 0.45s ease both" }}>
+    // The WHOLE empty background is a drag handle (R5.17) — a thin top strip
+    // wasn't where anyone instinctively grabs. Interactive children still get
+    // their clicks (the drag only fires when the target IS this element).
+    <div data-tauri-drag-region style={{ position: "fixed", inset: 0, zIndex: 85, background: "var(--desk)", display: "grid", placeItems: "center", fontFamily: "var(--font)", color: "var(--text)", overflow: "hidden", animation: "fadeIn 0.45s ease both" }}>
       {/* Frameless window: without these the onboarding can't be moved or
           closed at all (R5.14). */}
       <div data-tauri-drag-region style={{ position: "absolute", top: 0, left: 0, right: 0, height: 36, zIndex: 2 }}>
@@ -95,7 +98,7 @@ export function Onboarding() {
         </div>
       </div>
       <FallingLeaves />
-      <div style={{ position: "relative", zIndex: 1, display: "flex", alignItems: "center", gap: 60, padding: 24, boxSizing: "border-box" }}>
+      <div data-tauri-drag-region style={{ position: "relative", zIndex: 1, display: "flex", alignItems: "center", gap: 60, padding: 24, boxSizing: "border-box" }}>
         {/* Left: the growing tree + wordmark */}
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, flexShrink: 0, minWidth: 262 }}>
           <div style={{ width: TREE_W[stage], height: TREE_H[stage], transition: "width 0.9s cubic-bezier(0.2,0.9,0.3,1), height 0.9s cubic-bezier(0.2,0.9,0.3,1)" }}>
