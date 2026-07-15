@@ -6,6 +6,7 @@ import { useThemeStore } from "../../state/themeStore";
 import { useOnboardStore } from "../../state/onboardStore";
 import { toast } from "../../state/toastStore";
 import { PALETTES, TREE_META, BRANCH_COLOR_META, type ThemeKey, type TreeStyleKey } from "../../theme/themes";
+import { comboHint } from "../../lib/platform";
 
 type Phase = "splash" | "login" | "setup" | "grow";
 
@@ -51,7 +52,7 @@ function Splash() {
 // The "what's new" deck shown in the setup step (design: obNovCards).
 const NEWS: [string, string][] = [
   ["Grupos de separadores", "Organiza os repositórios abertos em grupos com cor, em abas ou na barra lateral."],
-  ["Pesquisa total ⌘K", "Commits, branches, ficheiros, repositórios e ações git num só sítio."],
+  [`Pesquisa total ${comboHint("mod+k")}`, "Commits, branches, ficheiros, repositórios e ações git num só sítio."],
   ["Árvore viva", "O histórico cresce como uma árvore — folhas, flores, palmeiras ou só nós."],
 ];
 
@@ -177,15 +178,22 @@ export function Onboarding() {
             <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
               <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "1.4px", color: "var(--muted)" }}>COR DAS BRANCHES</div>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
-                {BRANCH_COLOR_META.map((lc) => (
-                  <div
-                    key={lc.key}
-                    onClick={() => t.savePrefs({ branchColor: lc.key })}
-                    title={lc.name}
-                    className="gs-lift"
-                    style={{ width: 26, height: 26, borderRadius: "50%", border: `2px solid ${t.branchColor === lc.key ? "var(--accent)" : "var(--btnB)"}`, background: lc.swatch, cursor: "pointer", boxSizing: "border-box" }}
-                  />
-                ))}
+                {BRANCH_COLOR_META.map((lc) => {
+                  // "Auto" must preview the SELECTED theme's own vivid pair;
+                  // the live --l1/--l2 vars are already recolored by whatever
+                  // palette is active (the initial-screen color bug).
+                  const vivid = PALETTES[t.theme].vivid;
+                  const swatch = lc.key === "auto" ? `linear-gradient(90deg, ${vivid[0]}, ${vivid[1]})` : lc.swatch;
+                  return (
+                    <div
+                      key={lc.key}
+                      onClick={() => t.savePrefs({ branchColor: lc.key })}
+                      title={lc.name}
+                      className="gs-lift"
+                      style={{ width: 26, height: 26, borderRadius: "50%", border: `2px solid ${t.branchColor === lc.key ? "var(--accent)" : "var(--btnB)"}`, background: swatch, cursor: "pointer", boxSizing: "border-box" }}
+                    />
+                  );
+                })}
               </div>
             </div>
 

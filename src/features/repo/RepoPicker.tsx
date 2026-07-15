@@ -99,7 +99,7 @@ export function RepoPicker() {
             key={key}
             onClick={() => setTab(key)}
             className="gs-row"
-            style={{ padding: "7px 14px", borderRadius: 8, fontSize: 13, fontWeight: 600, color: tab === key ? "var(--text)" : "var(--muted)", background: tab === key ? "var(--sel)" : "transparent", cursor: "pointer" }}
+            style={{ padding: "7px 14px", borderRadius: 8, fontSize: 13, fontWeight: 600, color: tab === key ? "var(--text)" : "var(--muted)", background: tab === key ? "var(--sel)" : undefined, cursor: "pointer" }}
           >
             {name}
           </div>
