@@ -6,7 +6,7 @@ import { useOnboardStore } from "../../state/onboardStore";
 import { toast } from "../../state/toastStore";
 import { PALETTES, TREE_META, type ThemeKey, type TreeStyleKey } from "../../theme/themes";
 import { WinControls } from "../shell/Titlebar";
-import { STree } from "../../components/STree";
+import { TreeLogo, OnboardTree } from "../../components/TreeLogo";
 
 // Always-on window bar (R5.18): a frameless window must be movable and
 // closable in EVERY onboarding phase, splash included — full-width drag strip
@@ -45,15 +45,15 @@ function Splash() {
     </span>
   );
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 90, background: "var(--desk)", display: "grid", placeItems: "center", animation: "splashSeq 2.7s ease both", pointerEvents: "none" }}>
+    <div style={{ position: "fixed", inset: 0, zIndex: 90, background: "var(--desk)", display: "grid", placeItems: "center", animation: "splashSeq 2.05s ease both", pointerEvents: "none" }}>
       <div style={{ display: "flex", alignItems: "baseline", fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: 52, color: "var(--text)", letterSpacing: "0.5px", animation: "logoIn 0.4s cubic-bezier(0.2,0.9,0.3,1) both" }}>
         {letter("g", "L", 0.88, 1.62)}
         {letter("i", "L", 0.78, 1.56)}
         {letter("t", "L", 0.68, 1.5, "r")}
-        {/* The kit's animated tree (R5.22/23): the S draws itself, nodes pop
-            and the foliage matches the tree style — all theme-aware. */}
-        <span style={{ display: "inline-block", margin: "0 4px", alignSelf: "center", transform: "translateY(6px)" }}>
-          <STree size={97} animated />
+        {/* The classic living mark, back by request (R5.24) — its spine IS
+            the official S geometry; kept at the bigger entry size. */}
+        <span style={{ display: "inline-block", margin: "0 4px", alignSelf: "center", transform: "translateY(4px)" }}>
+          <TreeLogo size={88} animated />
         </span>
         {letter("y", "R", 0.68, 1.5, "l")}
         {letter("l", "R", 0.78, 1.56)}
@@ -70,10 +70,10 @@ export function Onboarding() {
   const finish = useOnboardStore((s) => s.finish);
   const [phase, setPhase] = useState<Phase>(anims ? "splash" : "login");
 
-  // Splash auto-advances to login (2.7s: the animated tree finishes ~2.1s).
+  // Splash auto-advances to login.
   useEffect(() => {
     if (phase !== "splash") return;
-    const id = setTimeout(() => setPhase("login"), 2700);
+    const id = setTimeout(() => setPhase("login"), 2050);
     return () => clearTimeout(id);
   }, [phase]);
 
@@ -109,14 +109,11 @@ export function Onboarding() {
       <OnboardBar />
       <FallingLeaves />
       <div data-tauri-drag-region style={{ position: "relative", zIndex: 1, display: "flex", alignItems: "center", gap: 60, padding: 24, boxSizing: "border-box" }}>
-        {/* Left: the LIVING tree (R5.23) — the kit's S geometry grows through
-            the steps and the foliage morphs with the chosen tree style. */}
+        {/* Left: the classic growing tree (roots, tapered trunk, crown and
+            style-aware foliage), restored by request — R5.24. */}
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, flexShrink: 0, minWidth: 262 }}>
-          <div
-            key={stage}
-            style={{ height: TREE_H[stage], display: "grid", placeItems: "end center", transition: "height 0.9s cubic-bezier(0.2,0.9,0.3,1)" }}
-          >
-            <STree size={TREE_H[stage]} stage={stage as 0 | 1 | 2} animated={anims} />
+          <div style={{ height: TREE_H[stage], display: "grid", placeItems: "end center", transition: "height 0.9s cubic-bezier(0.2,0.9,0.3,1)" }}>
+            <OnboardTree stage={stage} />
           </div>
           <div style={{ marginTop: 4 }}>
             <Wordmark size={20} />
