@@ -44,6 +44,9 @@ export type BranchInfo = {
   upstream: string | null;
   /** Full hash of the branch tip (focused in the history on click). */
   tip: string;
+  /** Commits ahead/behind the upstream (0/0 without upstream). */
+  ahead: number;
+  behind: number;
 };
 
 export type StashInfo = {

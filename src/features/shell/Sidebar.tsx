@@ -151,6 +151,18 @@ export function Sidebar() {
         ) : (
           <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{display}</span>
         )}
+        {/* Ahead/behind the upstream (R5.8): work to push shows ↑n, work to
+            pull shows ↓n — visible per branch, not only for the current one. */}
+        {renaming !== b.name && b.ahead > 0 && (
+          <span title={`${b.ahead} commit(s) por enviar (push)`} style={{ fontFamily: mono, fontSize: 10, fontWeight: 700, background: "var(--accent)", color: "var(--accentT)", borderRadius: 999, padding: "0 6px", flexShrink: 0 }}>
+            ↑{b.ahead}
+          </span>
+        )}
+        {renaming !== b.name && b.behind > 0 && (
+          <span title={`${b.behind} commit(s) por integrar (pull)`} style={{ fontFamily: mono, fontSize: 10, fontWeight: 700, background: "var(--badge)", color: "var(--badgeT)", borderRadius: 999, padding: "0 6px", flexShrink: 0 }}>
+            ↓{b.behind}
+          </span>
+        )}
         {!b.is_current && renaming !== b.name && (
           <span
             onClick={(e) => {
