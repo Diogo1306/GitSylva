@@ -6,21 +6,7 @@ import { useOnboardStore } from "../../state/onboardStore";
 import { toast } from "../../state/toastStore";
 import { PALETTES, TREE_META, type ThemeKey, type TreeStyleKey } from "../../theme/themes";
 import { WinControls } from "../shell/Titlebar";
-import tree1 from "../../theme/marks/tree-1.png";
-import tree2 from "../../theme/marks/tree-2.png";
-import tree3 from "../../theme/marks/tree-3.png";
-import animEscuro from "../../theme/marks/anim/escuro.svg?raw";
-import animClaro from "../../theme/marks/anim/claro.svg?raw";
-import animGitclassic from "../../theme/marks/anim/gitclassic.svg?raw";
-import animNipon from "../../theme/marks/anim/nipon.svg?raw";
-
-// The kit's animated tree (self-drawing S) per theme — used by the splash.
-const ANIM_BY_THEME: Record<ThemeKey, string> = {
-  escuro: animEscuro,
-  claro: animClaro,
-  gitclassic: animGitclassic,
-  nipon: animNipon,
-};
+import { STree } from "../../components/STree";
 
 // Always-on window bar (R5.18): a frameless window must be movable and
 // closable in EVERY onboarding phase, splash included — full-width drag strip
@@ -44,7 +30,7 @@ const TREE_ORDER: TreeStyleKey[] = ["normal", "sakura", "tropical", "grafo"];
 // Tree box heights per onboarding stage (design: obTreeH).
 const TREE_H = [229, 277, 333];
 
-function Splash({ theme }: { theme: ThemeKey }) {
+function Splash() {
   // git + tree-S + ylva; side letters animate in then hop away.
   const letter = (ch: string, side: "L" | "R", inDelay: number, hopDelay: number, margin?: string) => (
     <span
@@ -64,13 +50,11 @@ function Splash({ theme }: { theme: ThemeKey }) {
         {letter("g", "L", 0.88, 1.62)}
         {letter("i", "L", 0.78, 1.56)}
         {letter("t", "L", 0.68, 1.5, "r")}
-        {/* The kit's ANIMATED tree (R5.22): the S draws itself, nodes pop,
-            leaves sprout — themed to the active palette. */}
-        <span
-          className="gs-treeanim"
-          dangerouslySetInnerHTML={{ __html: ANIM_BY_THEME[theme] ?? animEscuro }}
-          style={{ display: "inline-block", width: 72, height: 97, margin: "0 4px", alignSelf: "center", transform: "translateY(6px)", ["--gs-bg" as never]: "var(--win)" }}
-        />
+        {/* The kit's animated tree (R5.22/23): the S draws itself, nodes pop
+            and the foliage matches the tree style — all theme-aware. */}
+        <span style={{ display: "inline-block", margin: "0 4px", alignSelf: "center", transform: "translateY(6px)" }}>
+          <STree size={97} animated />
+        </span>
         {letter("y", "R", 0.68, 1.5, "l")}
         {letter("l", "R", 0.78, 1.56)}
         {letter("v", "R", 0.88, 1.62)}
@@ -103,7 +87,7 @@ export function Onboarding() {
   if (phase === "splash")
     return (
       <>
-        <Splash theme={t.theme} />
+        <Splash />
         <OnboardBar />
       </>
     );
@@ -125,26 +109,14 @@ export function Onboarding() {
       <OnboardBar />
       <FallingLeaves />
       <div data-tauri-drag-region style={{ position: "relative", zIndex: 1, display: "flex", alignItems: "center", gap: 60, padding: 24, boxSizing: "border-box" }}>
-        {/* Left: the official growth art (R5.21) — sapling → young tree → the
-            full S, cross-fading and bottom-anchored like a real plant. */}
+        {/* Left: the LIVING tree (R5.23) — the kit's S geometry grows through
+            the steps and the foliage morphs with the chosen tree style. */}
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, flexShrink: 0, minWidth: 262 }}>
-          <div style={{ position: "relative", width: 262, height: TREE_H[stage], transition: "height 0.9s cubic-bezier(0.2,0.9,0.3,1)" }}>
-            {[tree1, tree2, tree3].map((src, i) => (
-              <img
-                key={i}
-                src={src}
-                alt=""
-                style={{
-                  position: "absolute",
-                  bottom: 0,
-                  left: "50%",
-                  transform: "translateX(-50%)",
-                  height: TREE_H[i],
-                  opacity: stage === i ? 1 : 0,
-                  transition: "opacity 0.7s ease",
-                }}
-              />
-            ))}
+          <div
+            key={stage}
+            style={{ height: TREE_H[stage], display: "grid", placeItems: "end center", transition: "height 0.9s cubic-bezier(0.2,0.9,0.3,1)" }}
+          >
+            <STree size={TREE_H[stage]} stage={stage as 0 | 1 | 2} animated={anims} />
           </div>
           <div style={{ marginTop: 4 }}>
             <Wordmark size={20} />
