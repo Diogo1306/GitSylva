@@ -11,10 +11,12 @@ import { notify } from "../../state/notificationStore";
 import { Wordmark } from "../../components/Wordmark";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
 import { ContextMenu, type MenuItem } from "../../components/ui/ContextMenu";
+import { GroupEditModal } from "./GroupEditModal";
+import { groupColor } from "../../lib/groupColors";
+import { isMac, comboHint } from "../../lib/platform";
+import { useShortcutsStore } from "../../state/shortcutsStore";
 
 const mono = "'JetBrains Mono', monospace";
-
-const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform);
 
 // macOS: traffic lights on the left. The handoff's minimize animation plays
 // before the real minimize.
@@ -134,6 +136,10 @@ export function Titlebar({ rail = false }: { rail?: boolean }) {
   const toggleGroupCollapsed = useAppStore((s) => s.toggleGroupCollapsed);
   const setRepoGroup = useAppStore((s) => s.setRepoGroup);
   const [tabMenu, setTabMenu] = useState<{ x: number; y: number; kind: "repo" | "group"; id: string } | null>(null);
+  const [editGroup, setEditGroup] = useState<string | null>(null);
+  // The search hint follows the rebindable palette shortcut and the platform
+  // (Ctrl+K on Windows/Linux, ⌘K on macOS) — it was a hardcoded ⌘K before.
+  const paletteHint = comboHint(useShortcutsStore((s) => s.bindings.palette));
 
   const files = data ?? [];
   const unstaged = files.filter((f) => f.worktree_status !== ".").length;
@@ -160,7 +166,7 @@ export function Titlebar({ rail = false }: { rail?: boolean }) {
           padding: "5px 8px 5px 12px",
           borderRadius: 8,
           border: `1px solid ${active ? "var(--btnB)" : "transparent"}`,
-          background: active ? "var(--sel)" : "transparent",
+          background: active ? "var(--sel)" : undefined,
           minWidth: 0,
           cursor: "pointer",
         }}
@@ -226,28 +232,31 @@ export function Titlebar({ rail = false }: { rail?: boolean }) {
   }
 
   return (
+    <div style={{ flexShrink: 0, display: "flex", flexDirection: "column", borderBottom: "1px solid var(--border)", background: "var(--panel)" }}>
+    {/* Row 1: wordmark + a wide empty strip to grab the window with + tools.
+        In tab mode the tabs moved to their own full-width row below (user
+        request R5: more room to drag, more room for tabs). */}
     <div
       data-tauri-drag-region
       style={{
-        height: 50,
-        flexShrink: 0,
+        height: rail ? 50 : 40,
         display: "flex",
         alignItems: "center",
-        gap: 16,
-        padding: "0 16px",
-        borderBottom: "1px solid var(--border)",
-        background: "var(--panel)",
+        gap: 14,
+        padding: "0 10px 0 16px",
       }}
     >
       {isMac && <TrafficLights />}
 
-      <div style={{ flexShrink: 0 }}>
+      {/* pointerEvents none: clicks fall through to the drag region, so the
+          wordmark itself is also a grab handle. */}
+      <div style={{ flexShrink: 0, pointerEvents: "none" }}>
         <Wordmark size={17} />
       </div>
 
       {/* Rail mode: the tabs live in the left rail, so show repo/branch inline. */}
       {rail ? (
-        <div style={{ display: "flex", alignItems: "baseline", gap: 7, minWidth: 0, flex: 1 }}>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 7, minWidth: 0, flex: 1, pointerEvents: "none" }}>
           <span style={{ fontFamily: mono, fontSize: 12, color: "var(--text2)" }}>
             {repo.path.replace(/[/\\]$/, "").split(/[/\\]/).pop()}
           </span>
@@ -255,53 +264,7 @@ export function Titlebar({ rail = false }: { rail?: boolean }) {
           <span style={{ fontFamily: mono, fontSize: 12, color: "var(--l0)", fontWeight: 600 }}>{repo.current_branch}</span>
         </div>
       ) : (
-      /* Repo tabs, grouped exactly like the rail (spec: groups work
-         identically): chip toggles collapse, right-click closes the group.
-         Horizontal scroll keeps every tab reachable with many repos open.
-         fadeUp on appear = animation spec §"Tab bar appear". */
-      <div style={{ display: "flex", alignItems: "center", gap: 5, minWidth: 0, flex: 1, overflowX: "auto", overflowY: "hidden", scrollbarWidth: "thin", animation: "fadeUp 0.25s ease both" }}>
-        {groups.map((g) => {
-          const members = repos.filter((r) => groupOf[r.path] === g.id);
-          if (members.length === 0) return null;
-          return (
-            <div
-              key={g.id}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 3,
-                padding: 3,
-                borderRadius: 10,
-                border: `1px solid var(--l${g.color}bd)`,
-                background: g.collapsed ? `var(--l${g.color}bg)` : "transparent",
-                flexShrink: 0,
-              }}
-            >
-              <span
-                onClick={() => toggleGroupCollapsed(g.id)}
-                onContextMenu={(e) => {
-                  e.preventDefault();
-                  setTabMenu({ x: e.clientX, y: e.clientY, kind: "group", id: g.id });
-                }}
-                title={`${g.collapsed ? "Expandir" : "Colapsar"} grupo · botão direito para opções`}
-                style={{ fontSize: 11.5, fontWeight: 700, padding: "3px 9px", borderRadius: 7, background: `var(--l${g.color}bg)`, color: `var(--l${g.color})`, cursor: "pointer", whiteSpace: "nowrap" }}
-              >
-                {g.name} · {members.length}
-              </span>
-              {!g.collapsed && members.map((r) => tabEl(r, repos.indexOf(r)))}
-            </div>
-          );
-        })}
-        {ungrouped.map((r) => tabEl(r, repos.indexOf(r)))}
-        <div
-          onClick={() => setView("picker")}
-          className="gs-lift"
-          title="Abrir repositório"
-          style={{ width: 26, height: 26, borderRadius: 8, display: "grid", placeItems: "center", color: "var(--muted)", fontSize: 15, cursor: "pointer", flexShrink: 0 }}
-        >
-          +
-        </div>
-      </div>
+        <div data-tauri-drag-region style={{ flex: 1, alignSelf: "stretch" }} />
       )}
 
       <div style={{ display: "flex", gap: 6, alignItems: "center", flexShrink: 0 }}>
@@ -350,7 +313,7 @@ export function Titlebar({ rail = false }: { rail?: boolean }) {
         <div
           onClick={() => setPaletteOpen(true)}
           className="gs-lift"
-          title="Pesquisar (⌘K)"
+          title={`Pesquisar (${paletteHint})`}
           style={{
             display: "flex",
             alignItems: "center",
@@ -367,7 +330,7 @@ export function Titlebar({ rail = false }: { rail?: boolean }) {
         >
           Pesquisar
           <span style={{ fontFamily: mono, fontSize: 10, border: "1px solid var(--btnB)", borderRadius: 5, padding: "1px 4px" }}>
-            ⌘K
+            {paletteHint}
           </span>
         </div>
         <div
@@ -392,12 +355,69 @@ export function Titlebar({ rail = false }: { rail?: boolean }) {
       </div>
 
       {!isMac && <WinControls />}
+    </div>
+
+    {/* Row 2 (tab mode only): the whole width belongs to the repo tabs.
+        Grouped exactly like the rail (spec: groups work identically): chip
+        toggles collapse, right-click opens options. Horizontal scroll keeps
+        every tab reachable; empty space still drags the window.
+        fadeUp on appear = animation spec §"Tab bar appear". */}
+    {!rail && (
+      <div
+        data-tauri-drag-region
+        style={{ height: 38, display: "flex", alignItems: "center", gap: 5, padding: "0 12px", borderTop: "1px solid var(--bsoft)", minWidth: 0, overflowX: "auto", overflowY: "hidden", scrollbarWidth: "thin", animation: "fadeUp 0.25s ease both" }}
+      >
+        {groups.map((g) => {
+          const members = repos.filter((r) => groupOf[r.path] === g.id);
+          if (members.length === 0) return null;
+          const gc = groupColor(g.color);
+          return (
+            <div
+              key={g.id}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 3,
+                padding: 3,
+                borderRadius: 10,
+                border: `1px solid ${gc.bd}`,
+                background: g.collapsed ? gc.bg : undefined,
+                flexShrink: 0,
+              }}
+            >
+              <span
+                onClick={() => toggleGroupCollapsed(g.id)}
+                onContextMenu={(e) => {
+                  e.preventDefault();
+                  setTabMenu({ x: e.clientX, y: e.clientY, kind: "group", id: g.id });
+                }}
+                title={`${g.collapsed ? "Expandir" : "Colapsar"} grupo · botão direito para opções`}
+                style={{ fontSize: 11.5, fontWeight: 700, padding: "3px 9px", borderRadius: 7, background: gc.bg, color: gc.fg, cursor: "pointer", whiteSpace: "nowrap" }}
+              >
+                {g.name} · {members.length}
+              </span>
+              {!g.collapsed && members.map((r) => tabEl(r, repos.indexOf(r)))}
+            </div>
+          );
+        })}
+        {ungrouped.map((r) => tabEl(r, repos.indexOf(r)))}
+        <div
+          onClick={() => setView("picker")}
+          className="gs-lift"
+          title="Abrir repositório"
+          style={{ width: 26, height: 26, borderRadius: 8, display: "grid", placeItems: "center", color: "var(--muted)", fontSize: 15, cursor: "pointer", flexShrink: 0 }}
+        >
+          +
+        </div>
+      </div>
+    )}
 
       {tabMenu &&
         (() => {
           if (tabMenu.kind === "group") {
             const members = repos.filter((r) => groupOf[r.path] === tabMenu.id);
             const items: MenuItem[] = [
+              { label: "Editar nome e cor…", onClick: () => setEditGroup(tabMenu.id) },
               {
                 label: `Fechar todas as abas do grupo (${members.length})`,
                 danger: true,
@@ -427,6 +447,8 @@ export function Titlebar({ rail = false }: { rail?: boolean }) {
           onConfirm={doDiscardAll}
         />
       )}
+
+      {editGroup && <GroupEditModal groupId={editGroup} onClose={() => setEditGroup(null)} />}
     </div>
   );
 }
