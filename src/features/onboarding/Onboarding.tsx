@@ -6,10 +6,21 @@ import { useOnboardStore } from "../../state/onboardStore";
 import { toast } from "../../state/toastStore";
 import { PALETTES, TREE_META, type ThemeKey, type TreeStyleKey } from "../../theme/themes";
 import { WinControls } from "../shell/Titlebar";
-import logoS from "../../theme/appicons/logo-s.png";
 import tree1 from "../../theme/marks/tree-1.png";
 import tree2 from "../../theme/marks/tree-2.png";
 import tree3 from "../../theme/marks/tree-3.png";
+import animEscuro from "../../theme/marks/anim/escuro.svg?raw";
+import animClaro from "../../theme/marks/anim/claro.svg?raw";
+import animGitclassic from "../../theme/marks/anim/gitclassic.svg?raw";
+import animNipon from "../../theme/marks/anim/nipon.svg?raw";
+
+// The kit's animated tree (self-drawing S) per theme — used by the splash.
+const ANIM_BY_THEME: Record<ThemeKey, string> = {
+  escuro: animEscuro,
+  claro: animClaro,
+  gitclassic: animGitclassic,
+  nipon: animNipon,
+};
 
 // Always-on window bar (R5.18): a frameless window must be movable and
 // closable in EVERY onboarding phase, splash included — full-width drag strip
@@ -33,7 +44,7 @@ const TREE_ORDER: TreeStyleKey[] = ["normal", "sakura", "tropical", "grafo"];
 // Tree box heights per onboarding stage (design: obTreeH).
 const TREE_H = [229, 277, 333];
 
-function Splash() {
+function Splash({ theme }: { theme: ThemeKey }) {
   // git + tree-S + ylva; side letters animate in then hop away.
   const letter = (ch: string, side: "L" | "R", inDelay: number, hopDelay: number, margin?: string) => (
     <span
@@ -48,17 +59,17 @@ function Splash() {
     </span>
   );
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 90, background: "var(--desk)", display: "grid", placeItems: "center", animation: "splashSeq 2.05s ease both", pointerEvents: "none" }}>
+    <div style={{ position: "fixed", inset: 0, zIndex: 90, background: "var(--desk)", display: "grid", placeItems: "center", animation: "splashSeq 2.7s ease both", pointerEvents: "none" }}>
       <div style={{ display: "flex", alignItems: "baseline", fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: 52, color: "var(--text)", letterSpacing: "0.5px", animation: "logoIn 0.4s cubic-bezier(0.2,0.9,0.3,1) both" }}>
         {letter("g", "L", 0.88, 1.62)}
         {letter("i", "L", 0.78, 1.56)}
         {letter("t", "L", 0.68, 1.5, "r")}
-        {/* The official S mark, big (R5.19 — the old procedural sapling read
-            tiny between the letters). */}
-        <img
-          src={logoS}
-          alt=""
-          style={{ display: "inline-block", height: 92, margin: "0 4px", alignSelf: "center", transform: "translateY(6px)", animation: "logoIn 0.4s cubic-bezier(0.2,0.9,0.3,1) both" }}
+        {/* The kit's ANIMATED tree (R5.22): the S draws itself, nodes pop,
+            leaves sprout — themed to the active palette. */}
+        <span
+          className="gs-treeanim"
+          dangerouslySetInnerHTML={{ __html: ANIM_BY_THEME[theme] ?? animEscuro }}
+          style={{ display: "inline-block", width: 72, height: 97, margin: "0 4px", alignSelf: "center", transform: "translateY(6px)", ["--gs-bg" as never]: "var(--win)" }}
         />
         {letter("y", "R", 0.68, 1.5, "l")}
         {letter("l", "R", 0.78, 1.56)}
@@ -75,10 +86,10 @@ export function Onboarding() {
   const finish = useOnboardStore((s) => s.finish);
   const [phase, setPhase] = useState<Phase>(anims ? "splash" : "login");
 
-  // Splash auto-advances to login.
+  // Splash auto-advances to login (2.7s: the animated tree finishes ~2.1s).
   useEffect(() => {
     if (phase !== "splash") return;
-    const id = setTimeout(() => setPhase("login"), 2050);
+    const id = setTimeout(() => setPhase("login"), 2700);
     return () => clearTimeout(id);
   }, [phase]);
 
@@ -92,7 +103,7 @@ export function Onboarding() {
   if (phase === "splash")
     return (
       <>
-        <Splash />
+        <Splash theme={t.theme} />
         <OnboardBar />
       </>
     );
