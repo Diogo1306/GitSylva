@@ -176,6 +176,20 @@ export function Onboarding() {
             </div>
 
             <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+              <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "1.4px", color: "var(--muted)" }}>REPOSITÓRIOS ABERTOS</div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                {(["tabs", "rail"] as const).map((k) => {
+                  const active = t.repoLayout === k;
+                  return (
+                    <div key={k} onClick={() => t.savePrefs({ repoLayout: k })} style={{ display: "flex", alignItems: "center", gap: 7, padding: "6px 13px", borderRadius: 999, border: `2px solid ${active ? "var(--accent)" : "var(--btnB)"}`, fontSize: 12.5, cursor: "pointer", color: active ? "var(--text)" : "var(--text2)" }}>
+                      {k === "tabs" ? "Abas em cima (browser)" : "Barra lateral (estilo Discord)"}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
               <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "1.4px", color: "var(--muted)" }}>COR DAS BRANCHES</div>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
                 {BRANCH_COLOR_META.map((lc) => {

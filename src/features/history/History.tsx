@@ -7,7 +7,7 @@ import { Button } from "../../components/ui/Button";
 import { ContextMenu, type MenuItem } from "../../components/ui/ContextMenu";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
 import { PanelHandle } from "../../components/ui/PanelResize";
-import { usePanelWidth } from "../../lib/usePanelWidth";
+import { usePanelWidth, usePanelHeight } from "../../lib/usePanelWidth";
 import { toast } from "../../state/toastStore";
 import { useThemeStore } from "../../state/themeStore";
 import { graphRows } from "../../graph/layout";
@@ -296,6 +296,11 @@ export function History() {
   const rowH = density === "compacta" ? 40 : ROW_H;
   // Design: detail panel resizable 300–560, persisted.
   const detailW = usePanelWidth("gitsylva-w-detail", 372, 300, 560, "left");
+  // R5.9: the detail/diff panel can sit beside the list (default) or below it
+  // (SourceTree style), and can be collapsed entirely.
+  const below = useThemeStore((s) => s.historyLayout) === "baixo";
+  const detailH = usePanelHeight("gitsylva-h-history-detail", 340, 160, 720);
+  const [detailOpen, setDetailOpen] = useState(true);
 
   // A focused commit (palette pick or a branch click in the sidebar) deeper
   // than the loaded window grows the window instead of silently selecting the
@@ -413,8 +418,8 @@ export function History() {
   if (commits.length === 0) return <div style={{ padding: 16, color: "var(--muted)" }}>Sem commits ainda.</div>;
 
   return (
-    <div style={{ flex: 1, display: "flex", minWidth: 0, animation: "fadeUp 0.25s ease both" }}>
-      <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", borderRight: "1px solid var(--border)" }}>
+    <div style={{ flex: 1, display: "flex", flexDirection: below ? "column" : "row", minWidth: 0, minHeight: 0, animation: "fadeUp 0.25s ease both" }}>
+      <div style={{ flex: 1, minWidth: 0, minHeight: 0, display: "flex", flexDirection: "column", borderRight: below ? "none" : "1px solid var(--border)" }}>
         <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 10 }}>
           <input
             value={query}
@@ -480,10 +485,50 @@ export function History() {
         </div>
       </div>
 
-      <div style={{ width: detailW.width, flexShrink: 0, background: "var(--panel)", minHeight: 0, position: "relative" }}>
-        <PanelHandle edge="left" handleProps={detailW.handleProps} />
-        <DetailPanel repoPath={repo.path} commit={selected} />
-      </div>
+      {detailOpen ? (
+        <>
+          {below && (
+            <div
+              {...detailH.handleProps}
+              className="gs-resize"
+              title="Arrastar para ajustar o painel"
+              style={{ height: 7, flexShrink: 0, cursor: "ns-resize", borderTop: "1px solid var(--border)", touchAction: "none" }}
+            />
+          )}
+          <div
+            style={
+              below
+                ? { height: detailH.height, flexShrink: 0, background: "var(--panel)", minWidth: 0, position: "relative", display: "flex", flexDirection: "column" }
+                : { width: detailW.width, flexShrink: 0, background: "var(--panel)", minHeight: 0, position: "relative" }
+            }
+          >
+            {!below && <PanelHandle edge="left" handleProps={detailW.handleProps} />}
+            {/* Collapse the panel entirely — full-width history. */}
+            <div
+              onClick={() => setDetailOpen(false)}
+              title="Fechar o painel de detalhe"
+              className="gs-row"
+              style={{ position: "absolute", top: 8, right: 10, zIndex: 6, width: 22, height: 22, borderRadius: 6, display: "grid", placeItems: "center", color: "var(--muted)", fontSize: 11, cursor: "pointer" }}
+            >
+              {below ? "⌄" : "❯"}
+            </div>
+            <DetailPanel repoPath={repo.path} commit={selected} />
+          </div>
+        </>
+      ) : (
+        <div
+          onClick={() => setDetailOpen(true)}
+          title="Abrir o painel de detalhe"
+          className="gs-row"
+          style={
+            below
+              ? { height: 20, flexShrink: 0, borderTop: "1px solid var(--border)", display: "grid", placeItems: "center", color: "var(--muted)", fontSize: 10, cursor: "pointer", background: "var(--panel)" }
+              : { width: 20, flexShrink: 0, borderLeft: "1px solid var(--border)", display: "grid", placeItems: "center", color: "var(--muted)", fontSize: 10, cursor: "pointer", background: "var(--panel)" }
+          }
+        >
+          {below ? "⌃" : "❮"}
+        </div>
+      )}
 
       {menu &&
         (() => {
