@@ -7,6 +7,7 @@ import { useOnboardStore } from "../../state/onboardStore";
 import { toast } from "../../state/toastStore";
 import { PALETTES, TREE_META, type ThemeKey, type TreeStyleKey } from "../../theme/themes";
 import { WinControls } from "../shell/Titlebar";
+import logoS from "../../theme/appicons/logo-s.png";
 
 // Always-on window bar (R5.18): a frameless window must be movable and
 // closable in EVERY onboarding phase, splash included — full-width drag strip
@@ -51,9 +52,13 @@ function Splash() {
         {letter("g", "L", 0.88, 1.62)}
         {letter("i", "L", 0.78, 1.56)}
         {letter("t", "L", 0.68, 1.5, "r")}
-        <span style={{ display: "inline-block", width: 44, height: 60 }}>
-          <OnboardTree stage={0} />
-        </span>
+        {/* The official S mark, big (R5.19 — the old procedural sapling read
+            tiny between the letters). */}
+        <img
+          src={logoS}
+          alt=""
+          style={{ display: "inline-block", height: 92, margin: "0 4px", alignSelf: "center", transform: "translateY(6px)", animation: "logoIn 0.4s cubic-bezier(0.2,0.9,0.3,1) both" }}
+        />
         {letter("y", "R", 0.68, 1.5, "l")}
         {letter("l", "R", 0.78, 1.56)}
         {letter("v", "R", 0.88, 1.62)}

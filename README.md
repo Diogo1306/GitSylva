@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/design/logos/gitsylva-logo-s.png" height="140" alt="GitSylva" />
+</p>
+
 # GitSylva
 
 **A git client where your history grows like a tree.**
