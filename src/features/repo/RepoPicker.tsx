@@ -12,6 +12,8 @@ type Tab = "local" | "remote" | "clone" | "add" | "create";
 export function RepoPicker() {
   const setView = useAppStore((s) => s.setView);
   const prevView = useAppStore((s) => s.prevView);
+  // Standalone at startup (no repo open yet): there is nothing to close into.
+  const hasRepo = useAppStore((s) => !!s.repo);
   const recents = useRecentsStore((s) => s.recents);
   const removeRecent = useRecentsStore((s) => s.remove);
   const { open, run, busy, error } = useOpenRepo();
@@ -105,9 +107,11 @@ export function RepoPicker() {
           </div>
         ))}
         <div style={{ flex: 1 }} />
-        <div onClick={close} className="gs-lift" style={{ padding: "6px 12px", borderRadius: 8, border: "1px solid var(--btnB)", background: "var(--btn)", color: "var(--btnT)", fontSize: 12.5, cursor: "pointer" }}>
-          ✕ Fechar
-        </div>
+        {hasRepo && (
+          <div onClick={close} className="gs-lift" style={{ padding: "6px 12px", borderRadius: 8, border: "1px solid var(--btnB)", background: "var(--btn)", color: "var(--btnT)", fontSize: 12.5, cursor: "pointer" }}>
+            ✕ Fechar
+          </div>
+        )}
       </div>
 
       <div style={{ flex: 1, overflowY: "auto" }}>

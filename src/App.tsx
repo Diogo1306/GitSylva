@@ -2,7 +2,6 @@ import { Suspense, lazy, useEffect } from "react";
 import { useAppStore } from "./state/appStore";
 import { useOnboardStore } from "./state/onboardStore";
 import { useApplyTheme } from "./theme/useApplyTheme";
-import { OpenRepo } from "./features/repo/OpenRepo";
 import { AppShell } from "./features/shell/AppShell";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { Notifications } from "./components/Notifications";
@@ -10,6 +9,9 @@ import { UpdatePrompt } from "./components/UpdatePrompt";
 
 // Onboarding is first-run only, so it ships as its own chunk.
 const Onboarding = lazy(() => import("./features/onboarding/Onboarding").then((m) => ({ default: m.Onboarding })));
+// No repo open → the full repository screen (recents + add/clone/create), not
+// a bare folder prompt (user request R5.5).
+const RepoPicker = lazy(() => import("./features/repo/RepoPicker").then((m) => ({ default: m.RepoPicker })));
 
 function Root() {
   const onboarded = useOnboardStore((s) => s.onboarded);
@@ -21,7 +23,14 @@ function Root() {
         <Onboarding />
       </Suspense>
     );
-  if (!repo) return <OpenRepo />;
+  if (!repo)
+    return (
+      <Suspense fallback={<div style={{ height: "100%", background: "var(--desk)" }} />}>
+        <div style={{ height: "100%", display: "flex", flexDirection: "column", background: "var(--win)", color: "var(--text)" }}>
+          <RepoPicker />
+        </div>
+      </Suspense>
+    );
   return <AppShell />;
 }
 
