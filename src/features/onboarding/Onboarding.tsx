@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { OnboardTree } from "../../components/TreeLogo";
 import { Wordmark } from "../../components/Wordmark";
 import { FallingLeaves } from "../../components/FallingLeaves";
 import { useThemeStore } from "../../state/themeStore";
@@ -8,6 +7,17 @@ import { toast } from "../../state/toastStore";
 import { PALETTES, TREE_META, type ThemeKey, type TreeStyleKey } from "../../theme/themes";
 import { WinControls } from "../shell/Titlebar";
 import logoS from "../../theme/appicons/logo-s.png";
+import sEscuro from "../../theme/marks/escuro.png";
+import sClaro from "../../theme/marks/claro.png";
+import sGitclassic from "../../theme/marks/gitclassic.png";
+import sNipon from "../../theme/marks/nipon.png";
+
+const S_BY_THEME: Record<ThemeKey, string> = {
+  escuro: sEscuro,
+  claro: sClaro,
+  gitclassic: sGitclassic,
+  nipon: sNipon,
+};
 
 // Always-on window bar (R5.18): a frameless window must be movable and
 // closable in EVERY onboarding phase, splash included — full-width drag strip
@@ -28,8 +38,7 @@ type Phase = "splash" | "login" | "setup" | "grow";
 const THEME_ORDER: ThemeKey[] = ["escuro", "claro", "nipon", "gitclassic"];
 const TREE_ORDER: TreeStyleKey[] = ["normal", "sakura", "tropical", "grafo"];
 
-// Tree box dimensions per stage (design: obTreeW/obTreeH).
-const TREE_W = [172, 208, 250];
+// Tree box heights per onboarding stage (design: obTreeH).
 const TREE_H = [229, 277, 333];
 
 function Splash() {
@@ -113,10 +122,14 @@ export function Onboarding() {
       <OnboardBar />
       <FallingLeaves />
       <div data-tauri-drag-region style={{ position: "relative", zIndex: 1, display: "flex", alignItems: "center", gap: 60, padding: 24, boxSizing: "border-box" }}>
-        {/* Left: the growing tree + wordmark */}
+        {/* Left: the official S mark grows with each step (R5.20). */}
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, flexShrink: 0, minWidth: 262 }}>
-          <div style={{ width: TREE_W[stage], height: TREE_H[stage], transition: "width 0.9s cubic-bezier(0.2,0.9,0.3,1), height 0.9s cubic-bezier(0.2,0.9,0.3,1)" }}>
-            <OnboardTree stage={stage} />
+          <div style={{ height: TREE_H[stage], display: "grid", placeItems: "center", transition: "height 0.9s cubic-bezier(0.2,0.9,0.3,1)" }}>
+            <img
+              src={S_BY_THEME[t.theme] ?? logoS}
+              alt=""
+              style={{ height: TREE_H[stage] * 0.92, transition: "height 0.9s cubic-bezier(0.2,0.9,0.3,1)" }}
+            />
           </div>
           <div style={{ marginTop: 4 }}>
             <Wordmark size={20} />

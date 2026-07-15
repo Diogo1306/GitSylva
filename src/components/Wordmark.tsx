@@ -1,11 +1,22 @@
-import { TreeLogo } from "./TreeLogo";
+import { useThemeStore } from "../state/themeStore";
+import type { ThemeKey } from "../theme/themes";
+import sEscuro from "../theme/marks/escuro.png";
+import sClaro from "../theme/marks/claro.png";
+import sGitclassic from "../theme/marks/gitclassic.png";
+import sNipon from "../theme/marks/nipon.png";
 
-// The git[S-tree]ylva lockup (Space Grotesk 600, S cropped and widened 1.22×),
-// shared by the titlebar, the welcome screen and the onboarding column — it
-// was previously hand-assembled in each place with diverging magic numbers.
+// The git[S]ylva lockup. The S is the OFFICIAL mark from the design kit
+// (R5.20), themed to match the active palette; the letters stay live text so
+// they keep the theme color and stay crisp at any size.
+const S_BY_THEME: Record<ThemeKey, string> = {
+  escuro: sEscuro,
+  claro: sClaro,
+  gitclassic: sGitclassic,
+  nipon: sNipon,
+};
+
 export function Wordmark({ size = 17 }: { size?: number }) {
-  const tree = Math.round(size * 0.85);
-  const lift = Math.round(size * 0.12);
+  const theme = useThemeStore((s) => s.theme);
   return (
     <div
       style={{
@@ -18,9 +29,11 @@ export function Wordmark({ size = 17 }: { size?: number }) {
       }}
     >
       <span>git</span>
-      <span style={{ display: "inline-block", margin: "0 1px", transform: `translateY(${lift}px)` }}>
-        <TreeLogo size={tree} crop xScale={1.22} />
-      </span>
+      <img
+        src={S_BY_THEME[theme] ?? sEscuro}
+        alt=""
+        style={{ display: "inline-block", height: Math.round(size * 1.5), margin: "0 2px", alignSelf: "center", transform: `translateY(${Math.round(size * 0.1)}px)` }}
+      />
       <span>ylva</span>
     </div>
   );
