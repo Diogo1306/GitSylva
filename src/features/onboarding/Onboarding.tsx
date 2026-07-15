@@ -5,8 +5,8 @@ import { FallingLeaves } from "../../components/FallingLeaves";
 import { useThemeStore } from "../../state/themeStore";
 import { useOnboardStore } from "../../state/onboardStore";
 import { toast } from "../../state/toastStore";
-import { PALETTES, TREE_META, BRANCH_COLOR_META, type ThemeKey, type TreeStyleKey } from "../../theme/themes";
-import { comboHint } from "../../lib/platform";
+import { PALETTES, TREE_META, type ThemeKey, type TreeStyleKey } from "../../theme/themes";
+import { winMinimize, winClose } from "../../lib/window";
 
 type Phase = "splash" | "login" | "setup" | "grow";
 
@@ -49,19 +49,11 @@ function Splash() {
   );
 }
 
-// The "what's new" deck shown in the setup step (design: obNovCards).
-const NEWS: [string, string][] = [
-  ["Grupos de separadores", "Organiza os repositórios abertos em grupos com cor, em abas ou na barra lateral."],
-  [`Pesquisa total ${comboHint("mod+k")}`, "Commits, branches, ficheiros, repositórios e ações git num só sítio."],
-  ["Árvore viva", "O histórico cresce como uma árvore — folhas, flores, palmeiras ou só nós."],
-];
-
 export function Onboarding() {
   const anims = useThemeStore((s) => s.anims);
   const t = useThemeStore();
   const finish = useOnboardStore((s) => s.finish);
   const [phase, setPhase] = useState<Phase>(anims ? "splash" : "login");
-  const [news, setNews] = useState(0);
 
   // Splash auto-advances to login.
   useEffect(() => {
@@ -90,6 +82,18 @@ export function Onboarding() {
 
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 85, background: "var(--desk)", display: "grid", placeItems: "center", fontFamily: "var(--font)", color: "var(--text)", overflow: "hidden", animation: "fadeIn 0.45s ease both" }}>
+      {/* Frameless window: without these the onboarding can't be moved or
+          closed at all (R5.14). */}
+      <div data-tauri-drag-region style={{ position: "absolute", top: 0, left: 0, right: 0, height: 36, zIndex: 2 }}>
+        <div style={{ position: "absolute", top: 6, right: 8, display: "flex" }}>
+          <div onClick={() => void winMinimize()} title="Minimizar" className="gs-winbtn" style={{ width: 38, height: 28, display: "grid", placeItems: "center", cursor: "pointer", fontSize: 11, color: "var(--text2)", borderRadius: 6 }}>
+            —
+          </div>
+          <div onClick={() => void winClose()} title="Fechar" className="gs-winclose" style={{ width: 38, height: 28, display: "grid", placeItems: "center", cursor: "pointer", fontSize: 11, color: "var(--text2)", borderRadius: 6 }}>
+            ✕
+          </div>
+        </div>
+      </div>
       <FallingLeaves />
       <div style={{ position: "relative", zIndex: 1, display: "flex", alignItems: "center", gap: 60, padding: 24, boxSizing: "border-box" }}>
         {/* Left: the growing tree + wordmark */}
@@ -186,77 +190,6 @@ export function Onboarding() {
                     </div>
                   );
                 })}
-              </div>
-            </div>
-
-            <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
-              <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "1.4px", color: "var(--muted)" }}>COR DAS BRANCHES</div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
-                {BRANCH_COLOR_META.map((lc) => {
-                  // "Auto" must preview the SELECTED theme's own vivid pair;
-                  // the live --l1/--l2 vars are already recolored by whatever
-                  // palette is active (the initial-screen color bug).
-                  const vivid = PALETTES[t.theme].vivid;
-                  const swatch = lc.key === "auto" ? `linear-gradient(90deg, ${vivid[0]}, ${vivid[1]})` : lc.swatch;
-                  return (
-                    <div
-                      key={lc.key}
-                      onClick={() => t.savePrefs({ branchColor: lc.key })}
-                      title={lc.name}
-                      className="gs-lift"
-                      style={{ width: 26, height: 26, borderRadius: "50%", border: `2px solid ${t.branchColor === lc.key ? "var(--accent)" : "var(--btnB)"}`, background: swatch, cursor: "pointer", boxSizing: "border-box" }}
-                    />
-                  );
-                })}
-              </div>
-            </div>
-
-            <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
-              <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "1.4px", color: "var(--muted)" }}>NOVIDADES</div>
-              <div style={{ position: "relative", height: 88 }}>
-                {NEWS.map(([title, sub], i) => {
-                  // Stacked deck per the animation spec: back cards sit at
-                  // translateX ±30, y9, rotate ±3.5°, scale .96, opacity .5;
-                  // advancing reflows over 450ms with the pop easing.
-                  const off = (i - news + NEWS.length) % NEWS.length;
-                  return (
-                    <div
-                      key={title}
-                      style={{
-                        position: "absolute",
-                        inset: 0,
-                        padding: "12px 14px",
-                        borderRadius: 11,
-                        border: "1px solid var(--border)",
-                        background: "var(--panel)",
-                        transform:
-                          off === 0
-                            ? "none"
-                            : `translateX(${off === 1 ? 30 : -30}px) translateY(9px) rotate(${off === 1 ? 3.5 : -3.5}deg) scale(0.96)`,
-                        opacity: off === 0 ? 1 : 0.5,
-                        zIndex: NEWS.length - off,
-                        transition: "transform 450ms var(--ease-pop), opacity 450ms var(--ease-pop)",
-                        boxSizing: "border-box",
-                      }}
-                    >
-                      <div style={{ fontSize: 13, fontWeight: 700 }}>{title}</div>
-                      <div style={{ fontSize: 12, color: "var(--text2)", marginTop: 4, lineHeight: 1.4 }}>{sub}</div>
-                    </div>
-                  );
-                })}
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                {NEWS.map((_, i) => (
-                  <span
-                    key={i}
-                    onClick={() => setNews(i)}
-                    style={{ width: 6, height: 6, borderRadius: "50%", background: i === news ? "var(--accent)" : "var(--btnB)", cursor: "pointer" }}
-                  />
-                ))}
-                <div style={{ flex: 1 }} />
-                <div onClick={() => setNews((n) => (n + 1) % NEWS.length)} style={{ fontSize: 12, color: "var(--text2)", cursor: "pointer" }}>
-                  próximo →
-                </div>
               </div>
             </div>
 
