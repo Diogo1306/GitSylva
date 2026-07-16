@@ -253,18 +253,9 @@ export function Titlebar({ rail = false }: { rail?: boolean }) {
         <Wordmark size={17} />
       </div>
 
-      {/* Rail mode: the tabs live in the left rail, so show repo/branch inline. */}
-      {rail ? (
-        <div style={{ display: "flex", alignItems: "baseline", gap: 7, minWidth: 0, flex: 1, pointerEvents: "none" }}>
-          <span style={{ fontFamily: mono, fontSize: 12, color: "var(--text2)" }}>
-            {repo.path.replace(/[/\\]$/, "").split(/[/\\]/).pop()}
-          </span>
-          <span style={{ fontFamily: mono, fontSize: 12, color: "var(--muted)" }}>/</span>
-          <span style={{ fontFamily: mono, fontSize: 12, color: "var(--l0)", fontWeight: 600 }}>{repo.current_branch}</span>
-        </div>
-      ) : (
-        <div data-tauri-drag-region style={{ flex: 1, alignSelf: "stretch" }} />
-      )}
+      {/* Repo/branch já vive na barra inferior — repeti-los aqui em modo rail
+          duplicava a informação (R5.28). A faixa fica toda para arrastar. */}
+      <div data-tauri-drag-region style={{ flex: 1, alignSelf: "stretch" }} />
 
       <div style={{ display: "flex", gap: 6, alignItems: "center", flexShrink: 0 }}>
         <Tool onClick={refresh} title="Fetch de origin">
