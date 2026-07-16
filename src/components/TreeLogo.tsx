@@ -6,57 +6,9 @@ import type { TreeStyleKey } from "../theme/themes";
 // procedurally so it stays theme-aware and morphs by tree style (leaves
 // become commit nodes in "grafo", cherry blossoms in "sakura").
 
-type Pt = [number, number];
-type Seg = [Pt, Pt, Pt, Pt];
 
-function bez(s: Seg, t: number): Pt {
-  const u = 1 - t;
-  return [
-    u * u * u * s[0][0] + 3 * u * u * t * s[1][0] + 3 * u * t * t * s[2][0] + t * t * t * s[3][0],
-    u * u * u * s[0][1] + 3 * u * u * t * s[1][1] + 3 * u * t * t * s[2][1] + t * t * t * s[3][1],
-  ];
-}
 
-// Outline a chain of bezier segments into a filled path that tapers from width
-// w0 at the start to w1 at the end.
-function taper(
-  segs: Seg[],
-  w0: number,
-  w1: number,
-  color: string,
-  animated: boolean,
-  delay: number,
-  key: string,
-): ReactElement {
-  const pts: Pt[] = [];
-  const N = 14;
-  segs.forEach((s, si) => {
-    for (let i = si === 0 ? 0 : 1; i <= N; i++) pts.push(bez(s, i / N));
-  });
-  const left: Pt[] = [];
-  const right: Pt[] = [];
-  for (let i = 0; i < pts.length; i++) {
-    const a = pts[Math.max(0, i - 1)];
-    const b = pts[Math.min(pts.length - 1, i + 1)];
-    const dx = b[0] - a[0];
-    const dy = b[1] - a[1];
-    const len = Math.hypot(dx, dy) || 1;
-    const nx = -dy / len;
-    const ny = dx / len;
-    const w = (w0 + (w1 - w0) * (i / (pts.length - 1))) / 2;
-    left.push([pts[i][0] + nx * w, pts[i][1] + ny * w]);
-    right.push([pts[i][0] - nx * w, pts[i][1] - ny * w]);
-  }
-  const fmt = (p: Pt) => p[0].toFixed(1) + "," + p[1].toFixed(1);
-  const d = "M" + left.map(fmt).join(" L") + " L" + right.reverse().map(fmt).join(" L") + " Z";
-  return createElement("path", {
-    key,
-    d,
-    style: { fill: color, animation: animated ? `fadeIn 0.35s ease ${delay}s both` : "none" },
-  });
-}
-
-function node(cx: number, cy: number, r: number, delay: number, filled: boolean, animated: boolean): ReactElement {
+function node(cx: number, cy: number, r: number, delay: number, filled: boolean, animated: boolean, sw = 3.2): ReactElement {
   return createElement("circle", {
     key: `nd${cx}-${cy}`,
     cx,
@@ -65,7 +17,7 @@ function node(cx: number, cy: number, r: number, delay: number, filled: boolean,
     style: {
       fill: filled ? "var(--l0)" : "var(--win)",
       stroke: "var(--l0)",
-      strokeWidth: 3.2,
+      strokeWidth: sw,
       transformBox: "fill-box",
       transformOrigin: "center",
       animation: animated ? `nodePop 0.3s cubic-bezier(0.2, 0.9, 0.3, 1) ${delay}s both` : "none",
@@ -127,36 +79,49 @@ function leaf(styl: TreeStyleKey, x: number, y: number, rot: number, s: number, 
 }
 
 
-// The OFFICIAL logo silhouette (design kit): the S spine, its three branches,
-// two hollow + two filled nodes and three foliage anchors — nothing else.
-// Only the TREATMENT is alive: tapered strokes, draw-in animation and foliage
-// that morphs with the tree style (R5.25 — "o S tem de ser igual ao logo").
+// A true SVG stroke with the kit's exact path — round caps, uniform width —
+// so the drawn S is pixel-faithful to the logo (the old tapered polygon
+// outline read slightly crooked). Draw-in uses the kit's dash technique.
+function strokePath(key: string, d: string, w: number, color: string, delay: number, animated: boolean, dur = 0.35): ReactElement {
+  return createElement("path", {
+    key,
+    d,
+    pathLength: 1,
+    fill: "none",
+    stroke: color,
+    strokeWidth: w,
+    strokeLinecap: "round",
+    style: animated
+      ? { strokeDasharray: 1, strokeDashoffset: 1, animation: `gsDraw ${dur}s cubic-bezier(0.2, 0.9, 0.3, 1) ${delay}s both` }
+      : undefined,
+  });
+}
+
+const SPINE_D = "M34,12 C31,4 14,4 13,14 C12,24 33,32 33,44 C34,56 13,58 12,48";
+const HOOK_D = "M33,44 C34,56 13,58 12,48";
+const BR1_D = "M26,32 C31,34 35,37 38,41";
+const BR2_D = "M13.5,13.5 C10,10.5 7.5,7.5 5,4.5";
+const BR3_D = "M28,51 C31.5,53.5 34,55.5 36.5,58";
+
+// The OFFICIAL logo, stroke-for-stroke (design kit): spine, three branches,
+// two hollow + two filled nodes and three foliage anchors. Only the foliage
+// is alive — it morphs with the tree style (R5.25/26).
 function treeSKids(styl: TreeStyleKey, animated: boolean, kb: string): ReactElement[] {
   const tc = styl === "normal" || styl === "grafo" ? "var(--l0)" : "var(--trunk, var(--l0))";
-  const T = (segs: Seg[], w0: number, w1: number, d: number, k: string) =>
-    taper(segs, w0, w1, tc, animated, d, kb + k + styl);
+  const S = (k: string, d: string, w: number, delay: number, dur?: number) =>
+    strokePath(kb + k + styl, d, w, tc, delay, animated, dur);
   return [
-    T(
-      [
-        [[34, 12], [31, 4], [14, 4], [13, 14]],
-        [[13, 14], [12, 24], [33, 32], [33, 44]],
-        [[33, 44], [34, 56], [13, 58], [12, 48]],
-      ],
-      6,
-      7.6,
-      0.05,
-      "t",
-    ),
-    T([[[26, 32], [31, 34], [35, 37], [38, 41]]], 4.2, 2.6, 0.4, "b1"),
-    T([[[13.5, 13.5], [10, 10.5], [7.5, 7.5], [5, 4.5]]], 3.6, 2.2, 0.5, "b2"),
-    T([[[28, 51], [31.5, 53.5], [34, 55.5], [36.5, 58]]], 3.6, 2.2, 0.6, "b3"),
-    node(34, 12, 4, 0.72, false, animated),
-    node(12, 48, 4, 0.8, false, animated),
-    node(38, 41, 3.2, 0.88, true, animated),
-    node(5, 4.5, 3, 0.96, true, animated),
-    leaf(styl, 36, 57, -25, 0.85, 1.05, animated),
-    leaf(styl, 9, 9, -60, 0.7, 1.15, animated),
-    leaf(styl, 30, 6, -110, 0.6, 1.25, animated),
+    S("t", SPINE_D, 7, 0.1, 0.9),
+    S("b1", BR1_D, 4.5, 0.75),
+    S("b2", BR2_D, 4, 0.9),
+    S("b3", BR3_D, 4, 1.0),
+    node(34, 12, 4, 1.1, false, animated, 4),
+    node(12, 48, 4, 1.2, false, animated, 4),
+    node(38, 41, 3.2, 1.3, true, animated, 4),
+    node(5, 4.5, 3, 1.4, true, animated, 4),
+    leaf(styl, 36, 57, -25, 0.85, 1.45, animated),
+    leaf(styl, 9, 9, -60, 0.7, 1.55, animated),
+    leaf(styl, 30, 6, -110, 0.6, 1.65, animated),
   ];
 }
 
@@ -194,40 +159,27 @@ export const TreeLogo = memo(function TreeLogo({ size, animated = false, crop = 
 // silhouette always converges on the exact mark (R5.25).
 function onboardKids(stage: number, styl: TreeStyleKey): ReactElement[] {
   const tc = styl === "normal" || styl === "grafo" ? "var(--l0)" : "var(--trunk, var(--l0))";
-  const T = (segs: Seg[], w0: number, w1: number, d: number, k: string) =>
-    taper(segs, w0, w1, tc, true, d, k + styl);
+  const S = (k: string, d: string, w: number, delay: number, dur?: number) =>
+    strokePath(k + styl, d, w, tc, delay, true, dur);
   if (stage === 0) {
     // Sapling: the bottom hook of the S sprouting from the ground.
-    return [
-      T([[[33, 44], [34, 56], [13, 58], [12, 48]]], 6.6, 7.4, 0.1, "s0"),
-      leaf(styl, 36, 57, -25, 0.85, 0.6, true),
-    ];
+    return [S("s0", HOOK_D, 7, 0.1, 0.6), leaf(styl, 36, 57, -25, 0.85, 0.6, true)];
   }
   const kids: ReactElement[] = [
-    T(
-      [
-        [[34, 12], [31, 4], [14, 4], [13, 14]],
-        [[13, 14], [12, 24], [33, 32], [33, 44]],
-        [[33, 44], [34, 56], [13, 58], [12, 48]],
-      ],
-      6,
-      7.6,
-      0.05,
-      "t",
-    ),
-    T([[[28, 51], [31.5, 53.5], [34, 55.5], [36.5, 58]]], 3.6, 2.2, 0.5, "b3"),
-    node(34, 12, 4, 0.7, false, true),
-    leaf(styl, 36, 57, -25, 0.85, 0.9, true),
-    leaf(styl, 9, 9, -60, 0.7, 1.0, true),
+    S("t", SPINE_D, 7, 0.05, 0.9),
+    S("b3", BR3_D, 4, 0.8),
+    node(34, 12, 4, 0.9, false, true, 4),
+    leaf(styl, 36, 57, -25, 0.85, 1.0, true),
+    leaf(styl, 9, 9, -60, 0.7, 1.1, true),
   ];
   if (stage >= 2) {
     kids.push(
-      T([[[26, 32], [31, 34], [35, 37], [38, 41]]], 4.2, 2.6, 0.4, "b1"),
-      T([[[13.5, 13.5], [10, 10.5], [7.5, 7.5], [5, 4.5]]], 3.6, 2.2, 0.55, "b2"),
-      node(12, 48, 4, 0.75, false, true),
-      node(38, 41, 3.2, 0.85, true, true),
-      node(5, 4.5, 3, 0.95, true, true),
-      leaf(styl, 30, 6, -110, 0.6, 1.1, true),
+      S("b1", BR1_D, 4.5, 0.75),
+      S("b2", BR2_D, 4, 0.85),
+      node(12, 48, 4, 0.95, false, true, 4),
+      node(38, 41, 3.2, 1.05, true, true, 4),
+      node(5, 4.5, 3, 1.15, true, true, 4),
+      leaf(styl, 30, 6, -110, 0.6, 1.25, true),
     );
   }
   return kids;
