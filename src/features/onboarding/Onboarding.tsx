@@ -6,7 +6,32 @@ import { useOnboardStore } from "../../state/onboardStore";
 import { toast } from "../../state/toastStore";
 import { PALETTES, TREE_META, type ThemeKey, type TreeStyleKey } from "../../theme/themes";
 import { WinControls } from "../shell/Titlebar";
-import { TreeLogo, OnboardTree } from "../../components/TreeLogo";
+import s0Escuro from "../../theme/marks/onboard/s0-escuro.svg?raw";
+import s1Escuro from "../../theme/marks/onboard/s1-escuro.svg?raw";
+import s2Escuro from "../../theme/marks/onboard/s2-escuro.svg?raw";
+import s0Claro from "../../theme/marks/onboard/s0-claro.svg?raw";
+import s1Claro from "../../theme/marks/onboard/s1-claro.svg?raw";
+import s2Claro from "../../theme/marks/onboard/s2-claro.svg?raw";
+import s0Git from "../../theme/marks/onboard/s0-gitclassic.svg?raw";
+import s1Git from "../../theme/marks/onboard/s1-gitclassic.svg?raw";
+import s2Git from "../../theme/marks/onboard/s2-gitclassic.svg?raw";
+import s0Nipon from "../../theme/marks/onboard/s0-nipon.svg?raw";
+import s1Nipon from "../../theme/marks/onboard/s1-nipon.svg?raw";
+import s2Nipon from "../../theme/marks/onboard/s2-nipon.svg?raw";
+
+// The kit's animated onboarding trees (design v6): per theme, three growth
+// stages, self-drawing on mount. Hollow nodes fill with --gs-bg (set on the
+// host to blend with the backdrop, per the kit README).
+const TREES: Record<ThemeKey, [string, string, string]> = {
+  escuro: [s0Escuro, s1Escuro, s2Escuro],
+  claro: [s0Claro, s1Claro, s2Claro],
+  gitclassic: [s0Git, s1Git, s2Git],
+  nipon: [s0Nipon, s1Nipon, s2Nipon],
+};
+
+// Splash shows just the S (stage 0) cropped to its own bounds so it sits big
+// between the letters — the stage files share the 84×112 growth canvas.
+const cropToS = (svg: string) => svg.replace('viewBox="0 0 84 112"', 'viewBox="11 44 47 65"');
 
 // Always-on window bar (R5.18): a frameless window must be movable and
 // closable in EVERY onboarding phase, splash included — full-width drag strip
@@ -30,7 +55,7 @@ const TREE_ORDER: TreeStyleKey[] = ["normal", "sakura", "tropical", "grafo"];
 // Tree box heights per onboarding stage (design: obTreeH).
 const TREE_H = [268, 330, 396];
 
-function Splash() {
+function Splash({ theme }: { theme: ThemeKey }) {
   // git + tree-S + ylva; side letters animate in then hop away.
   const letter = (ch: string, side: "L" | "R", inDelay: number, hopDelay: number, margin?: string) => (
     <span
@@ -50,11 +75,12 @@ function Splash() {
         {letter("g", "L", 0.88, 1.62)}
         {letter("i", "L", 0.78, 1.56)}
         {letter("t", "L", 0.68, 1.5, "r")}
-        {/* The classic living mark, back by request (R5.24) — its spine IS
-            the official S geometry; kept at the bigger entry size. */}
-        <span style={{ display: "inline-block", margin: "0 4px", alignSelf: "center", transform: "translateY(4px)" }}>
-          <TreeLogo size={88} animated />
-        </span>
+        {/* The kit's clean S (stage 0), self-drawing, themed — design v6. */}
+        <span
+          className="gs-treeanim"
+          dangerouslySetInnerHTML={{ __html: cropToS(TREES[theme]?.[0] ?? s0Escuro) }}
+          style={{ display: "inline-block", width: 68, height: 94, margin: "0 4px", alignSelf: "center", transform: "translateY(5px)", ["--gs-bg" as never]: "var(--win)" }}
+        />
         {letter("y", "R", 0.68, 1.5, "l")}
         {letter("l", "R", 0.78, 1.56)}
         {letter("v", "R", 0.88, 1.62)}
@@ -87,7 +113,7 @@ export function Onboarding() {
   if (phase === "splash")
     return (
       <>
-        <Splash />
+        <Splash theme={t.theme} />
         <OnboardBar />
       </>
     );
@@ -109,12 +135,15 @@ export function Onboarding() {
       <OnboardBar />
       <FallingLeaves />
       <div data-tauri-drag-region style={{ position: "relative", zIndex: 1, display: "flex", alignItems: "center", gap: 60, padding: 24, boxSizing: "border-box" }}>
-        {/* Left: the classic growing tree (roots, tapered trunk, crown and
-            style-aware foliage), restored by request — R5.24. */}
+        {/* Left: the kit's growing tree, stage by stage (design v6): only the
+            S at login, the trunk extends at setup, full crown when planted. */}
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, flexShrink: 0, minWidth: 310 }}>
-          <div style={{ height: TREE_H[stage], display: "grid", placeItems: "end center", transition: "height 0.9s cubic-bezier(0.2,0.9,0.3,1)" }}>
-            <OnboardTree stage={stage} />
-          </div>
+          <div
+            key={`${t.theme}-${stage}`}
+            className="gs-treeanim"
+            dangerouslySetInnerHTML={{ __html: TREES[t.theme]?.[stage] ?? s0Escuro }}
+            style={{ height: TREE_H[stage], width: Math.round((TREE_H[stage] * 84) / 112), transition: "height 0.9s cubic-bezier(0.2,0.9,0.3,1)", ["--gs-bg" as never]: "var(--win)" }}
+          />
           <div style={{ marginTop: 4 }}>
             <Wordmark size={20} />
           </div>
