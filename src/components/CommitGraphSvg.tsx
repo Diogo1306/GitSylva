@@ -70,19 +70,20 @@ function buildGraph(
           (styleKey === "tropical" || styleKey === "sakura") && lane === 0
             ? "var(--trunk)"
             : laneColor(lane),
+        // Slimmed ~25% (R5.27 — user wants lighter commit lines).
         strokeWidth:
           w ||
           (lane === 0
             ? styleKey === "tropical"
-              ? 4.2
+              ? 3.2
               : styleKey === "sakura"
-                ? 3.8
-                : 3.4
+                ? 2.9
+                : 2.6
             : styleKey === "tropical"
-              ? 2.8
+              ? 2.2
               : styleKey === "sakura"
-                ? 2.4
-                : 2.2),
+                ? 1.9
+                : 1.7),
         strokeLinecap: "round" as const,
         opacity: 0.9,
         // The dash-reveal only exists while animating; static paths skip it.
