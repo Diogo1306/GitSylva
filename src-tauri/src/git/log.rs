@@ -54,6 +54,53 @@ pub fn log_range(path: &str, range: &str) -> Vec<Commit> {
     }
 }
 
+// ── History filters (Task 11) ────────────────────────────────────────────
+//
+// The History screen's loaded log window comes from `get_log` above, which
+// walks --branches --remotes --tags HEAD together — it does NOT record which
+// ref(s) each commit is reachable from, and per-commit changed files aren't
+// loaded at all (that's `commit_detail`, one commit at a time). So "commits
+// on branch X" and "commits touching path P" can't be answered from the
+// window already in the frontend; both need a small, targeted git query.
+// Both return just hashes (not full Commit rows) — the frontend already has
+// the row data for anything in its loaded window and only needs membership.
+
+fn parse_hashes(out: &str) -> Vec<String> {
+    out.lines().map(str::trim).filter(|l| !l.is_empty()).map(str::to_string).collect()
+}
+
+/// Hashes reachable from `branch` (a local or remote-tracking branch name,
+/// e.g. "main" or "origin/main"), newest first, capped at `limit` — mirrors
+/// the cap already applied to the main log window.
+#[tauri::command(rename = "get_branch_commits")]
+pub async fn get_branch_commits_cmd(path: String, branch: String, limit: u32) -> Result<Vec<String>, GitError> {
+    crate::git::run_blocking("get_branch_commits", move || get_branch_commits(path, branch, limit)).await
+}
+
+pub fn get_branch_commits(path: String, branch: String, limit: u32) -> Result<Vec<String>, GitError> {
+    let n = format!("-{limit}");
+    let out = run_git(&path, &["log", &branch, "--topo-order", &n, "--pretty=format:%H"])?;
+    Ok(parse_hashes(&out))
+}
+
+/// Hashes of commits that touch `pathspec` (a plain path or a glob like
+/// "*.rs" — git's pathspec matching is glob-aware by default), newest first,
+/// capped at `limit`. Same all-refs scope as `get_log` so the set lines up
+/// with the loaded window.
+#[tauri::command(rename = "get_path_commits")]
+pub async fn get_path_commits_cmd(path: String, pathspec: String, limit: u32) -> Result<Vec<String>, GitError> {
+    crate::git::run_blocking("get_path_commits", move || get_path_commits(path, pathspec, limit)).await
+}
+
+pub fn get_path_commits(path: String, pathspec: String, limit: u32) -> Result<Vec<String>, GitError> {
+    let n = format!("-{limit}");
+    let out = run_git(
+        &path,
+        &["log", "--branches", "--remotes", "--tags", "HEAD", "--topo-order", &n, "--pretty=format:%H", "--", &pathspec],
+    )?;
+    Ok(parse_hashes(&out))
+}
+
 fn parse_log(out: &str) -> Vec<Commit> {
     out.split('\u{1e}')
         .map(|r| r.trim_matches('\n'))
@@ -139,5 +186,66 @@ mod tests {
         run_git(&p, &["init"]).unwrap();
         let commits = get_log(p, 10, 0).unwrap();
         assert!(commits.is_empty());
+    }
+
+    #[test]
+    fn branch_commits_excludes_unmerged_side_branch() {
+        let dir = std::env::temp_dir().join("gitsylva-log-test-branch-commits");
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir).unwrap();
+        let p = dir.to_string_lossy().to_string();
+        run_git(&p, &["init", "-b", "main"]).unwrap();
+        run_git(&p, &["config", "user.email", "t@t.com"]).unwrap();
+        run_git(&p, &["config", "user.name", "T"]).unwrap();
+        fs::write(format!("{p}/a.txt"), "1").unwrap();
+        run_git(&p, &["add", "-A"]).unwrap();
+        run_git(&p, &["commit", "-m", "base"]).unwrap();
+        let base = run_git(&p, &["rev-parse", "HEAD"]).unwrap().trim().to_string();
+        // A commit that only exists on the side branch.
+        run_git(&p, &["checkout", "-b", "lado"]).unwrap();
+        fs::write(format!("{p}/b.txt"), "2").unwrap();
+        run_git(&p, &["add", "-A"]).unwrap();
+        run_git(&p, &["commit", "-m", "so-na-lado"]).unwrap();
+        let side = run_git(&p, &["rev-parse", "HEAD"]).unwrap().trim().to_string();
+        run_git(&p, &["checkout", "main"]).unwrap();
+
+        // "main" reaches only the base commit.
+        let main_hashes = get_branch_commits(p.clone(), "main".into(), 50).unwrap();
+        assert!(main_hashes.contains(&base));
+        assert!(!main_hashes.contains(&side));
+
+        // "lado" reaches both (its own commit plus its ancestor).
+        let lado_hashes = get_branch_commits(p, "lado".into(), 50).unwrap();
+        assert!(lado_hashes.contains(&base));
+        assert!(lado_hashes.contains(&side));
+    }
+
+    #[test]
+    fn path_commits_only_returns_hashes_touching_the_pathspec() {
+        let dir = std::env::temp_dir().join("gitsylva-log-test-path-commits");
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir).unwrap();
+        let p = dir.to_string_lossy().to_string();
+        run_git(&p, &["init", "-b", "main"]).unwrap();
+        run_git(&p, &["config", "user.email", "t@t.com"]).unwrap();
+        run_git(&p, &["config", "user.name", "T"]).unwrap();
+        fs::write(format!("{p}/a.rs"), "1").unwrap();
+        run_git(&p, &["add", "-A"]).unwrap();
+        run_git(&p, &["commit", "-m", "rust file"]).unwrap();
+        let rs_commit = run_git(&p, &["rev-parse", "HEAD"]).unwrap().trim().to_string();
+        fs::write(format!("{p}/b.txt"), "1").unwrap();
+        run_git(&p, &["add", "-A"]).unwrap();
+        run_git(&p, &["commit", "-m", "text file"]).unwrap();
+        let txt_commit = run_git(&p, &["rev-parse", "HEAD"]).unwrap().trim().to_string();
+
+        // A glob pathspec ("file type" filter) only picks the .rs commit.
+        let rs_hashes = get_path_commits(p.clone(), "*.rs".into(), 50).unwrap();
+        assert!(rs_hashes.contains(&rs_commit));
+        assert!(!rs_hashes.contains(&txt_commit));
+
+        // An exact path only picks the commit that touched it.
+        let txt_hashes = get_path_commits(p, "b.txt".into(), 50).unwrap();
+        assert!(txt_hashes.contains(&txt_commit));
+        assert!(!txt_hashes.contains(&rs_commit));
     }
 }
