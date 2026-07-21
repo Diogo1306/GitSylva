@@ -10,6 +10,8 @@ import {
   discardAll as discardAllApi,
   commit,
   getLog,
+  getBranchCommits,
+  getPathCommits,
   getDiff,
   applyHunk,
   commitDetail,
@@ -52,6 +54,8 @@ import type { ConflictKind } from "../lib/types";
 export const queryKeys = {
   status: (path: string) => ["status", path] as const,
   log: (path: string) => ["log", path] as const,
+  branchCommits: (path: string, branch: string) => ["branchCommits", path, branch] as const,
+  pathCommits: (path: string, pathspec: string) => ["pathCommits", path, pathspec] as const,
   diff: (path: string, file: string, staged: boolean) =>
     ["diff", path, file, staged] as const,
   commit: (path: string, hash: string) => ["commit", path, hash] as const,
@@ -76,6 +80,30 @@ export function useLog(path: string, limit = 200) {
     queryKey: [...queryKeys.log(path), limit],
     queryFn: () => getLog(path, limit),
     // Keep showing the previous page while a bigger one loads.
+    placeholderData: (prev) => prev,
+  });
+}
+
+// History filters (Task 11): the loaded log window carries no branch
+// reachability or per-commit changed files, so the branch/path filters ask
+// the backend for just the matching hashes. Disabled (no request at all)
+// when the corresponding filter isn't active. `placeholderData` keeps the
+// previous set visible while the limit grows ("Carregar mais"), the same
+// pattern as `useLog`.
+export function useBranchCommits(path: string, branch: string, limit: number) {
+  return useQuery({
+    queryKey: [...queryKeys.branchCommits(path, branch), limit],
+    queryFn: () => getBranchCommits(path, branch, limit),
+    enabled: branch !== "",
+    placeholderData: (prev) => prev,
+  });
+}
+
+export function usePathCommits(path: string, pathspec: string, limit: number) {
+  return useQuery({
+    queryKey: [...queryKeys.pathCommits(path, pathspec), limit],
+    queryFn: () => getPathCommits(path, pathspec, limit),
+    enabled: pathspec.trim() !== "",
     placeholderData: (prev) => prev,
   });
 }

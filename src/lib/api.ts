@@ -85,6 +85,18 @@ export function getLog(path: string, limit: number, skip = 0): Promise<Commit[]>
   return invoke<Commit[]>("get_log", { path, limit, skip });
 }
 
+// History branch/path filters (Task 11): the loaded log window doesn't carry
+// branch reachability or per-commit changed files, so these ask the backend
+// for just the matching hashes — the frontend already has the row data for
+// anything in its window.
+export function getBranchCommits(path: string, branch: string, limit: number): Promise<string[]> {
+  return invoke<string[]>("get_branch_commits", { path, branch, limit });
+}
+
+export function getPathCommits(path: string, pathspec: string, limit: number): Promise<string[]> {
+  return invoke<string[]>("get_path_commits", { path, pathspec, limit });
+}
+
 export function getDiff(path: string, file: string, staged: boolean, untracked = false, full = false): Promise<string> {
   // Without `full` the backend caps huge patches (see diffLimits.ts).
   return invoke<string>("get_diff", { path, file, staged, untracked, full });

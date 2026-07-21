@@ -1,12 +1,22 @@
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useAppStore } from "../../state/appStore";
-import { useLog, useCommitDetail, useRewriteActions, useBranchActions, useTagActions } from "../../state/queries";
+import {
+  useLog,
+  useCommitDetail,
+  useRewriteActions,
+  useBranchActions,
+  useTagActions,
+  useBranches,
+  useBranchCommits,
+  usePathCommits,
+} from "../../state/queries";
 import { Modal } from "../../components/ui/Modal";
 import { Input } from "../../components/ui/Input";
 import { Button } from "../../components/ui/Button";
 import { ContextMenu, type MenuItem } from "../../components/ui/ContextMenu";
 import { SelectableRow } from "../../components/ui/SelectableRow";
 import { FormField } from "../../components/ui/FormField";
+import { Tabs } from "../../components/ui/Tabs";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
 import { PanelHandle } from "../../components/ui/PanelResize";
 import { usePanelWidth, usePanelHeight } from "../../lib/usePanelWidth";
@@ -29,9 +39,26 @@ import {
   chipStyle,
 } from "../../lib/format";
 import type { Commit } from "../../lib/types";
+import { matchesFilters, hasActiveFilters, EMPTY_HISTORY_FILTERS, type HistoryFilters, type MergeFilter } from "../../lib/historyFilters";
 
 const ROW_H = 52;
 const mono = "'JetBrains Mono', monospace";
+
+// Compact filter-bar controls (Task 11) share the same input skin, sized
+// individually so the bar wraps sanely at narrower widths.
+function filterInputStyle(width: number): CSSProperties {
+  return {
+    width,
+    background: "var(--input)",
+    border: "1px solid var(--btnB)",
+    borderRadius: 8,
+    padding: "7px 10px",
+    fontSize: 12.5,
+    color: "var(--text)",
+    fontFamily: "var(--font)",
+    boxSizing: "border-box",
+  };
+}
 
 // Above this many rows the list renders in a window (uniform row height →
 // simple math). Measured: 2000 commits fully rendered = 2000 divs + 11.6k SVG
@@ -296,7 +323,10 @@ export function History() {
   const { data, isLoading, error, isFetching } = useLog(repo.path, limit);
   const rewrite = useRewriteActions(repo.path);
   const [selectedHash, setSelectedHash] = useState<string | null>(null);
-  const [query, setQuery] = useState("");
+  // Task 11: filters compose over the free-text search (`filters.text`).
+  const [filters, setFilters] = useState<HistoryFilters>(EMPTY_HISTORY_FILTERS);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const branches = useBranches(repo.path);
   const [menu, setMenu] = useState<{ x: number; y: number; hash: string } | null>(null);
   const [confirmHardReset, setConfirmHardReset] = useState<string | null>(null);
   const [confirmRebase, setConfirmRebase] = useState<string | null>(null);
@@ -421,11 +451,37 @@ export function History() {
     return Math.min(96 + Math.max(0, maxLane - 3) * 18, 96 + 9 * 18);
   }, [rows]);
 
-  const q = query.trim().toLowerCase();
-  const filtering = q.length > 0;
-  const filtered = filtering
-    ? commits.filter((c) => (c.subject + " " + c.hash + " " + c.author).toLowerCase().includes(q))
-    : commits;
+  // Branch/path filters need data the loaded window doesn't carry (branch
+  // reachability, per-commit changed files) — resolved as hash sets by a
+  // small dedicated backend query (see historyFilters.ts's module doc and
+  // get_branch_commits/get_path_commits in src-tauri/src/git/log.rs). Both
+  // are disabled (no request) when their filter isn't active.
+  const branchCommits = useBranchCommits(repo.path, filters.branch, limit);
+  const pathCommits = usePathCommits(repo.path, filters.path.trim(), limit);
+  // `undefined` = still resolving (matchesFilters treats that as "don't
+  // exclude"); an error also resolves to an empty set rather than silently
+  // showing every commit, so a broken branch/path filter never lies.
+  const branchHashes = useMemo(() => {
+    if (!filters.branch) return undefined;
+    if (branchCommits.data) return new Set(branchCommits.data);
+    return branchCommits.isError ? new Set<string>() : undefined;
+  }, [filters.branch, branchCommits.data, branchCommits.isError]);
+  const pathHashes = useMemo(() => {
+    if (!filters.path.trim()) return undefined;
+    if (pathCommits.data) return new Set(pathCommits.data);
+    return pathCommits.isError ? new Set<string>() : undefined;
+  }, [filters.path, pathCommits.data, pathCommits.isError]);
+  // True while a branch/path filter is active but its membership hasn't
+  // resolved yet — the list is hidden behind a loading row instead of
+  // rendering with that dimension silently unfiltered.
+  const resolving = (filters.branch !== "" && !branchHashes) || (filters.path.trim() !== "" && !pathHashes);
+  // A backend error resolving branch/path membership must surface as an
+  // error, not blend into "zero results" (that would read as "this branch
+  // has no commits", which is a different — and wrong — claim).
+  const filterError = filters.branch !== "" && branchCommits.isError ? "branch" : filters.path.trim() !== "" && pathCommits.isError ? "path" : null;
+
+  const filtering = hasActiveFilters(filters);
+  const filtered = filtering ? commits.filter((c) => matchesFilters(c, filters, { branchHashes, pathHashes })) : commits;
 
   // A palette pick (focusCommit) wins until the user selects something else.
   const selected = commits.find((c) => c.hash === (focusCommit ?? selectedHash)) ?? commits[0];
@@ -479,56 +535,179 @@ export function History() {
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: below ? "column" : "row", minWidth: 0, minHeight: 0, animation: "fadeUp 0.25s ease both" }}>
       <div style={{ flex: 1, minWidth: 0, minHeight: 0, display: "flex", flexDirection: "column", borderRight: below ? "none" : "1px solid var(--border)" }}>
-        <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <FormField label="Filtrar commits" hideLabel>
-              <input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Filtrar histórico…"
-                style={{
-                  width: "100%",
-                  background: "var(--input)",
-                  border: "1px solid var(--btnB)",
-                  borderRadius: 8,
-                  padding: "8px 12px",
-                  fontSize: 13,
-                  color: "var(--text)",
-                  fontFamily: "var(--font)",
-                  boxSizing: "border-box",
-                }}
+        <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 10 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <FormField label="Filtrar commits" hideLabel>
+                <input
+                  value={filters.text}
+                  onChange={(e) => setFilters((f) => ({ ...f, text: e.target.value }))}
+                  placeholder="Filtrar histórico…"
+                  style={{
+                    width: "100%",
+                    background: "var(--input)",
+                    border: "1px solid var(--btnB)",
+                    borderRadius: 8,
+                    padding: "8px 12px",
+                    fontSize: 13,
+                    color: "var(--text)",
+                    fontFamily: "var(--font)",
+                    boxSizing: "border-box",
+                  }}
+                />
+              </FormField>
+            </div>
+            <div style={{ fontSize: 12, color: "var(--muted)", fontFamily: mono, whiteSpace: "nowrap" }}>
+              {resolving ? "a aplicar filtro…" : `${filtered.length} commits`}
+            </div>
+            <button
+              type="button"
+              onClick={() => setFiltersOpen((v) => !v)}
+              aria-pressed={filtersOpen}
+              aria-expanded={filtersOpen}
+              title={filtersOpen ? "Esconder filtros avançados" : "Mostrar filtros avançados (branch, autor, data, merges, caminho)"}
+              className="gs-lift"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 6,
+                minHeight: 32,
+                padding: "5px 11px",
+                borderRadius: 7,
+                background: filtersOpen ? "var(--sel)" : "var(--btn)",
+                border: "1px solid var(--btnB)",
+                fontSize: 12,
+                color: "var(--btnT)",
+                cursor: "pointer",
+                whiteSpace: "nowrap",
+                fontFamily: "inherit",
+                boxSizing: "border-box",
+              }}
+            >
+              Filtros {hasActiveFilters({ ...filters, text: "" }) ? "•" : ""}
+            </button>
+            <button
+              type="button"
+              onClick={() => setDetailOpen(!detailOpen)}
+              aria-pressed={detailOpen}
+              title={detailOpen ? "Esconder o painel de detalhe/diff" : "Mostrar o painel de detalhe/diff"}
+              className="gs-lift"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 6,
+                minHeight: 32,
+                padding: "5px 11px",
+                borderRadius: 7,
+                background: detailOpen ? "var(--sel)" : "var(--btn)",
+                border: "1px solid var(--btnB)",
+                fontSize: 12,
+                color: "var(--btnT)",
+                cursor: "pointer",
+                whiteSpace: "nowrap",
+                fontFamily: "inherit",
+                boxSizing: "border-box",
+              }}
+            >
+              Diff {detailOpen ? "✓" : ""}
+            </button>
+          </div>
+
+          {filtersOpen && (
+            <div style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-end", gap: 10 }}>
+              <FormField label="Autor" hideLabel>
+                <input
+                  value={filters.author}
+                  onChange={(e) => setFilters((f) => ({ ...f, author: e.target.value }))}
+                  placeholder="Autor"
+                  style={filterInputStyle(140)}
+                />
+              </FormField>
+
+              <FormField label="Branch" hideLabel>
+                <select
+                  value={filters.branch}
+                  onChange={(e) => setFilters((f) => ({ ...f, branch: e.target.value }))}
+                  style={filterInputStyle(180)}
+                >
+                  <option value="">Todas as branches</option>
+                  {(branches.data ?? []).some((b) => !b.is_remote) && (
+                    <optgroup label="Locais">
+                      {(branches.data ?? [])
+                        .filter((b) => !b.is_remote)
+                        .map((b) => (
+                          <option key={b.name} value={b.name}>
+                            {b.name}
+                          </option>
+                        ))}
+                    </optgroup>
+                  )}
+                  {(branches.data ?? []).some((b) => b.is_remote) && (
+                    <optgroup label="Remotas">
+                      {(branches.data ?? [])
+                        .filter((b) => b.is_remote)
+                        .map((b) => (
+                          <option key={b.name} value={b.name}>
+                            {b.name}
+                          </option>
+                        ))}
+                    </optgroup>
+                  )}
+                </select>
+              </FormField>
+
+              <FormField label="De (data inicial)" hideLabel>
+                <input
+                  type="date"
+                  value={filters.dateFrom}
+                  max={filters.dateTo || undefined}
+                  onChange={(e) => setFilters((f) => ({ ...f, dateFrom: e.target.value }))}
+                  style={filterInputStyle(140)}
+                />
+              </FormField>
+              <FormField label="Até (data final)" hideLabel>
+                <input
+                  type="date"
+                  value={filters.dateTo}
+                  min={filters.dateFrom || undefined}
+                  onChange={(e) => setFilters((f) => ({ ...f, dateTo: e.target.value }))}
+                  style={filterInputStyle(140)}
+                />
+              </FormField>
+
+              <Tabs
+                ariaLabel="Tipo de commit"
+                activeId={filters.merge}
+                onChange={(id) => setFilters((f) => ({ ...f, merge: id as MergeFilter }))}
+                items={[
+                  { id: "all", label: "Todos" },
+                  { id: "normal", label: "Normais" },
+                  { id: "merges", label: "Merges" },
+                ]}
               />
-            </FormField>
-          </div>
-          <div style={{ fontSize: 12, color: "var(--muted)", fontFamily: mono, whiteSpace: "nowrap" }}>
-            {filtered.length} commits
-          </div>
-          <button
-            type="button"
-            onClick={() => setDetailOpen(!detailOpen)}
-            aria-pressed={detailOpen}
-            title={detailOpen ? "Esconder o painel de detalhe/diff" : "Mostrar o painel de detalhe/diff"}
-            className="gs-lift"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 6,
-              minHeight: 32,
-              padding: "5px 11px",
-              borderRadius: 7,
-              background: detailOpen ? "var(--sel)" : "var(--btn)",
-              border: "1px solid var(--btnB)",
-              fontSize: 12,
-              color: "var(--btnT)",
-              cursor: "pointer",
-              whiteSpace: "nowrap",
-              fontFamily: "inherit",
-              boxSizing: "border-box",
-            }}
-          >
-            Diff {detailOpen ? "✓" : ""}
-          </button>
+
+              <FormField label="Caminho ou tipo de ficheiro" hideLabel>
+                <input
+                  value={filters.path}
+                  onChange={(e) => setFilters((f) => ({ ...f, path: e.target.value }))}
+                  placeholder="ex.: src/, *.rs"
+                  style={filterInputStyle(160)}
+                />
+              </FormField>
+
+              <Button
+                variant="ghost"
+                size="sm"
+                title="Repor todos os filtros"
+                disabled={!hasActiveFilters(filters)}
+                onClick={() => setFilters(EMPTY_HISTORY_FILTERS)}
+              >
+                Repor filtros
+              </Button>
+            </div>
+          )}
         </div>
 
         <div
@@ -536,58 +715,84 @@ export function History() {
           onScroll={virtual ? (e) => setScrollTop(e.currentTarget.scrollTop) : undefined}
           style={{ flex: 1, overflowY: "auto" }}
         >
-          {/* In windowed mode the spacer keeps the real scroll height and the
-              rows are absolutely positioned inside it; the graph overlay is
-              full-height either way, emitting only the visible range. */}
-          <div style={{ position: "relative", height: virtual ? filtered.length * rowH : undefined }}>
-            {!filtering && (
-              <div style={{ position: "absolute", left: 14, top: 0, pointerEvents: "none" }}>
-                <CommitGraphSvg rows={rows} rowH={rowH} visibleRange={virtual ? { start: startIdx, end: endIdx } : undefined} />
+          {filterError ? (
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12, padding: "56px 24px" }}>
+              <div style={{ fontSize: 13.5, color: "var(--ddT)", textAlign: "center" }}>
+                Não foi possível aplicar o filtro de {filterError === "branch" ? "branch" : "caminho"}.
               </div>
-            )}
-            <div
-              role="listbox"
-              aria-label="Histórico de commits"
-              style={virtual ? { position: "absolute", top: startIdx * rowH, left: 0, right: 0 } : undefined}
-            >
-              {visibleCommits.map((c) => (
-                <CommitRow
-                  key={c.hash}
-                  commit={c}
-                  selected={selected.hash === c.hash}
-                  filtering={filtering}
-                  rowH={rowH}
-                  gutter={gutter}
-                  hideSecondary={bp.hideSecondary}
-                  onSelect={selectHash}
-                  onGoto={onGoto}
-                  onContext={onContext}
-                />
-              ))}
+              <Button variant="ghost" onClick={() => setFilters(EMPTY_HISTORY_FILTERS)}>
+                Limpar filtros
+              </Button>
             </div>
-          </div>
-          {/* When the log filled the window, there are probably older commits. */}
-          {!filtering && commits.length >= limit && (
-            <button
-              type="button"
-              onClick={() => !isFetching && setLimit((l) => l + 200)}
-              className="gs-row"
-              style={{
-                display: "block",
-                width: "100%",
-                padding: "12px 16px",
-                textAlign: "center",
-                fontSize: 12.5,
-                color: "var(--l0)",
-                cursor: "pointer",
-                fontWeight: 600,
-                background: "transparent",
-                border: "none",
-                fontFamily: "inherit",
-              }}
-            >
-              {isFetching ? "A carregar…" : "Carregar mais commits"}
-            </button>
+          ) : resolving ? (
+            // A branch/path filter is active but its backend-resolved hash
+            // set hasn't arrived yet — showing the list now would mean that
+            // dimension is silently unfiltered, so a loading row stands in.
+            <div style={{ padding: "48px 24px", textAlign: "center", color: "var(--muted)", fontSize: 13 }}>A aplicar filtro…</div>
+          ) : filtering && filtered.length === 0 ? (
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12, padding: "56px 24px" }}>
+              <div style={{ fontSize: 13.5, color: "var(--text2)", textAlign: "center" }}>Sem resultados para os filtros aplicados.</div>
+              <Button variant="ghost" onClick={() => setFilters(EMPTY_HISTORY_FILTERS)}>
+                Limpar filtros
+              </Button>
+            </div>
+          ) : (
+            <>
+              {/* In windowed mode the spacer keeps the real scroll height and
+                  the rows are absolutely positioned inside it; the graph
+                  overlay is full-height either way, emitting only the
+                  visible range. */}
+              <div style={{ position: "relative", height: virtual ? filtered.length * rowH : undefined }}>
+                {!filtering && (
+                  <div style={{ position: "absolute", left: 14, top: 0, pointerEvents: "none" }}>
+                    <CommitGraphSvg rows={rows} rowH={rowH} visibleRange={virtual ? { start: startIdx, end: endIdx } : undefined} />
+                  </div>
+                )}
+                <div
+                  role="listbox"
+                  aria-label="Histórico de commits"
+                  style={virtual ? { position: "absolute", top: startIdx * rowH, left: 0, right: 0 } : undefined}
+                >
+                  {visibleCommits.map((c) => (
+                    <CommitRow
+                      key={c.hash}
+                      commit={c}
+                      selected={selected.hash === c.hash}
+                      filtering={filtering}
+                      rowH={rowH}
+                      gutter={gutter}
+                      hideSecondary={bp.hideSecondary}
+                      onSelect={selectHash}
+                      onGoto={onGoto}
+                      onContext={onContext}
+                    />
+                  ))}
+                </div>
+              </div>
+              {/* When the log filled the window, there are probably older commits. */}
+              {!filtering && commits.length >= limit && (
+                <button
+                  type="button"
+                  onClick={() => !isFetching && setLimit((l) => l + 200)}
+                  className="gs-row"
+                  style={{
+                    display: "block",
+                    width: "100%",
+                    padding: "12px 16px",
+                    textAlign: "center",
+                    fontSize: 12.5,
+                    color: "var(--l0)",
+                    cursor: "pointer",
+                    fontWeight: 600,
+                    background: "transparent",
+                    border: "none",
+                    fontFamily: "inherit",
+                  }}
+                >
+                  {isFetching ? "A carregar…" : "Carregar mais commits"}
+                </button>
+              )}
+            </>
           )}
         </div>
       </div>
