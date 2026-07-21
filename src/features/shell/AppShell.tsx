@@ -15,6 +15,7 @@ import { ConflictBanner } from "../working-copy/ConflictBanner";
 import { openRepo } from "../../lib/api";
 import { toast } from "../../state/toastStore";
 import { notify } from "../../state/notificationStore";
+import { fetchFailureNotice } from "../../lib/errors";
 import { useShortcutsStore, actionForEvent } from "../../state/shortcutsStore";
 import { useSyncActions } from "../../state/queries";
 
@@ -95,8 +96,10 @@ export function AppShell() {
               spawnLeaf();
               notify("Fetch concluído", "origin", "success", "fetch");
             },
-            onError: (err: unknown) =>
-              notify("Fetch falhou", (err as { message?: string })?.message ?? "não foi possível fazer fetch", "error", "fetch"),
+            onError: (err: unknown) => {
+              const n = fetchFailureNotice(err);
+              notify(n.title, n.sub, "error", "fetch");
+            },
             onSettled: () => {
               fetchInFlight.current = false;
             },

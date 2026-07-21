@@ -1,14 +1,18 @@
 import { cloneElement, useEffect, useId, useState, type ReactElement } from "react";
 import { useAppStore } from "../../state/appStore";
+import { useThemeStore } from "../../state/themeStore";
 import { useBranchActions, useBranches, useStashActions, useTagActions, useSyncActions, useSyncStatus, useOutgoing, useIncoming } from "../../state/queries";
 import { toast } from "../../state/toastStore";
 import { notify } from "../../state/notificationStore";
 import { Modal } from "../../components/ui/Modal";
 import { useModalClose } from "../../components/ui/modalClose";
+import { Tooltip } from "../../components/ui/Tooltip";
 import { Input } from "../../components/ui/Input";
 import { Button } from "../../components/ui/Button";
 import { Chip, CheckSquare } from "../../components/ui/misc";
 import { initials, avatarColor, relativeTime } from "../../lib/format";
+import { errMsg, classifySyncError, type SyncErrorKind } from "../../lib/errors";
+import { PULL_MODES } from "../../lib/pullModes";
 import type { Commit } from "../../lib/types";
 
 const mono = "'JetBrains Mono', monospace";
@@ -227,36 +231,92 @@ function CommitList({ commits, empty }: { commits: Commit[]; empty: string }) {
   );
 }
 
+// Classified sync failure (auth/network/conflict), distinct from a plain
+// unclassified error. The raw git message is always kept visible below the
+// guidance — never hidden, same principle as the backend's `friendly()`.
+type SyncFailure = { kind: SyncErrorKind; message: string };
+
+const SYNC_FAILURE_COPY: Record<Exclude<SyncErrorKind, "other">, { title: string; body: string }> = {
+  auth: {
+    title: "Autenticação necessária",
+    body: "Configura as credenciais Git para origin (credential manager ou uma chave SSH com o ssh-agent a correr).",
+  },
+  network: {
+    title: "Sem ligação ao remoto",
+    body: "Verifica a internet ou o URL do remoto e tenta novamente.",
+  },
+  conflict: {
+    title: "Conflito ao integrar",
+    body: "Resolve os ficheiros marcados na Cópia de trabalho e depois continua.",
+  },
+};
+
+function SyncFailurePanel({ failure }: { failure: SyncFailure }) {
+  if (failure.kind === "other") return <Err msg={failure.message} />;
+  const copy = SYNC_FAILURE_COPY[failure.kind];
+  const tone = failure.kind === "conflict" ? "var(--ddT)" : "var(--stMT)";
+  return (
+    <div role="alert" style={{ display: "flex", flexDirection: "column", gap: 4, padding: "10px 12px", borderRadius: 9, border: `1px solid ${tone}`, background: "var(--panel2)" }}>
+      <div style={{ fontSize: 13, fontWeight: 700, color: tone }}>{copy.title}</div>
+      <div style={{ fontSize: 12.5, color: "var(--text2)" }}>{copy.body}</div>
+      <div style={{ fontSize: 11, color: "var(--muted)", fontFamily: mono, whiteSpace: "pre-wrap", overflowWrap: "break-word" }}>{failure.message}</div>
+    </div>
+  );
+}
+
 function PullModal({ onClose }: { onClose: () => void }) {
   const repo = useAppStore((s) => s.repo)!;
   const sync = useSyncActions(repo.path);
   const { data: status } = useSyncStatus(repo.path);
   const inc = useIncoming(repo.path, true);
-  const [error, setError] = useState<string | null>(null);
-  const [fetchError, setFetchError] = useState<string | null>(null);
+  const pullMode = useThemeStore((s) => s.pullMode);
+  const [failure, setFailure] = useState<SyncFailure | null>(null);
+  const [fetchFailure, setFetchFailure] = useState<SyncFailure | null>(null);
 
   // Fetch on open so the preview reflects the remote. A failed fetch must NOT
   // read as "up to date" — surface it and mark the preview as stale.
   useEffect(() => {
     sync.fetch.mutate(undefined, {
-      onError: (e: unknown) => setFetchError((e as { message?: string })?.message ?? "não foi possível contactar o remoto"),
+      onError: (e: unknown) => {
+        const msg = errMsg(e, "não foi possível contactar o remoto");
+        setFetchFailure({ kind: classifySyncError(msg), message: msg });
+      },
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const commits = inc.data ?? [];
+  const count = commits.length || status?.behind || 0;
+  const upstream = status?.upstream ?? `origin/${repo.current_branch}`;
+  const activeMode = PULL_MODES.find((m) => m.key === pullMode) ?? PULL_MODES[0];
+
   return (
     <Modal title="Pull de origin" onClose={onClose} width={520}>
-      <div style={{ fontSize: 13, color: fetchError ? "var(--ddT)" : "var(--text2)" }}>
+      <div style={{ fontSize: 13, color: "var(--text2)" }}>
         {sync.fetch.isPending
           ? "A verificar origin…"
-          : fetchError
+          : fetchFailure
             ? "Não foi possível verificar o remoto — a lista pode estar desatualizada."
-            : `${status?.behind ?? commits.length} commit(s) para integrar em ${repo.current_branch}.`}
+            : count > 0
+              ? `Pull vai integrar ${count} commit(s) de ${upstream} em ${repo.current_branch}.`
+              : `${repo.current_branch} está atualizado com ${upstream}.`}
       </div>
-      {fetchError && <Err msg={fetchError} />}
-      <CommitList commits={commits} empty={fetchError ? "Sem ligação ao remoto." : "Nada para integrar. Estás em dia."} />
-      <Err msg={error} />
+      {fetchFailure && <SyncFailurePanel failure={fetchFailure} />}
+      <CommitList commits={commits} empty={fetchFailure ? "Não foi possível obter a lista do remoto." : "Nada para integrar. Estás em dia."} />
+      <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, color: "var(--text2)" }}>
+        <span>Modo</span>
+        <Chip bg="var(--l0bg)" color="var(--l0)" border="var(--l0bd)" mono={false}>{activeMode.name}</Chip>
+        <Tooltip content={activeMode.hint}>
+          <span
+            tabIndex={0}
+            aria-label={`Sobre o modo ${activeMode.name}`}
+            style={{ display: "inline-grid", placeItems: "center", width: 15, height: 15, borderRadius: "50%", border: "1px solid var(--btnB)", color: "var(--muted)", fontSize: 10, fontWeight: 700, cursor: "default" }}
+          >
+            ?
+          </span>
+        </Tooltip>
+      </div>
+      {failure && <SyncFailurePanel failure={failure} />}
       <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
         <CloseButton onClose={onClose} />
         <Button
@@ -265,13 +325,14 @@ function PullModal({ onClose }: { onClose: () => void }) {
             !sync.pull.isPending &&
             sync.pull.mutate(undefined, {
               onSuccess: () => {
-                notify("Pull concluído", `${commits.length || status?.behind || 0} commit(s) integrados em ${repo.current_branch}`, "info", "push");
+                notify("Pull concluído", `${count} commit(s) integrados em ${repo.current_branch}`, "info", "push");
                 onClose();
               },
               onError: (e: unknown) => {
-                const msg = (e as { message?: string })?.message ?? "não foi possível fazer pull";
-                setError(msg);
-                if (/conflict|conflito/i.test(msg)) notify("Conflitos no pull", "Resolve os ficheiros marcados na Cópia de trabalho", "error", "conflict");
+                const msg = errMsg(e, "não foi possível fazer pull");
+                const kind = classifySyncError(msg);
+                setFailure({ kind, message: msg });
+                if (kind === "conflict") notify("Conflitos no pull", "Resolve os ficheiros marcados na Cópia de trabalho", "error", "conflict");
               },
             })
           }
@@ -287,15 +348,21 @@ function PullModal({ onClose }: { onClose: () => void }) {
 function PushModal({ onClose }: { onClose: () => void }) {
   const repo = useAppStore((s) => s.repo)!;
   const sync = useSyncActions(repo.path);
+  const { data: status } = useSyncStatus(repo.path);
   const out = useOutgoing(repo.path, true);
-  const [error, setError] = useState<string | null>(null);
+  const [failure, setFailure] = useState<SyncFailure | null>(null);
   const commits = out.data ?? [];
+  const upstream = status?.upstream ?? `origin/${repo.current_branch}`;
 
   return (
     <Modal title="Push para origin" onClose={onClose} width={520}>
-      <div style={{ fontSize: 13, color: "var(--text2)" }}>{commits.length} commit(s) local(is) para enviar de {repo.current_branch}.</div>
+      <div style={{ fontSize: 13, color: "var(--text2)" }}>
+        {commits.length > 0
+          ? `Push vai enviar ${commits.length} commit(s) de ${repo.current_branch} para ${upstream}.`
+          : `Nada para enviar — ${repo.current_branch} está atualizado com ${upstream}.`}
+      </div>
       <CommitList commits={commits} empty="Nada para enviar." />
-      <Err msg={error} />
+      {failure && <SyncFailurePanel failure={failure} />}
       <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
         <CloseButton onClose={onClose} />
         <Button
@@ -304,7 +371,10 @@ function PushModal({ onClose }: { onClose: () => void }) {
             !sync.push.isPending &&
             sync.push.mutate(undefined, {
               onSuccess: () => { notify("Push concluído", `origin · ${commits.length} commit(s) · ${repo.current_branch}`, "success", "push"); onClose(); },
-              onError: (e: unknown) => setError((e as { message?: string })?.message ?? "não foi possível fazer push"),
+              onError: (e: unknown) => {
+                const msg = errMsg(e, "não foi possível fazer push");
+                setFailure({ kind: classifySyncError(msg), message: msg });
+              },
             })
           }
           style={sync.push.isPending ? { opacity: 0.7, cursor: "default" } : undefined}

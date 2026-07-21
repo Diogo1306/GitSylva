@@ -3,6 +3,7 @@ import { useAppStore } from "../../state/appStore";
 import { useLog, useBranches, useBranchActions, useStatus, useSyncActions } from "../../state/queries";
 import { toast } from "../../state/toastStore";
 import { notify } from "../../state/notificationStore";
+import { fetchFailureNotice } from "../../lib/errors";
 import { useRecentBranchesStore } from "../../state/recentBranchesStore";
 import { spawnLeaf } from "../../lib/leaf";
 import { fold, foldChars } from "../../lib/fold";
@@ -188,7 +189,10 @@ export function CommandPalette() {
             spawnLeaf();
             notify("Fetch concluído", "origin", "success", "fetch");
           },
-          onError: (e: unknown) => notify("Fetch falhou", (e as { message?: string })?.message ?? "não foi possível fazer fetch", "error", "fetch"),
+          onError: (e: unknown) => {
+            const n = fetchFailureNotice(e);
+            notify(n.title, n.sub, "error", "fetch");
+          },
         });
         setOpen(false);
       }],

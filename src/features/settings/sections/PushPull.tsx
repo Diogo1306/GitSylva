@@ -1,11 +1,6 @@
-import { useThemeStore, type PullMode } from "../../../state/themeStore";
+import { useThemeStore } from "../../../state/themeStore";
+import { PULL_MODES as MODES } from "../../../lib/pullModes";
 import { SectionTitle, FieldLabel, Hint } from "./_shared";
-
-const MODES: { key: PullMode; name: string; hint: string }[] = [
-  { key: "ff", name: "Fast-forward", hint: "Só avança se possível; falha se divergir (sem merge surpresa)." },
-  { key: "merge", name: "Merge", hint: "Integra com um commit de merge quando divergir." },
-  { key: "rebase", name: "Rebase", hint: "Reaplica os teus commits por cima dos remotos." },
-];
 
 export function PushPull() {
   const pullMode = useThemeStore((s) => s.pullMode);

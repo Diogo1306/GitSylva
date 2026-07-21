@@ -3,6 +3,7 @@ import { useAppStore } from "../../state/appStore";
 import { useStatus, useBranches, useBranchActions, useStashes, useTags, useTagActions, useRewriteActions, useSyncActions } from "../../state/queries";
 import { notify } from "../../state/notificationStore";
 import { toast } from "../../state/toastStore";
+import { fetchFailureNotice } from "../../lib/errors";
 import { useRecentBranchesStore } from "../../state/recentBranchesStore";
 import { ContextMenu, type MenuItem } from "../../components/ui/ContextMenu";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
@@ -753,7 +754,10 @@ export function Sidebar() {
                 if (sync.fetch.isPending) return;
                 sync.fetch.mutate(undefined, {
                   onSuccess: () => notify("Fetch concluído", remoteMenu.remote, "success", "fetch"),
-                  onError: (e: unknown) => notify("Fetch falhou", (e as { message?: string })?.message ?? "não foi possível fazer fetch", "error", "fetch"),
+                  onError: (e: unknown) => {
+                    const n = fetchFailureNotice(e);
+                    notify(n.title, n.sub, "error", "fetch");
+                  },
                 });
               },
             },
