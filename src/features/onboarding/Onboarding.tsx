@@ -1,11 +1,15 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from "react";
 import { Wordmark } from "../../components/Wordmark";
 import { FallingLeaves } from "../../components/FallingLeaves";
 import { useThemeStore } from "../../state/themeStore";
 import { useOnboardStore } from "../../state/onboardStore";
+import { useShortcutsStore } from "../../state/shortcutsStore";
 import { toast } from "../../state/toastStore";
 import { PALETTES, TREE_META, type ThemeKey, type TreeStyleKey } from "../../theme/themes";
+import { comboHint } from "../../lib/platform";
 import { WinControls } from "../shell/Titlebar";
+import { Button } from "../../components/ui/Button";
+import { SelectableRow, SelectableCard } from "../../components/ui/SelectableRow";
 import s0Escuro from "../../theme/marks/onboard/s0-escuro.svg?raw";
 import s1Escuro from "../../theme/marks/onboard/s1-escuro.svg?raw";
 import s2Escuro from "../../theme/marks/onboard/s2-escuro.svg?raw";
@@ -43,6 +47,29 @@ function OnboardBar() {
       style={{ position: "fixed", top: 0, left: 0, right: 0, height: 40, zIndex: 95, display: "flex", alignItems: "center", justifyContent: "flex-end", paddingRight: 6, boxSizing: "border-box" }}
     >
       <WinControls />
+    </div>
+  );
+}
+
+// A labeled group of choice cards/pills (theme, tree style, repo layout).
+// Every card is already its own Tab stop (SelectableRow/SelectableCard), so
+// this only adds Left/Right (and Up/Down) arrow-key hopping between the
+// cards already inside — a11y bonus on top of the Tab/Enter/Space each card
+// gets for free from the Task-1 primitive.
+function ChoiceGroup({ label, children, style }: { label: string; children: ReactNode; style?: CSSProperties }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+    if (!["ArrowRight", "ArrowLeft", "ArrowDown", "ArrowUp"].includes(e.key)) return;
+    const items = Array.from(ref.current?.querySelectorAll<HTMLElement>('[role="button"]') ?? []);
+    const from = items.indexOf(document.activeElement as HTMLElement);
+    if (from === -1) return;
+    e.preventDefault();
+    const delta = e.key === "ArrowRight" || e.key === "ArrowDown" ? 1 : -1;
+    items[(from + delta + items.length) % items.length]?.focus();
+  };
+  return (
+    <div ref={ref} role="group" aria-label={label} onKeyDown={onKeyDown} style={style}>
+      {children}
     </div>
   );
 }
@@ -95,6 +122,10 @@ export function Onboarding() {
   const t = useThemeStore();
   const finish = useOnboardStore((s) => s.finish);
   const [phase, setPhase] = useState<Phase>(anims ? "splash" : "login");
+  // Same rebindable, platform-aware hint the titlebar search uses (Ctrl+K on
+  // Windows/Linux, ⌘K on macOS) — never hardcoded, so it stays true if the
+  // user rebinds the palette shortcut.
+  const paletteHint = comboHint(useShortcutsStore((s) => s.bindings.palette));
 
   // Splash auto-advances to login.
   useEffect(() => {
@@ -154,26 +185,40 @@ export function Onboarding() {
         {phase === "login" && (
           <div style={{ width: 336, display: "flex", flexDirection: "column", gap: 8, animation: "fadeUp 0.45s ease 0.15s both" }}>
             <div style={{ fontSize: 21, fontWeight: 700 }}>Bem-vindo</div>
-            <div style={{ fontSize: 13, color: "var(--text2)", marginBottom: 10, lineHeight: 1.5 }}>
-              Liga a tua conta para sincronizar os teus repositórios, ou continua só local.
+            <div style={{ fontSize: 13, color: "var(--text2)", marginBottom: 4, lineHeight: 1.5 }}>
+              Trabalha já nos teus repositórios locais.
             </div>
-            {providers.map(([initial, label, sub]) => (
-              <div
-                key={label}
-                onClick={() => toast("Login com conta chega na fase de sincronização")}
-                className="gs-lift"
-                style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 15px", borderRadius: 11, background: "var(--btn)", border: "1px solid var(--btnB)", cursor: "pointer" }}
-              >
-                <span style={{ width: 26, height: 26, borderRadius: "50%", background: "var(--badge)", color: "var(--badgeT)", display: "grid", placeItems: "center", fontWeight: 700, fontSize: 13, flexShrink: 0 }}>{initial}</span>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 13.5, fontWeight: 600 }}>{label}</div>
-                  <div style={{ fontSize: 11, color: "var(--muted)", fontFamily: "'JetBrains Mono', monospace" }}>{sub}</div>
-                </div>
-                <span className="gs-soon">Em breve</span>
+            {/* Primary path (item 1): a real, accent, first-in-tab-order CTA. */}
+            <Button
+              variant="primary"
+              onClick={() => setPhase("setup")}
+              style={{ width: "100%", justifyContent: "center", padding: 12, borderRadius: 11, fontSize: 14, marginTop: 4 }}
+            >
+              Continuar localmente
+            </Button>
+
+            {/* Secondary, de-emphasized path (item 2): not yet functional. */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 7, marginTop: 20 }}>
+              <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "1.4px", color: "var(--muted)" }}>
+                INTEGRAÇÕES: EM BREVE
               </div>
-            ))}
-            <div onClick={() => setPhase("setup")} style={{ alignSelf: "flex-start", marginTop: 8, fontSize: 12.5, color: "var(--text2)", cursor: "pointer", borderBottom: "1px dashed var(--btnB)", paddingBottom: 1 }}>
-              continuar sem conta →
+              <ChoiceGroup label="Integrações: em breve" style={{ display: "flex", flexDirection: "column", gap: 6, opacity: 0.7 }}>
+                {providers.map(([initial, label, sub]) => (
+                  <SelectableRow
+                    key={label}
+                    onSelect={() => toast("Login com conta chega na fase de sincronização")}
+                    className="gs-lift"
+                    style={{ display: "flex", alignItems: "center", gap: 12, padding: "9px 13px", borderRadius: 11, background: "var(--btn)", border: "1px solid var(--btnB)" }}
+                  >
+                    <span style={{ width: 22, height: 22, borderRadius: "50%", background: "var(--badge)", color: "var(--badgeT)", display: "grid", placeItems: "center", fontWeight: 700, fontSize: 11.5, flexShrink: 0 }}>{initial}</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 12.5, fontWeight: 600 }}>{label}</div>
+                      <div style={{ fontSize: 10.5, color: "var(--muted)", fontFamily: "'JetBrains Mono', monospace" }}>{sub}</div>
+                    </div>
+                    <span className="gs-soon">Em breve</span>
+                  </SelectableRow>
+                ))}
+              </ChoiceGroup>
             </div>
           </div>
         )}
@@ -187,12 +232,17 @@ export function Onboarding() {
 
             <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
               <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "1.4px", color: "var(--muted)" }}>TEMA</div>
-              <div style={{ display: "flex", gap: 8 }}>
+              <ChoiceGroup label="Tema" style={{ display: "flex", gap: 8 }}>
                 {THEME_ORDER.map((k) => {
                   const v = PALETTES[k].vars;
                   const active = t.theme === k;
                   return (
-                    <div key={k} onClick={() => t.savePrefs({ theme: k })} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 5, cursor: "pointer" }}>
+                    <SelectableCard
+                      key={k}
+                      selected={active}
+                      onSelect={() => t.savePrefs({ theme: k })}
+                      style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 5, padding: 0, border: "none", background: "transparent" }}
+                    >
                       <div className="gs-lift" style={{ width: 76, height: 52, borderRadius: 9, border: `2px solid ${active ? "var(--accent)" : "var(--btnB)"}`, background: v["--win"], overflow: "hidden", display: "flex" }}>
                         <div style={{ width: 24, background: v["--panel"], borderRight: `1px solid ${v["--border"]}`, boxSizing: "border-box" }} />
                         <div style={{ flex: 1, padding: 7, display: "flex", flexDirection: "column", gap: 4 }}>
@@ -202,34 +252,44 @@ export function Onboarding() {
                         </div>
                       </div>
                       <div style={{ fontSize: 11, fontWeight: 600, color: active ? "var(--text)" : "var(--muted)" }}>{PALETTES[k].name}</div>
-                    </div>
+                    </SelectableCard>
                   );
                 })}
-              </div>
+              </ChoiceGroup>
             </div>
 
             <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
               <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "1.4px", color: "var(--muted)" }}>ESTILO DA ÁRVORE</div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+              <ChoiceGroup label="Estilo da árvore" style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                 {TREE_ORDER.map((k) => {
                   const active = t.treeStyle === k;
                   return (
-                    <div key={k} onClick={() => t.savePrefs({ treeStyle: k })} style={{ display: "flex", alignItems: "center", gap: 7, padding: "6px 13px", borderRadius: 999, border: `2px solid ${active ? "var(--accent)" : "var(--btnB)"}`, fontSize: 12.5, cursor: "pointer", color: active ? "var(--text)" : "var(--text2)" }}>
+                    <SelectableRow
+                      key={k}
+                      selected={active}
+                      onSelect={() => t.savePrefs({ treeStyle: k })}
+                      style={{ display: "flex", alignItems: "center", gap: 7, padding: "6px 13px", borderRadius: 999, border: `2px solid ${active ? "var(--accent)" : "var(--btnB)"}`, fontSize: 12.5, color: active ? "var(--text)" : "var(--text2)", background: "transparent" }}
+                    >
                       {TREE_META[k].name}
-                    </div>
+                    </SelectableRow>
                   );
                 })}
-              </div>
+              </ChoiceGroup>
             </div>
 
             <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
               <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "1.4px", color: "var(--muted)" }}>REPOSITÓRIOS ABERTOS</div>
               {/* Mini previews, same language as the theme cards (R5.18). */}
-              <div style={{ display: "flex", gap: 8 }}>
+              <ChoiceGroup label="Repositórios abertos" style={{ display: "flex", gap: 8 }}>
                 {(["tabs", "rail"] as const).map((k) => {
                   const active = t.repoLayout === k;
                   return (
-                    <div key={k} onClick={() => t.savePrefs({ repoLayout: k })} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 5, cursor: "pointer" }}>
+                    <SelectableCard
+                      key={k}
+                      selected={active}
+                      onSelect={() => t.savePrefs({ repoLayout: k })}
+                      style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 5, padding: 0, border: "none", background: "transparent" }}
+                    >
                       <div className="gs-lift" style={{ width: 76, height: 52, borderRadius: 9, border: `2px solid ${active ? "var(--accent)" : "var(--btnB)"}`, background: "var(--win)", overflow: "hidden", display: "flex", flexDirection: "column" }}>
                         {k === "tabs" ? (
                           <>
@@ -254,35 +314,39 @@ export function Onboarding() {
                       <div style={{ fontSize: 11, fontWeight: 600, color: active ? "var(--text)" : "var(--muted)" }}>
                         {k === "tabs" ? "Abas (browser)" : "Barra lateral"}
                       </div>
-                    </div>
+                    </SelectableCard>
                   );
                 })}
-              </div>
+              </ChoiceGroup>
             </div>
 
-            <div style={{ display: "flex", gap: 8, marginTop: 2 }}>
-              <div onClick={() => setPhase("grow")} className="gs-press" style={{ flex: 1, padding: 12, borderRadius: 11, background: "var(--accent)", color: "var(--accentT)", fontSize: 14, fontWeight: 700, textAlign: "center", cursor: "pointer" }}>
-                Plantar e entrar
-              </div>
-              <div
-                onClick={() => {
-                  // Skip = enter with the default look (discard the previews above).
-                  t.resetPrefs();
-                  setPhase("grow");
-                }}
-                title="Entrar com o aspeto por omissão"
-                className="gs-lift"
-                style={{ padding: "12px 16px", borderRadius: 11, background: "var(--btn)", border: "1px solid var(--btnB)", color: "var(--text2)", fontSize: 13, cursor: "pointer" }}
-              >
-                Saltar
-              </div>
-            </div>
+            {/* Saltar was removed (item 3): its handler called
+                themeStore.resetPrefs(), which wipes the entire persisted prefs
+                slice (theme, treeStyle, repoLayout AND anims, accent, font,
+                branchColor, historyLayout, density, pullMode, confirmDiscard,
+                notif* ...), not just the pickers above — then landed on the
+                same "grow" phase Plantar e entrar reaches. As a one-click,
+                no-confirm button reachable when replaying onboarding, it was a
+                footgun that could silently reset a returning user's whole
+                config. The confirm-gated "Repor todas as definicoes" in
+                Settings > Cleanup covers the real reset need. */}
+            <Button
+              variant="primary"
+              onClick={() => setPhase("grow")}
+              style={{ width: "100%", padding: 12, borderRadius: 11, fontSize: 14, marginTop: 2, justifyContent: "center" }}
+            >
+              Plantar e entrar
+            </Button>
           </div>
         )}
 
         {phase === "grow" && (
           <div style={{ width: 336, display: "flex", flexDirection: "column", gap: 8, animation: "fadeUp 0.45s ease 0.25s both" }}>
             <div style={{ fontSize: 21, fontWeight: 700 }}>A tua floresta está plantada</div>
+            {/* Item 4: only the three essential concepts, nothing more. */}
+            <div style={{ fontSize: 13, color: "var(--text2)", lineHeight: 1.6 }}>
+              A <strong>Cópia de trabalho</strong> mostra o que mudou, a <strong>árvore de commits</strong> é o teu histórico, e <strong>{paletteHint}</strong> abre a Palete de Comandos a qualquer momento.
+            </div>
             <div style={{ fontSize: 13, color: "var(--text2)" }}>bom código.</div>
           </div>
         )}
