@@ -90,6 +90,19 @@ describe("ActionBar", () => {
     renderActionBar();
     expect((screen.getByRole("button", { name: "Commit" }) as HTMLElement).style.outline).not.toBe("none");
   });
+
+  // Task 6 (reviewer follow-up): the action buttons override ToolbarButton's
+  // default 30x30 with auto height, so they must carry an explicit >=32px
+  // min-height to clear the minimum hit target — these are the app's
+  // highest-traffic controls at the min window size.
+  it("gives every action button a >=32px min-height hit target (border-box)", () => {
+    renderActionBar();
+    for (const name of ["Commit", "↓ Pull", "↑ Push", "Branch", "Merge", "Stash", "Tag"]) {
+      const btn = screen.getByRole("button", { name }) as HTMLElement;
+      expect(parseFloat(String(btn.style.minHeight))).toBeGreaterThanOrEqual(32);
+      expect(btn.style.boxSizing).toBe("border-box");
+    }
+  });
 });
 
 // Task 6 ("Layout na janela mínima"): progressive disclosure — the trailing

@@ -40,6 +40,12 @@ function actionButton({
       style={{
         width: "auto",
         height: "auto",
+        // Task 6: these are the app's highest-traffic controls (and not
+        // repeating list rows), so guarantee the >=32px min hit target
+        // enforced elsewhere — computed height for 12.5px text + 7px padding
+        // was borderline. border-box so the 1px border counts inside it.
+        minHeight: 32,
+        boxSizing: "border-box",
         display: "flex",
         alignItems: "center",
         gap: 6,
