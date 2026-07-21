@@ -77,6 +77,11 @@ export function Sidebar() {
   const [remoteMenu, setRemoteMenu] = useState<{ x: number; y: number; remote: string } | null>(null);
   const [tagMenu, setTagMenu] = useState<{ x: number; y: number; name: string } | null>(null);
   const [confirmDeleteTag, setConfirmDeleteTag] = useState<string | null>(null);
+  // Task 8: which branch row is SELECTED (single click), independent of
+  // is_current (the checked-out branch, shown via the dot/halo). Local
+  // branches key on their name; remote-tracking rows key on "<remote>/<name>"
+  // so the two id spaces never collide. Transient UI state — not persisted.
+  const [selectedBranch, setSelectedBranch] = useState<string | null>(null);
   // Design: sidebar resizable 180–340, persisted.
   const sidebarW = usePanelWidth("gitsylva-w-sidebar", 232, 180, 340, "right");
   // Task 6: below ~1024px wide the sidebar defaults to a collapsed icon
@@ -94,9 +99,12 @@ export function Sidebar() {
     openFolders[g.name] ?? g.members.some((m) => m.is_current);
 
   // Show a branch's tip commit in the history (single click, user request
-  // R5.1). Double click still checks the branch out.
-  function focusBranch(tip: string) {
+  // R5.1) and mark that branch SELECTED (Task 8) — a persistent background +
+  // accent bar that survives until another branch is selected. Double click
+  // still checks the branch out (unaffected by selection).
+  function focusBranch(name: string, tip: string) {
     if (!tip) return;
+    setSelectedBranch(name);
     setFocusCommit(tip);
     if (view !== "history") setView("history");
   }
@@ -105,17 +113,28 @@ export function Sidebar() {
   // a local tracking branch); shared by flat entries and folder members, which
   // indent deeper and drop the prefix.
   function remoteRow(remote: string, shortName: string, display: string, padLeft: number, tip: string) {
+    const id = `${remote}/${shortName}`;
+    const isSelected = selectedBranch === id;
     return (
       <SelectableRow
-        key={`${remote}/${shortName}`}
-        onSelect={() => focusBranch(tip)}
+        key={id}
+        selected={isSelected}
+        aria-current={isSelected ? "true" : undefined}
+        onSelect={() => focusBranch(id, tip)}
         onDoubleClick={() => !checkout.isPending && setConfirmSwitch(shortName)}
         onContextMenu={(e) => {
           e.preventDefault();
-          setMenu({ x: e.clientX, y: e.clientY, name: shortName, remote: { full: `${remote}/${shortName}`, short: shortName, tip } });
+          setMenu({ x: e.clientX, y: e.clientY, name: shortName, remote: { full: id, short: shortName, tip } });
         }}
         title={`1 clique: ver no histórico · 2 cliques: checkout local de ${remote}/${shortName} · botão direito para opções`}
-        style={{ gap: 9, padding: `5px 10px 5px ${padLeft}px`, fontSize: 12.5, fontFamily: mono, color: "var(--muted)" }}
+        style={{
+          gap: 9,
+          padding: `5px 10px 5px ${padLeft}px`,
+          fontSize: 12.5,
+          fontFamily: mono,
+          color: "var(--muted)",
+          boxShadow: isSelected ? "inset 3px 0 0 var(--accent)" : undefined,
+        }}
       >
         <span style={{ width: 5, height: 5, borderRadius: "50%", background: "var(--muted)", flexShrink: 0 }} />
         <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{display}</span>
@@ -128,13 +147,16 @@ export function Sidebar() {
   // Single click focuses the tip commit in the history; DOUBLE click switches
   // branch (R5.1 — switching was too easy to trigger by accident).
   function branchRow(b: BranchInfo, display: string, indent: boolean) {
+    const isSelected = selectedBranch === b.name;
     return (
       <SelectableRow
         key={b.name}
         className={BRANCH_ROW_CLASS}
+        selected={isSelected}
+        aria-current={isSelected ? "true" : undefined}
         onSelect={() => {
           if (renaming === b.name) return;
-          focusBranch(b.tip);
+          focusBranch(b.name, b.tip);
         }}
         onDoubleClick={() => {
           // One checkout at a time: double-clicking two branches quickly must
@@ -162,6 +184,10 @@ export function Sidebar() {
           fontFamily: mono,
           color: b.is_current ? "var(--l0)" : "var(--text2)",
           fontWeight: b.is_current ? 600 : 400,
+          // Selection accent (Task 8): a lateral bar distinct from the
+          // is_current dot/halo below — a branch can be selected without
+          // being the checked-out branch, and vice versa.
+          boxShadow: isSelected ? "inset 3px 0 0 var(--accent)" : undefined,
         }}
       >
         {/* Active branch: filled dot with a halo ring, unmissable at a glance. */}
@@ -580,7 +606,7 @@ export function Sidebar() {
               { label: `Merge de ${r.full} na branch atual…`, onClick: () => setConfirmMerge(r.full) },
               { label: `Rebase da atual sobre ${r.full}…`, onClick: () => setConfirmRebase(r.full) },
               { label: "", onClick: () => {}, divider: true },
-              { label: "Ver no histórico", onClick: () => focusBranch(r.tip) },
+              { label: "Ver no histórico", onClick: () => focusBranch(r.full, r.tip) },
               { label: "Criar branch a partir daqui…", onClick: () => { setCreateName(""); setCreateFrom({ label: r.full, tip: r.tip }); } },
               { label: "", onClick: () => {}, divider: true },
               { label: "Copiar nome", onClick: () => void navigator.clipboard?.writeText(r.full).then(() => toast("Nome copiado")) },
@@ -597,7 +623,7 @@ export function Sidebar() {
             items.push({ label: `Rebase da atual sobre ${name}…`, onClick: () => setConfirmRebase(name) });
             items.push({ label: "", onClick: () => {}, divider: true });
           }
-          items.push({ label: "Ver no histórico", onClick: () => focusBranch(local?.tip ?? "") });
+          items.push({ label: "Ver no histórico", onClick: () => focusBranch(name, local?.tip ?? "") });
           items.push({ label: "Criar branch a partir daqui…", onClick: () => { setCreateName(""); setCreateFrom({ label: name, tip: local?.tip ?? "" }); } });
           items.push({ label: "", onClick: () => {}, divider: true });
           items.push({ label: `Renomear ${name}…`, onClick: () => { setRenaming(name); setRenameVal(name); } });
