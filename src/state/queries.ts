@@ -282,12 +282,35 @@ export function useSyncActions(path: string) {
       qc.invalidateQueries({ queryKey: [key, path] });
     }
   };
+  // Marks the repo as busy for the close-repo confirmation (B9): fetch/pull/
+  // push are the operations worth warning about before closing a tab — they
+  // hit the network and can run for seconds, unlike the near-instant local
+  // ops (stage/commit/discard). Read via appStore.getState() (no hook
+  // subscription) since these only run inside mutation callbacks, not render.
+  const setBusy = (busy: boolean) => useAppStore.getState().setRepoBusy(path, busy);
   return {
-    fetch: useMutation({ mutationFn: () => fetchRemote(path), onSuccess: refresh }),
+    fetch: useMutation({
+      mutationFn: () => fetchRemote(path),
+      onMutate: () => setBusy(true),
+      onSuccess: refresh,
+      onSettled: () => setBusy(false),
+    }),
     // Pull uses the mode chosen in Settings (read at call time). A conflicting
     // pull (merge/rebase mode) leaves the repo mid-operation: refresh on error too.
-    pull: useMutation({ mutationFn: () => pull(path, useThemeStore.getState().pullMode), onSettled: refresh }),
-    push: useMutation({ mutationFn: () => push(path), onSuccess: refresh }),
+    pull: useMutation({
+      mutationFn: () => pull(path, useThemeStore.getState().pullMode),
+      onMutate: () => setBusy(true),
+      onSettled: () => {
+        refresh();
+        setBusy(false);
+      },
+    }),
+    push: useMutation({
+      mutationFn: () => push(path),
+      onMutate: () => setBusy(true),
+      onSuccess: refresh,
+      onSettled: () => setBusy(false),
+    }),
   };
 }
 
