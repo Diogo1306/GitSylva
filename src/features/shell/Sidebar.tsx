@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type KeyboardEvent } from "react";
 import { useAppStore } from "../../state/appStore";
 import { useStatus, useBranches, useBranchActions, useStashes, useTags, useTagActions, useRewriteActions, useSyncActions } from "../../state/queries";
 import { notify } from "../../state/notificationStore";
@@ -10,11 +10,20 @@ import { usePanelWidth } from "../../lib/usePanelWidth";
 import { Input } from "../../components/ui/Input";
 import { Modal } from "../../components/ui/Modal";
 import { Button } from "../../components/ui/Button";
+import { SelectableRow } from "../../components/ui/SelectableRow";
+import { activateOnKeyDown } from "../../components/ui/keys";
 import { groupBranches, type BranchGroup } from "../../lib/branchFolders";
 import type { BranchInfo } from "../../lib/types";
 import type { View } from "../../state/appStore";
 
 const mono = "'JetBrains Mono', monospace";
+
+// Rows in the branches section (branch rows and folder-toggle headers) carry
+// this marker class so ArrowDown/ArrowUp can walk between whatever is
+// CURRENTLY visible (folder members collapse in and out) without hardcoding
+// the list. A class (not a data-* prop) because SelectableRow's typed props
+// don't declare arbitrary data attributes, while className always does.
+const BRANCH_ROW_CLASS = "gs-branch-row";
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
@@ -22,6 +31,20 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
       {children}
     </div>
   );
+}
+
+// ArrowDown/ArrowUp move focus to the next/previous visible row within the
+// branches section (local branch rows + folder-toggle headers) — a roving
+// focus convenience layered on top of normal Tab order (every row keeps its
+// own tabIndex=0, so Tab still reaches each one individually).
+function onBranchListKeyDown(e: KeyboardEvent<HTMLDivElement>) {
+  if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
+  const rows = Array.from(e.currentTarget.querySelectorAll<HTMLElement>(`.${BRANCH_ROW_CLASS}`));
+  const idx = rows.indexOf(document.activeElement as HTMLElement);
+  if (idx === -1) return;
+  e.preventDefault();
+  const next = e.key === "ArrowDown" ? Math.min(rows.length - 1, idx + 1) : Math.max(0, idx - 1);
+  rows[next]?.focus();
 }
 
 export function Sidebar() {
@@ -75,21 +98,20 @@ export function Sidebar() {
   // indent deeper and drop the prefix.
   function remoteRow(remote: string, shortName: string, display: string, padLeft: number, tip: string) {
     return (
-      <div
+      <SelectableRow
         key={`${remote}/${shortName}`}
-        onClick={() => focusBranch(tip)}
+        onSelect={() => focusBranch(tip)}
         onDoubleClick={() => !checkout.isPending && setConfirmSwitch(shortName)}
         onContextMenu={(e) => {
           e.preventDefault();
           setMenu({ x: e.clientX, y: e.clientY, name: shortName, remote: { full: `${remote}/${shortName}`, short: shortName, tip } });
         }}
-        className="gs-row"
         title={`1 clique: ver no histórico · 2 cliques: checkout local de ${remote}/${shortName} · botão direito para opções`}
-        style={{ display: "flex", alignItems: "center", gap: 9, padding: `5px 10px 5px ${padLeft}px`, borderRadius: 8, fontSize: 12.5, fontFamily: mono, color: "var(--muted)", cursor: "pointer" }}
+        style={{ gap: 9, padding: `5px 10px 5px ${padLeft}px`, fontSize: 12.5, fontFamily: mono, color: "var(--muted)" }}
       >
         <span style={{ width: 5, height: 5, borderRadius: "50%", background: "var(--muted)", flexShrink: 0 }} />
         <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{display}</span>
-      </div>
+      </SelectableRow>
     );
   }
 
@@ -99,9 +121,10 @@ export function Sidebar() {
   // branch (R5.1 — switching was too easy to trigger by accident).
   function branchRow(b: BranchInfo, display: string, indent: boolean) {
     return (
-      <div
+      <SelectableRow
         key={b.name}
-        onClick={() => {
+        className={BRANCH_ROW_CLASS}
+        onSelect={() => {
           if (renaming === b.name) return;
           focusBranch(b.tip);
         }}
@@ -115,23 +138,22 @@ export function Sidebar() {
           e.preventDefault();
           setMenu({ x: e.clientX, y: e.clientY, name: b.name });
         }}
-        className="gs-row"
         title={
           b.is_current
             ? "Branch atual · 1 clique: ver no histórico"
             : `1 clique: ver no histórico · 2 cliques: mudar para ${b.name} · botão direito para opções`
         }
+        // Explicit label (not name-from-content): without it, the nested
+        // delete button's own "Apagar X" label bleeds into this row's
+        // computed accessible name too.
+        aria-label={display}
         style={{
-          display: "flex",
-          alignItems: "center",
           gap: 9,
           padding: indent ? "6px 10px 6px 25px" : "6px 10px",
-          borderRadius: 8,
           fontSize: 13,
           fontFamily: mono,
           color: b.is_current ? "var(--l0)" : "var(--text2)",
           fontWeight: b.is_current ? 600 : 400,
-          cursor: "pointer",
         }}
       >
         {/* Active branch: filled dot with a halo ring, unmissable at a glance. */}
@@ -150,6 +172,10 @@ export function Sidebar() {
             onClick={(e) => e.stopPropagation()}
             onChange={(e) => setRenameVal(e.target.value)}
             onKeyDown={(e) => {
+              // The row itself is now a real keyboard control (Enter/Space
+              // activate it) — without this, typing Enter/Space here would
+              // also bubble up and re-trigger the row's onSelect/onKeyDown.
+              e.stopPropagation();
               if (e.key === "Escape") setRenaming(null);
               if (e.key === "Enter" && renameVal.trim()) {
                 rename.mutate(
@@ -177,18 +203,28 @@ export function Sidebar() {
           </span>
         )}
         {!b.is_current && renaming !== b.name && (
-          <span
+          <button
+            type="button"
             onClick={(e) => {
               e.stopPropagation();
               setConfirmDelete({ name: b.name, force: false });
             }}
+            onKeyDown={(e) => {
+              // Stop the row's own Enter/Space activation (SelectableRow's
+              // onKeyDown) from also firing via bubbling; activate this
+              // button itself the same explicit way every other migrated
+              // control here does.
+              e.stopPropagation();
+              activateOnKeyDown(e);
+            }}
             title={`Apagar ${b.name}`}
-            style={{ color: "var(--muted)", fontSize: 10, padding: "1px 4px", borderRadius: 5, flexShrink: 0 }}
+            aria-label={`Apagar ${b.name}`}
+            style={{ color: "var(--muted)", fontSize: 10, padding: "1px 4px", borderRadius: 5, flexShrink: 0, background: "transparent", border: "none", cursor: "pointer", fontFamily: "inherit" }}
           >
             ✕
-          </span>
+          </button>
         )}
-      </div>
+      </SelectableRow>
     );
   }
 
@@ -223,18 +259,14 @@ export function Sidebar() {
     dot: React.ReactNode,
     badge?: number | null,
   ) => (
-    <div
-      onClick={() => setView(key)}
-      className="gs-row"
+    <SelectableRow
+      key={key}
+      onSelect={() => setView(key)}
       style={{
-        display: "flex",
-        alignItems: "center",
         gap: 9,
         padding: "7px 10px",
-        borderRadius: 8,
         fontSize: 13.5,
         color: "var(--text)",
-        cursor: "pointer",
         // undefined (not "transparent") so .gs-row:hover still paints.
         background: view === key ? "var(--sel)" : undefined,
       }}
@@ -246,7 +278,7 @@ export function Sidebar() {
           {badge}
         </span>
       )}
-    </div>
+    </SelectableRow>
   );
 
   return (
@@ -290,28 +322,34 @@ export function Sidebar() {
         )}
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 2 }} onKeyDown={onBranchListKeyDown}>
         <div style={{ display: "flex", alignItems: "center", padding: "0 10px 6px" }}>
           <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: "1.2px", color: "var(--muted)", flex: 1 }}>BRANCHES</div>
-          <span
+          <button
+            type="button"
             onClick={() => setModal("branch")}
-            className="gs-row"
+            onKeyDown={activateOnKeyDown}
             title="Nova branch"
-            style={{ width: 18, height: 18, borderRadius: 5, display: "grid", placeItems: "center", color: "var(--muted)", fontSize: 14, cursor: "pointer" }}
+            aria-label="Nova branch"
+            className="gs-row"
+            style={{ width: 18, height: 18, borderRadius: 5, display: "grid", placeItems: "center", color: "var(--muted)", fontSize: 14, background: "transparent", border: "none", padding: 0, cursor: "pointer", fontFamily: "inherit" }}
           >
             +
-          </span>
+          </button>
         </div>
         {groupBranches(localBranches).map((g) =>
           g.kind === "branch" ? (
             branchRow(g.branch, g.branch.name, false)
           ) : (
             <div key={`pasta-${g.name}`} style={{ display: "flex", flexDirection: "column", gap: 1 }}>
-              <div
+              <button
+                type="button"
                 onClick={() => setOpenFolders((s) => ({ ...s, [g.name]: !folderOpen(g) }))}
-                className="gs-row"
+                onKeyDown={activateOnKeyDown}
+                className={`gs-row ${BRANCH_ROW_CLASS}`}
                 title={`${folderOpen(g) ? "Colapsar" : "Expandir"} ${g.name}`}
-                style={{ display: "flex", alignItems: "center", gap: 9, padding: "6px 10px", borderRadius: 8, fontSize: 13, fontFamily: mono, color: "var(--text2)", cursor: "pointer" }}
+                aria-expanded={folderOpen(g)}
+                style={{ display: "flex", alignItems: "center", gap: 9, padding: "6px 10px", borderRadius: 8, fontSize: 13, fontFamily: mono, color: "var(--text2)", cursor: "pointer", background: "transparent", border: "none", width: "100%", textAlign: "left" }}
               >
                 <span style={{ fontSize: 9, color: "var(--muted)", transform: `rotate(${folderOpen(g) ? 90 : 0}deg)`, transition: "transform 0.15s", display: "inline-block", width: 6, flexShrink: 0 }}>▶</span>
                 <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{g.name}</span>
@@ -339,7 +377,7 @@ export function Sidebar() {
                     </>
                   );
                 })()}
-              </div>
+              </button>
               {folderOpen(g) && (
                 <div style={{ display: "flex", flexDirection: "column", gap: 1, animation: "fadeIn 0.15s ease both" }}>
                   {g.members.map((m) => branchRow(m, m.name.slice(g.name.length + 1), true))}
@@ -360,18 +398,25 @@ export function Sidebar() {
         ) : (
           remotes.map((remote) => (
             <div key={remote} style={{ display: "flex", flexDirection: "column", gap: 1 }}>
-              <div
+              <button
+                type="button"
+                onClick={(e) => {
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  setRemoteMenu({ x: rect.left, y: rect.bottom, remote });
+                }}
+                onKeyDown={activateOnKeyDown}
                 onContextMenu={(e) => {
                   e.preventDefault();
                   setRemoteMenu({ x: e.clientX, y: e.clientY, remote });
                 }}
                 className="gs-row"
-                title={`${remote} · botão direito para fetch/pull/push`}
-                style={{ display: "flex", alignItems: "center", gap: 9, padding: "6px 10px", borderRadius: 8, fontSize: 13, fontFamily: mono, color: "var(--text2)" }}
+                title={`${remote} · fetch/pull/push`}
+                aria-label={remote}
+                style={{ display: "flex", alignItems: "center", gap: 9, padding: "6px 10px", borderRadius: 8, fontSize: 13, fontFamily: mono, color: "var(--text2)", background: "transparent", border: "none", width: "100%", textAlign: "left", cursor: "pointer" }}
               >
                 <span style={{ color: "var(--muted)", fontSize: 11 }}>▾</span>
                 <span style={{ flex: 1 }}>{remote}</span>
-              </div>
+              </button>
               {groupBranches(
                 remoteBranches
                   .filter((b) => b.name.startsWith(remote + "/"))
@@ -381,15 +426,18 @@ export function Sidebar() {
                   remoteRow(remote, g.branch.name, g.branch.name, 20, g.branch.tip)
                 ) : (
                   <div key={`pasta-${remote}:${g.name}`} style={{ display: "flex", flexDirection: "column", gap: 1 }}>
-                    <div
+                    <button
+                      type="button"
                       onClick={() => setOpenFolders((s) => ({ ...s, [`${remote}:${g.name}`]: !(s[`${remote}:${g.name}`] ?? false) }))}
+                      onKeyDown={activateOnKeyDown}
                       className="gs-row"
                       title={`${openFolders[`${remote}:${g.name}`] ? "Colapsar" : "Expandir"} ${g.name}`}
-                      style={{ display: "flex", alignItems: "center", gap: 9, padding: "5px 10px 5px 20px", borderRadius: 8, fontSize: 12.5, fontFamily: mono, color: "var(--muted)", cursor: "pointer" }}
+                      aria-expanded={openFolders[`${remote}:${g.name}`] ?? false}
+                      style={{ display: "flex", alignItems: "center", gap: 9, padding: "5px 10px 5px 20px", borderRadius: 8, fontSize: 12.5, fontFamily: mono, color: "var(--muted)", cursor: "pointer", background: "transparent", border: "none", width: "100%", textAlign: "left" }}
                     >
                       <span style={{ fontSize: 8, transform: `rotate(${openFolders[`${remote}:${g.name}`] ? 90 : 0}deg)`, transition: "transform 0.15s", display: "inline-block", width: 5, flexShrink: 0 }}>▶</span>
                       <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{g.name}</span>
-                    </div>
+                    </button>
                     {openFolders[`${remote}:${g.name}`] && (
                       <div style={{ display: "flex", flexDirection: "column", gap: 1, animation: "fadeIn 0.15s ease both" }}>
                         {g.members.map((m) => remoteRow(remote, m.name, m.name.slice(g.name.length + 1), 34, m.tip))}
@@ -407,7 +455,17 @@ export function Sidebar() {
         <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
           <div style={{ display: "flex", alignItems: "center", padding: "0 10px 6px" }}>
             <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: "1.2px", color: "var(--muted)", flex: 1 }}>TAGS</div>
-            <span onClick={() => setModal("tag")} className="gs-row" title="Nova tag" style={{ width: 18, height: 18, borderRadius: 5, display: "grid", placeItems: "center", color: "var(--muted)", fontSize: 14, cursor: "pointer" }}>+</span>
+            <button
+              type="button"
+              onClick={() => setModal("tag")}
+              onKeyDown={activateOnKeyDown}
+              title="Nova tag"
+              aria-label="Nova tag"
+              className="gs-row"
+              style={{ width: 18, height: 18, borderRadius: 5, display: "grid", placeItems: "center", color: "var(--muted)", fontSize: 14, background: "transparent", border: "none", padding: 0, cursor: "pointer", fontFamily: "inherit" }}
+            >
+              +
+            </button>
           </div>
           {tags.map((t) => (
             <div
@@ -428,24 +486,6 @@ export function Sidebar() {
       )}
 
       <div style={{ flex: 1 }} />
-      <div
-        onClick={() => setView("settings")}
-        className="gs-row"
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 9,
-          padding: "7px 10px",
-          borderRadius: 8,
-          fontSize: 13.5,
-          color: "var(--text2)",
-          cursor: "pointer",
-          background: view === "settings" ? "var(--sel)" : undefined,
-        }}
-      >
-        <span style={{ width: 9, height: 9, borderRadius: "50%", border: "2px solid var(--muted)", boxSizing: "border-box", flexShrink: 0 }} />
-        <span style={{ flex: 1 }}>Definições</span>
-      </div>
 
       {menu &&
         (() => {
