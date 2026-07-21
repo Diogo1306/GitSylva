@@ -8,6 +8,7 @@ import { winMinimize, winToggleMaximize, winClose, winIsMaximized } from "../../
 import { spawnLeaf } from "../../lib/leaf";
 import { toast } from "../../state/toastStore";
 import { notify } from "../../state/notificationStore";
+import { fetchFailureNotice } from "../../lib/errors";
 import { Wordmark } from "../../components/Wordmark";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
 import { ContextMenu, type MenuItem } from "../../components/ui/ContextMenu";
@@ -304,7 +305,8 @@ export function Titlebar({ rail = false }: { rail?: boolean }) {
       onError: (e: unknown) => {
         qc.invalidateQueries({ queryKey: queryKeys.status(repo.path) });
         qc.invalidateQueries({ queryKey: queryKeys.log(repo.path) });
-        notify("Fetch falhou", (e as { message?: string })?.message ?? "não foi possível fazer fetch", "error", "fetch");
+        const n = fetchFailureNotice(e);
+        notify(n.title, n.sub, "error", "fetch");
       },
     });
   }
