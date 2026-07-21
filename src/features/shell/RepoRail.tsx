@@ -16,7 +16,10 @@ export function RepoRail() {
   const groups = useAppStore((s) => s.groups);
   const groupOf = useAppStore((s) => s.groupOf);
   const switchRepo = useAppStore((s) => s.switchRepo);
-  const closeRepo = useAppStore((s) => s.closeRepo);
+  // Goes through the busy-aware requestCloseRepo (not the raw closeRepo);
+  // the confirm dialog it may trigger is rendered by Titlebar, which is
+  // always mounted alongside this rail (shared appStore state, B9).
+  const requestCloseRepo = useAppStore((s) => s.requestCloseRepo);
   const setView = useAppStore((s) => s.setView);
   const addGroup = useAppStore((s) => s.addGroup);
   const removeGroup = useAppStore((s) => s.removeGroup);
@@ -44,7 +47,7 @@ export function RepoRail() {
           <div style={{ fontSize: 12.5, fontWeight: active ? 600 : 400, color: active ? "var(--text)" : "var(--text2)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name}</div>
           <div style={{ fontFamily: mono, fontSize: 10, color: "var(--muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{active ? repo?.current_branch : r.current_branch}</div>
         </div>
-        <span onClick={(e) => { e.stopPropagation(); closeRepo(r.path); }} title="Fechar" className="gs-row" style={{ width: 15, height: 15, borderRadius: 5, display: "grid", placeItems: "center", color: "var(--muted)", fontSize: 9, flexShrink: 0 }}>✕</span>
+        <span onClick={(e) => { e.stopPropagation(); requestCloseRepo(r.path); }} title="Fechar" className="gs-row" style={{ width: 15, height: 15, borderRadius: 5, display: "grid", placeItems: "center", color: "var(--muted)", fontSize: 9, flexShrink: 0 }}>✕</span>
       </div>
     );
   };
