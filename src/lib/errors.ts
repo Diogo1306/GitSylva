@@ -62,7 +62,7 @@ export function classifySyncError(message: string): SyncErrorKind {
 }
 
 // Fetch has no dedicated modal (it is a one-shot action fired from the
-// toolbar/sidebar/command palette/shortcut, surfaced only via a top-right
+// toolbar/sidebar/command palette/shortcut, surfaced only via a bottom-right
 // notification), so it gets a lighter-touch version of the same distinct
 // auth/network messaging the Pull/Push modals show inline.
 export function fetchFailureNotice(e: unknown): { title: string; sub: string } {
