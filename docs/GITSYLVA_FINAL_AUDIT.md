@@ -554,6 +554,13 @@ Validação: tsc 0, eslint 0, vitest 76/76 (+4 fileIcons), cargo check ok; CDP n
 
 **R5.2 (feedback ao vivo):** minimizar voltou a ser o nativo do Windows (a animação mac-style do handoff foi removida — winMinimizeAnimated e o keyframe apagados); a coluna de ficheiros da Cópia de trabalho passou a UM contentor de scroll (as duas secções + cabeçalhos) com a caixa de commit fixa em baixo — antes uma lista longa de não-preparados empurrava tudo para fora do ecrã (verificado ao vivo: textarea bottom 711/800); em modo empilhado a coluna divide a altura com o diff (flex 1 1 0%); a ActionBar inferior foi REMOVIDA a pedido ("a barra por baixo de Definições") — Pull/Push subiram para a Titlebar com os contadores ahead/behind, o resto já vivia na palette/sidebar/atalhos; notificações desceram para bottom 16; chips de refs ganharam maxWidth 150 por chip (um nome comprido já não esfomeia os outros). NOTA: o utilizador testava a 0.1.0 INSTALADA — os bugs do screenshot (chips sobrepostos, barra, scrollbar) já estavam corrigidos no develop.
 
+**Nota de correção (2026-07-21):** a frase acima ("a ActionBar inferior foi REMOVIDA") ficou
+desatualizada — a barra voltou pouco depois na mesma ronda, branch `fix/actionbar-back-r5-10`
+("Bottom action bar returns (user request)", commits `e19c03e`/`204c817`), e manteve-se como
+decisão de produto assente durante toda a execução do backlog seguinte (Milestones 1-3,
+Tasks 1-19 — ver §12): ActionBar fixa em baixo com Commit / Pull / Push / Branch / Merge /
+Stash / Tag. Qualquer leitura desta secção deve ignorar a frase de remoção.
+
 **R5.3 (ícone por tema):** make-icon.js → make-icon.cjs ("type":"module" no package.json impedia require) e parametrizado (argv: alvo, bg, folha, tamanho); 4 ícones 256px em src/theme/appicons/ importados com ?inline (CSP sem 'self' em connect-src impedia fetch); useApplyTheme faz setIcon(bytes) na mudança de tema (feature "image-png" no crate tauri + permissão core:window:allow-set-icon). Fora do Tauri é no-op silencioso.
 
 ## 11. Auditoria ao grafo de commits (2026-07-15, pedido do utilizador: "ramificações erradas")
@@ -570,3 +577,72 @@ Quatro defeitos reais encontrados e corrigidos:
 Extras: gutter do texto adaptativo (96px + 18px por lane acima da 4ª, cap 258px) e clamp visual na lane 12. Testes novos: 2 de layout (fork reserva a lane; irmãos mantêm linhas distintas) + 1 Rust (`log_includes_unmerged_branches`). vitest 82/82, cargo 52/52.
 
 **R5.6–R5.9 (mesma sessão):** menus de contexto ricos no commit (criar branch daqui — backend `create_branch` com base opcional; tag aqui — `create_tag` com alvo; reverter — novo comando `revert_commit`; cherry-pick/reset/rebase/copiar hash+mensagem) e na branch (mudar com CONFIRMAÇÃO, merge na atual, rebase, renomear, copiar, apagar); Definições→Sobre com versão + "Procurar atualizações" (check/instala on-demand); badges ↑↓ por branch na sidebar (`%(upstream:track)`); HEAD com barra de acento e chip que nunca clipa; History com painel de detalhe AO LADO ou EM BAIXO (estilo SourceTree, redimensionável e colapsável — `historyLayout` no themeStore) e escolha abas/rail no onboarding. Tudo verificado ao vivo via CDP. vitest 82, cargo 52.
+
+## 12. Execução do backlog pós-lançamento — Milestones 1-3 (2026-07-21, Tasks 1-19)
+
+Plano: `plans/2026-07-21-backlog-execution.md`. 19 tarefas em 3 milestones (P0 Tasks 1-7,
+P1 Tasks 8-16, P2 Tasks 17-19), cada uma numa `feature/<nome>` a partir de `develop`, merge
+`--no-ff` após revisão, com testes verdes em cada integração. Milestones 1 e 2 chegaram a
+`master`; o código de produto ficou fechado no merge da Task 18 (`develop @ 795f254`, 386
+vitest + testes Rust verdes). A Task 19 (esta) é só documentação, sem alteração de código.
+
+**Entregas principais** (todas com testes):
+- **Acessibilidade** — primitivas partilhadas (`Tabs`, `SelectableRow`, `Toolbar`, `FormField`,
+  `Tooltip`) e operabilidade total por teclado em History, Sidebar, Titlebar, ActionBar,
+  RepoPicker, Settings e Onboarding; labels em todos os campos de formulário.
+- **Layout de janela mínima 900×560** — `useBreakpoint`, sidebar colapsável, caixa de commit
+  ancorada, overrides responsivos no Histórico.
+- **IA do onboarding** — "Continuar localmente" como ação primária, integrações OAuth como
+  secundárias, "Saltar" removido (ficava ambíguo face ao fluxo real, ver R1/O3-O5 acima).
+- **Seleção de branch persistente** (`aria-pressed`) e aviso de operação ocupada ao tentar
+  fechar o último repositório (passa a bloquear para o picker em vez de deixar sem repo aberto).
+- **Escala da sidebar** — pesquisa de branches, remotes colapsados, lista de branches recentes.
+- **Filtros do Histórico** — branch/autor/data/merge/caminho, com queries reais de pertença no
+  backend (não apenas filtro em memória sobre o log já carregado).
+- **Paleta de comandos (⌘K)** — branches remotas incluídas nos resultados.
+- **Clareza de sincronização** — Pull/Push/Fetch com estado explícito de "autenticação
+  necessária" e deteção de conflito de merge.
+- **Atalhos** — tooltips com o combo atual (rebindable) + lista de atalhos na paleta.
+- **Definições** — reset com copy mais clara e notificação de sucesso.
+- **i18n completo PT/EN** — catálogos de 681 chaves, troca de idioma ao vivo, gate de
+  enforcement que falha caso apareça string nova não traduzida.
+- **Divisão dos 4 componentes sobredimensionados** (History, WorkingCopy, Sidebar, Titlebar)
+  em subcomponentes focados.
+- **Testes de integração** para os 6 fluxos centrais do produto.
+
+**Decisões reconfirmadas nesta execução** (registadas aqui para fechar o desalinhamento de
+documentação encontrado na Task 19):
+- **ActionBar** — mantida fixa em baixo (Commit / Pull / Push / Branch / Merge / Stash / Tag).
+  Ver a nota de correção a R5.2 acima: a app teve um período sem ela, mas voltou ainda na R5 e
+  é hoje decisão de produto assente.
+- **Notificações** — stack único em baixo à direita (bottom 66 / right 16, por cima da
+  ActionBar), fundido com os toasts; inalterado desde R5.1/R5.2. `docs/design/handoff/README.md`
+  e `docs/design/handoff/animation-specs/animations.md` ainda descreviam a posição original do
+  handoff v2 (topo-direita) — anotados nesta Task 19 para não confundir leitura futura.
+
+### Deferido para a próxima revisão de design (registado, não perdido)
+
+Por decisão do utilizador de avançar para uma nova direção visual a seguir a este backlog, os
+seguintes P2 do inventário original ficam conscientemente por fazer agora (evitar trabalho
+descartável):
+- Polimento pesado de densidade visual / revisão de contraste nos 4 temas.
+- Afinação do "modo Conforto" (densidade conforto/compacta já existe — o que fica por fazer é
+  o refinamento fino do modo, não a funcionalidade base).
+- Testes de regressão visual (snapshots) dos 4 temas.
+- Atualização de screenshots (`docs/audit/00-inventario-handoff.md` e as referências em
+  `docs/design/handoff/references/`).
+
+### Follow-ups conhecidos ainda em aberto
+
+Do roll-up de findings menores do programa (`.superpowers/sdd/progress.md`), nenhum bloqueante:
+- **Hint em PT no Rust** (`friendly()`) pode aparecer por baixo do título de erro já traduzido
+  — bleed de PT para dentro de mensagens de erro localizadas; fora do âmbito do i18n de
+  frontend feito na Task 16.
+- **`log.rs::get_branch_commits`** passa o nome da branch sem guarda `--end-of-options`; não é
+  explorável hoje (o nome vem de um select controlado + regras de ref do git), mas devia ser
+  endurecido numa passagem de hardening dedicada (encontrado na Task 11).
+- **Constante `mono` duplicada** (`'JetBrains Mono', monospace`) redeclarada em ~14 ficheiros
+  desde a divisão de componentes da Task 17; candidata a um `lib/font.ts` partilhado.
+- **Alvos de clique <32px** em micro-controlos por linha (checkboxes de ficheiro, caret de
+  pasta, ✕ de fechar tab) deixados deliberadamente para a redesign de densidade (decisão
+  tomada na Task 6 — subir o tamanho agora forçaria uma redesign da lista fora de âmbito).
