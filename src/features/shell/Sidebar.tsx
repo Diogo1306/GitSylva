@@ -119,7 +119,12 @@ export function Sidebar() {
       <SelectableRow
         key={id}
         selected={isSelected}
-        aria-current={isSelected ? "true" : undefined}
+        // Task 8: aria-pressed (valid on role="button") conveys a toggled
+        // selection WITHOUT the "current location" meaning aria-current
+        // carries — in a git client "current branch" specifically means the
+        // checked-out one (is_current), so a screen reader must not announce
+        // a merely single-clicked remote row as "current".
+        aria-pressed={isSelected}
         onSelect={() => focusBranch(id, tip)}
         onDoubleClick={() => !checkout.isPending && setConfirmSwitch(shortName)}
         onContextMenu={(e) => {
@@ -153,7 +158,12 @@ export function Sidebar() {
         key={b.name}
         className={BRANCH_ROW_CLASS}
         selected={isSelected}
-        aria-current={isSelected ? "true" : undefined}
+        // Task 8: aria-pressed (valid on role="button") conveys a toggled
+        // selection WITHOUT aria-current's "current location" meaning — in a
+        // git client "current branch" means the CHECKED-OUT branch
+        // (is_current), so a single-clicked non-current branch must not be
+        // announced as "current".
+        aria-pressed={isSelected}
         onSelect={() => {
           if (renaming === b.name) return;
           focusBranch(b.name, b.tip);

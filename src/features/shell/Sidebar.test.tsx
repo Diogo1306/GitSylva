@@ -183,33 +183,36 @@ describe("Sidebar: branch rows", () => {
 // being the checked-out branch). role stays "button" (folder toggles, a
 // nested delete button and a rename <input> live inside/among these rows, so
 // restructuring into a role="listbox"/"option" pair is not a clean fit here
-// — see History's commit list for that pattern where it DOES fit cleanly);
-// aria-selected is invalid on role="button", so the selected branch instead
-// carries aria-current="true", valid on any role.
+// — see History's commit list for that pattern where it DOES fit cleanly).
+// The selected branch carries aria-pressed (a toggled-button state, valid on
+// role="button"), NOT aria-current: in a git client "current branch" means
+// the CHECKED-OUT branch (is_current), so aria-current on a merely
+// single-clicked non-current branch would be misread as "now checked out".
 describe("Sidebar: branch selection persists (Task 8)", () => {
-  it("single click on a branch row marks it aria-current and gives it the selected background, until another branch is clicked", async () => {
+  it("single click on a branch row marks it aria-pressed and gives it the selected background, until another branch is clicked", async () => {
     renderWithProviders(<Sidebar />);
     const login = await screen.findByRole("button", { name: "login" });
     const logout = screen.getByRole("button", { name: "logout" });
-    expect(login.getAttribute("aria-current")).toBeNull();
+    expect(login.getAttribute("aria-pressed")).toBe("false");
 
     fireEvent.click(login);
-    expect(login.getAttribute("aria-current")).toBe("true");
+    expect(login.getAttribute("aria-pressed")).toBe("true");
     expect(login.style.background).toContain("--sel");
-    expect(logout.getAttribute("aria-current")).toBeNull();
+    expect(logout.getAttribute("aria-pressed")).toBe("false");
 
     fireEvent.click(logout);
-    expect(logout.getAttribute("aria-current")).toBe("true");
+    expect(logout.getAttribute("aria-pressed")).toBe("true");
     expect(logout.style.background).toContain("--sel");
     // Selection moved: the previous branch loses it.
-    expect(login.getAttribute("aria-current")).toBeNull();
+    expect(login.getAttribute("aria-pressed")).toBe("false");
   });
 
-  it("does not emit aria-selected on branch rows (role=button doesn't support it)", async () => {
+  it("does not emit aria-selected or aria-current on branch rows (role=button: aria-current would misread as 'checked out')", async () => {
     renderWithProviders(<Sidebar />);
     const login = await screen.findByRole("button", { name: "login" });
     fireEvent.click(login);
     expect(login.getAttribute("aria-selected")).toBeNull();
+    expect(login.getAttribute("aria-current")).toBeNull();
   });
 
   it("selecting a branch keeps focusing its tip commit in the history (existing behavior, unchanged)", async () => {
@@ -221,16 +224,17 @@ describe("Sidebar: branch selection persists (Task 8)", () => {
 
   it("the selected-branch accent is distinct from the current-branch (checked out) dot/halo styling", async () => {
     renderWithProviders(<Sidebar />);
-    // "main" is_current (checked out) but never clicked: no selection accent.
+    // "main" is_current (checked out) but never clicked: no selection accent,
+    // and not aria-pressed (selection and checkout are independent states).
     const main = await screen.findByRole("button", { name: "main" });
-    expect(main.getAttribute("aria-current")).toBeNull();
+    expect(main.getAttribute("aria-pressed")).toBe("false");
     expect(main.style.background).not.toContain("--sel");
 
     const login = screen.getByRole("button", { name: "login" });
     fireEvent.click(login);
     // Selecting a non-current branch: it gets the selection accent while
     // remaining visually distinct from is_current (still not is_current).
-    expect(login.getAttribute("aria-current")).toBe("true");
+    expect(login.getAttribute("aria-pressed")).toBe("true");
   });
 
   it("also persists selection for a remote-tracking branch row, independently from local branches", async () => {
@@ -239,15 +243,15 @@ describe("Sidebar: branch selection persists (Task 8)", () => {
     const login = screen.getByRole("button", { name: "login" });
 
     fireEvent.click(remoteBranch);
-    expect(remoteBranch.getAttribute("aria-current")).toBe("true");
+    expect(remoteBranch.getAttribute("aria-pressed")).toBe("true");
     expect(remoteBranch.style.background).toContain("--sel");
-    expect(login.getAttribute("aria-current")).toBeNull();
+    expect(login.getAttribute("aria-pressed")).toBe("false");
 
     // Selecting a local branch afterwards does not clear the remote row's own
     // id space by accident (they never collide: "login" vs "origin/feature-x").
     fireEvent.click(login);
-    expect(login.getAttribute("aria-current")).toBe("true");
-    expect(remoteBranch.getAttribute("aria-current")).toBeNull();
+    expect(login.getAttribute("aria-pressed")).toBe("true");
+    expect(remoteBranch.getAttribute("aria-pressed")).toBe("false");
   });
 });
 
