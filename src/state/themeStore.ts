@@ -29,7 +29,7 @@ type ThemeState = {
   density: Density;
   pullMode: PullMode;
   confirmDiscard: boolean;
-  // Which async git results raise a top-right notification.
+  // Which async git results raise a bottom-right notification.
   notifPush: boolean;
   notifFetch: boolean;
   notifConflicts: boolean;

@@ -5,7 +5,7 @@ import { useThemeStore } from "../../../state/themeStore";
 import { Toggle } from "../../../components/ui/misc";
 import { Button } from "../../../components/ui/Button";
 
-// Which async git results raise a top-right notification. The toggles gate the
+// Which async git results raise a bottom-right notification. The toggles gate the
 // emission in notificationStore; the preview fires the real systems.
 export function Notifications() {
   const t = useThemeStore();
@@ -27,7 +27,7 @@ export function Notifications() {
     <div id="set-notificacoes" style={{ display: "flex", flexDirection: "column", gap: 14, scrollMarginTop: 20 }}>
       <SectionTitle>NOTIFICAÇÕES</SectionTitle>
       <Hint>
-        Notificações aparecem no canto superior direito (~4s; parar o rato pausa o tempo).
+        Notificações aparecem no canto inferior direito (~4s; parar o rato pausa o tempo).
         Confirmações rápidas aparecem como toasts na base.
       </Hint>
 
