@@ -52,7 +52,7 @@ export async function invoke<T>(cmd: string, args?: Record<string, unknown>): Pr
     const msg = (e as { message?: string })?.message ?? String(e);
     push({ cmd, ms, ok: false, size: 0, error: msg });
     // Command failures are expected (conflicts, no upstream, …) — info level.
-    console.info(`[invoke] ${cmd} falhou após ${ms}ms: ${msg}`);
+    console.info(`[invoke] ${cmd} failed after ${ms}ms: ${msg}`);
     throw e;
   }
 }
