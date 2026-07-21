@@ -1,4 +1,4 @@
-import { cloneElement, useId, type ReactElement, type ReactNode } from "react";
+import { cloneElement, useId, type CSSProperties, type ReactElement, type ReactNode } from "react";
 
 // Wraps a labelled control: a real <label htmlFor> bound to the control's id
 // (generated with useId when the caller doesn't pass one), plus an optional
@@ -16,10 +16,32 @@ type FormFieldProps = {
   hint?: ReactNode;
   error?: ReactNode;
   id?: string;
+  /**
+   * Keep the label in the accessibility tree (still bound via htmlFor/id, still
+   * announced by screen readers) but remove it from the visual layout — for
+   * designs that convey the field by placeholder/context alone. The wrapper's
+   * gap is dropped too so the hidden label leaves zero vertical footprint.
+   */
+  hideLabel?: boolean;
   children: ReactElement<ControlProps>;
 };
 
-export function FormField({ label, hint, error, id, children }: FormFieldProps) {
+// True visually-hidden: zero layout footprint, still read by assistive tech.
+const srOnlyLabel: CSSProperties = {
+  position: "absolute",
+  width: 1,
+  height: 1,
+  padding: 0,
+  margin: -1,
+  overflow: "hidden",
+  clip: "rect(0 0 0 0)",
+  whiteSpace: "nowrap",
+  border: 0,
+};
+
+const visibleLabel: CSSProperties = { fontSize: 13.5, fontWeight: 600, color: "var(--text)" };
+
+export function FormField({ label, hint, error, id, hideLabel, children }: FormFieldProps) {
   const autoId = useId();
   const controlId = id ?? children.props.id ?? autoId;
   // Only one of hint/error ever renders (error wins), so aria-describedby
@@ -35,8 +57,10 @@ export function FormField({ label, hint, error, id, children }: FormFieldProps) 
   });
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-      <label htmlFor={controlId} style={{ fontSize: 13.5, fontWeight: 600, color: "var(--text)" }}>
+    // With a hidden label the label is out of flow, so the column gap would
+    // otherwise insert 6px above the control for a zero-height item — drop it.
+    <div style={{ display: "flex", flexDirection: "column", gap: hideLabel ? 0 : 6 }}>
+      <label htmlFor={controlId} style={hideLabel ? srOnlyLabel : visibleLabel}>
         {label}
       </label>
       {control}
