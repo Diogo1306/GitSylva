@@ -4,6 +4,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Modals } from "./Modals";
 import { useAppStore } from "../../state/appStore";
 import { useNotificationStore } from "../../state/notificationStore";
+import { useShortcutsStore, SHORTCUT_LABELS, DEFAULT_BINDINGS } from "../../state/shortcutsStore";
+import { comboHint } from "../../lib/platform";
 import type { RepoInfo, Commit } from "../../lib/types";
 import { fetchRemote, syncStatus, pull, push, outgoing, incoming } from "../../lib/api";
 
@@ -49,6 +51,37 @@ afterEach(() => {
   // Sync failures raise notifications (conflict); clear the stack so a card
   // from one test can't leak into the next test's assertions.
   useNotificationStore.setState({ notifications: [] });
+  useShortcutsStore.getState().reset();
+});
+
+// Task 14: the palette's "Atalhos" entry opens this compact shortcuts help,
+// built on the same shared Modal shell as every other modal here (Escape
+// closes, Tab is trapped inside) so it's keyboard-navigable for free.
+describe("Modals: shortcuts help (Task 14)", () => {
+  it("renders a dialog listing every rebindable shortcut's label and live combo (from shortcutsStore)", () => {
+    useAppStore.setState({ modal: "shortcuts" });
+    renderModal();
+    expect(screen.getByRole("dialog")).toBeTruthy();
+    for (const action of Object.keys(SHORTCUT_LABELS) as (keyof typeof SHORTCUT_LABELS)[]) {
+      expect(screen.getByText(SHORTCUT_LABELS[action])).toBeTruthy();
+      expect(screen.getByText(comboHint(DEFAULT_BINDINGS[action]))).toBeTruthy();
+    }
+  });
+
+  it("reflects a rebound shortcut live, not the default combo", () => {
+    useShortcutsStore.getState().setBinding("push", "mod+9");
+    useAppStore.setState({ modal: "shortcuts" });
+    renderModal();
+    expect(screen.getByText(comboHint("mod+9"))).toBeTruthy();
+  });
+
+  it("closes on Escape", async () => {
+    useAppStore.setState({ modal: "shortcuts" });
+    renderModal();
+    expect(screen.getByRole("dialog")).toBeTruthy();
+    fireEvent.keyDown(window, { key: "Escape" });
+    await vi.waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  });
 });
 
 describe("Modals: labelled fields", () => {

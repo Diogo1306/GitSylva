@@ -3,6 +3,8 @@ import { render, screen, fireEvent, cleanup, within } from "@testing-library/rea
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ActionBar } from "./ActionBar";
 import { useAppStore } from "../../state/appStore";
+import { useShortcutsStore, DEFAULT_BINDINGS } from "../../state/shortcutsStore";
+import { comboHint } from "../../lib/platform";
 import type { RepoInfo } from "../../lib/types";
 
 // Semantic/keyboard migration (Task 3): the action row becomes a real
@@ -36,6 +38,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   useAppStore.setState({ repo: null, repos: [] });
+  useShortcutsStore.getState().reset();
 });
 
 describe("ActionBar", () => {
@@ -127,5 +130,65 @@ describe("ActionBar: progressive disclosure (Task 6)", () => {
     Object.defineProperty(window, "innerHeight", { writable: true, configurable: true, value: 900 });
     renderActionBar();
     expect(screen.getByTitle("commits por enviar")).toBeTruthy();
+  });
+});
+
+// Task 14: shortcut hints, pulled from shortcutsStore via comboHint, shown
+// through the Tooltip primitive (hover AND keyboard focus — a native `title`
+// never fires on focus, which fails keyboard users).
+describe("ActionBar: shortcut hint tooltips (Task 14)", () => {
+  it("is not shown until hover or focus", () => {
+    renderActionBar();
+    expect(screen.queryByRole("tooltip")).toBeNull();
+  });
+
+  it("shows the Commit shortcut hint via the Tooltip primitive on keyboard focus", () => {
+    renderActionBar();
+    fireEvent.focus(screen.getByRole("button", { name: "Commit" }));
+    const tooltip = screen.getByRole("tooltip");
+    expect(tooltip.textContent).toContain("Commit");
+    expect(tooltip.textContent).toContain(comboHint(DEFAULT_BINDINGS.commit));
+  });
+
+  it("shows the Pull/Push/Branch/Stash shortcut hints on hover, sourced from comboHint", () => {
+    renderActionBar();
+    const cases: [string, string][] = [
+      ["↓ Pull", DEFAULT_BINDINGS.pull],
+      ["↑ Push", DEFAULT_BINDINGS.push],
+      ["Branch", DEFAULT_BINDINGS.branch],
+      ["Stash", DEFAULT_BINDINGS.stash],
+    ];
+    for (const [name, binding] of cases) {
+      const btn = screen.getByRole("button", { name });
+      fireEvent.mouseEnter(btn);
+      expect(screen.getByRole("tooltip").textContent).toContain(comboHint(binding));
+      fireEvent.mouseLeave(btn);
+    }
+  });
+
+  it("reflects a rebound shortcut live (pulled from shortcutsStore, not a hardcoded combo)", () => {
+    useShortcutsStore.getState().setBinding("commit", "mod+j");
+    renderActionBar();
+    fireEvent.focus(screen.getByRole("button", { name: "Commit" }));
+    expect(screen.getByRole("tooltip").textContent).toContain(comboHint("mod+j"));
+  });
+
+  it("shows a label-only tooltip for an action with no bound shortcut (Merge) — no invented combo", () => {
+    renderActionBar();
+    fireEvent.focus(screen.getByRole("button", { name: "Merge" }));
+    const tooltip = screen.getByRole("tooltip");
+    expect(tooltip.textContent).toBe("Merge");
+    expect(tooltip.querySelector("kbd")).toBeNull();
+  });
+
+  it("keeps roving tabindex working for a shortcut-wrapped button (Tooltip must not break Toolbar)", () => {
+    renderActionBar();
+    const commit = screen.getByRole("button", { name: "Commit" }) as HTMLButtonElement;
+    const pull = screen.getByRole("button", { name: "↓ Pull" }) as HTMLButtonElement;
+    expect(commit.tabIndex).toBe(0);
+    expect(pull.tabIndex).toBe(-1);
+    commit.focus();
+    fireEvent.keyDown(commit, { key: "ArrowRight" });
+    expect(document.activeElement).toBe(pull);
   });
 });

@@ -12,6 +12,7 @@ import {
   type ReactNode,
 } from "react";
 import { activateOnKeyDown } from "./keys";
+import { Tooltip } from "./Tooltip";
 
 // Accessible toolbar: role="toolbar" with real <button> children and roving
 // tabindex arrow navigation (WAI-ARIA toolbar pattern). Only ToolbarButton
@@ -30,13 +31,28 @@ type ToolbarProps = {
 const isToolbarButton = (c: ReactNode): c is ReactElement<ButtonHTMLAttributes<HTMLButtonElement>> =>
   isValidElement(c) && c.type === ToolbarButton;
 
+// A ToolbarButton wrapped in <Tooltip> (Task 14: shortcut-hint on hover +
+// keyboard focus) is still a real toolbar item — unwrap one level so roving
+// tabindex/arrow-key navigation keeps managing the real <button> inside,
+// instead of losing it because it's no longer Toolbar's direct child.
+function unwrapToolbarButton(c: ReactNode): ReactElement<ButtonHTMLAttributes<HTMLButtonElement>> | null {
+  if (isToolbarButton(c)) return c;
+  if (isValidElement(c) && c.type === Tooltip) {
+    const inner = (c.props as { children?: ReactNode }).children;
+    if (isToolbarButton(inner)) return inner;
+  }
+  return null;
+}
+
 export function Toolbar({ children, ariaLabel, orientation = "horizontal", style }: ToolbarProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Roving tabindex tracks only the real ToolbarButtons; any other child
-  // (dividers, spacers) renders untouched.
+  // Roving tabindex tracks only the real ToolbarButtons (bare, or wrapped in
+  // a Tooltip); any other child (dividers, spacers) renders untouched.
   const childArray = Children.toArray(children);
-  const buttons = childArray.filter(isToolbarButton);
+  const buttons = childArray
+    .map(unwrapToolbarButton)
+    .filter((b): b is ReactElement<ButtonHTMLAttributes<HTMLButtonElement>> => b !== null);
   const firstEnabled = buttons.findIndex((c) => !c.props.disabled);
   const [activeIndex, setActiveIndex] = useState(Math.max(firstEnabled, 0));
 
@@ -75,18 +91,26 @@ export function Toolbar({ children, ariaLabel, orientation = "horizontal", style
   };
 
   const rendered = childArray.map((child, i) => {
-    if (!isToolbarButton(child)) return child;
-    // Same element references as childArray, so indexOf gives its button slot.
-    const idx = buttons.indexOf(child);
-    return cloneElement(child, {
-      key: child.key ?? i,
+    const btn = unwrapToolbarButton(child);
+    if (!btn) return child;
+    const idx = buttons.indexOf(btn);
+    const clonedButton = cloneElement(btn, {
+      key: btn.key ?? i,
       tabIndex: idx === activeIndex ? 0 : -1,
       [TOOLBAR_ITEM]: "",
       onFocus: (e: FocusEvent<HTMLButtonElement>) => {
-        if (!child.props.disabled) setActiveIndex(idx);
-        child.props.onFocus?.(e);
+        if (!btn.props.disabled) setActiveIndex(idx);
+        btn.props.onFocus?.(e);
       },
     } as Partial<ButtonHTMLAttributes<HTMLButtonElement>>);
+    if (isToolbarButton(child)) return clonedButton;
+    // child is <Tooltip><ToolbarButton/></Tooltip> — rewrap so the tooltip's
+    // own hover/focus handling still layers on top of the roving props above.
+    const wrapper = child as ReactElement<{ children: ReactNode }>;
+    return cloneElement(wrapper, {
+      key: wrapper.key ?? i,
+      children: clonedButton,
+    });
   });
 
   return (
