@@ -160,3 +160,21 @@ describe("Titlebar settings button", () => {
     expect(useAppStore.getState().view).toBe("settings");
   });
 });
+
+// Task 6 ("Layout na janela mínima"): a couple of the titlebar's remaining
+// under-32px icon buttons flagged by the audit, bumped alongside it.
+describe("Titlebar: hit targets (Task 6)", () => {
+  it("the terminal button clears a 32px click target", () => {
+    renderTitlebar();
+    const btn = screen.getByRole("button", { name: "Abrir terminal" }) as HTMLElement;
+    expect(parseFloat(String(btn.style.width))).toBeGreaterThanOrEqual(32);
+    expect(parseFloat(String(btn.style.height))).toBeGreaterThanOrEqual(32);
+  });
+
+  it("the 'Abrir repositório' tab-bar button clears a 32px click target", () => {
+    renderTitlebar();
+    const btn = screen.getByRole("button", { name: "Abrir repositório" }) as HTMLElement;
+    expect(parseFloat(String(btn.style.width))).toBeGreaterThanOrEqual(32);
+    expect(parseFloat(String(btn.style.height))).toBeGreaterThanOrEqual(32);
+  });
+});

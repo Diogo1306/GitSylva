@@ -385,8 +385,8 @@ export function Titlebar({ rail = false }: { rail?: boolean }) {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            width: 30,
-            height: 30,
+            width: 32,
+            height: 32,
             borderRadius: 8,
             background: "var(--btn)",
             border: "1px solid var(--btnB)",
@@ -517,7 +517,7 @@ export function Titlebar({ rail = false }: { rail?: boolean }) {
           className="gs-lift"
           title="Abrir repositório"
           aria-label="Abrir repositório"
-          style={{ width: 26, height: 26, borderRadius: 8, display: "grid", placeItems: "center", color: "var(--muted)", fontSize: 15, cursor: "pointer", flexShrink: 0, background: "transparent", border: "none", padding: 0, fontFamily: "inherit" }}
+          style={{ width: 32, height: 32, borderRadius: 8, display: "grid", placeItems: "center", color: "var(--muted)", fontSize: 15, cursor: "pointer", flexShrink: 0, background: "transparent", border: "none", padding: 0, fontFamily: "inherit" }}
         >
           +
         </button>

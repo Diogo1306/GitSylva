@@ -172,3 +172,69 @@ describe("Sidebar: branch rows", () => {
     expect(spaceEvent.defaultPrevented).toBe(false);
   });
 });
+
+// Task 6 ("Layout na janela mínima"): below ~1024px wide the sidebar
+// defaults to a collapsed icon rail (a width-driven default), but a real,
+// keyboard-operable toggle always lets the user get nav/branches back — the
+// sidebar is never permanently unreachable.
+describe("Sidebar: responsive collapse (Task 6)", () => {
+  afterEach(() => {
+    Object.defineProperty(window, "innerWidth", { writable: true, configurable: true, value: 1024 });
+    Object.defineProperty(window, "innerHeight", { writable: true, configurable: true, value: 768 });
+  });
+
+  it("collapses by default at the window minimum width, keeping an expand affordance", async () => {
+    Object.defineProperty(window, "innerWidth", { writable: true, configurable: true, value: 900 });
+    Object.defineProperty(window, "innerHeight", { writable: true, configurable: true, value: 560 });
+    renderWithProviders(<Sidebar />);
+    const expand = await screen.findByRole("button", { name: "Expandir barra lateral" });
+    expect(expand.tagName).toBe("BUTTON");
+    expect(screen.queryByRole("button", { name: /Cópia de trabalho/ })).toBeNull();
+  });
+
+  it("the expand button clears at least a 32px hit target", async () => {
+    Object.defineProperty(window, "innerWidth", { writable: true, configurable: true, value: 900 });
+    Object.defineProperty(window, "innerHeight", { writable: true, configurable: true, value: 560 });
+    renderWithProviders(<Sidebar />);
+    const expand = await screen.findByRole("button", { name: "Expandir barra lateral" });
+    expect(expand.style.width).toBe("32px");
+    expect(expand.style.height).toBe("32px");
+  });
+
+  it("stays expanded by default at a comfortable width", async () => {
+    Object.defineProperty(window, "innerWidth", { writable: true, configurable: true, value: 1440 });
+    Object.defineProperty(window, "innerHeight", { writable: true, configurable: true, value: 900 });
+    renderWithProviders(<Sidebar />);
+    await screen.findByRole("button", { name: /Cópia de trabalho/ });
+    expect(screen.queryByRole("button", { name: "Expandir barra lateral" })).toBeNull();
+  });
+
+  it("a real, keyboard-operable collapse toggle hides nav/branches and an expand affordance brings them back", async () => {
+    renderWithProviders(<Sidebar />);
+    const collapse = await screen.findByRole("button", { name: "Colapsar barra lateral" });
+    expect(collapse.tagName).toBe("BUTTON");
+
+    fireEvent.click(collapse);
+    expect(screen.queryByRole("button", { name: /Cópia de trabalho/ })).toBeNull();
+    const expand = screen.getByRole("button", { name: "Expandir barra lateral" });
+
+    fireEvent.click(expand);
+    expect(await screen.findByRole("button", { name: /Cópia de trabalho/ })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Colapsar barra lateral" })).toBeTruthy();
+  });
+
+  it("the 'Nova branch' and 'Nova tag' header buttons clear a 32px hit target", async () => {
+    renderWithProviders(<Sidebar />);
+    const novaBranch = await screen.findByRole("button", { name: "Nova branch" });
+    expect(novaBranch.style.width).toBe("32px");
+    expect(novaBranch.style.height).toBe("32px");
+  });
+
+  it("the collapse toggle activates on Enter (keyboard, not just click)", async () => {
+    renderWithProviders(<Sidebar />);
+    const collapse = await screen.findByRole("button", { name: "Colapsar barra lateral" });
+    fireEvent.keyDown(collapse, { key: "Enter" });
+    expect(screen.queryByRole("button", { name: /Cópia de trabalho/ })).toBeNull();
+    expect(screen.getByRole("button", { name: "Expandir barra lateral" })).toBeTruthy();
+  });
+});

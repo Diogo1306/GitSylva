@@ -90,4 +90,42 @@ describe("ActionBar", () => {
     renderActionBar();
     expect((screen.getByRole("button", { name: "Commit" }) as HTMLElement).style.outline).not.toBe("none");
   });
+
+  // Task 6 (reviewer follow-up): the action buttons override ToolbarButton's
+  // default 30x30 with auto height, so they must carry an explicit >=32px
+  // min-height to clear the minimum hit target — these are the app's
+  // highest-traffic controls at the min window size.
+  it("gives every action button a >=32px min-height hit target (border-box)", () => {
+    renderActionBar();
+    for (const name of ["Commit", "↓ Pull", "↑ Push", "Branch", "Merge", "Stash", "Tag"]) {
+      const btn = screen.getByRole("button", { name }) as HTMLElement;
+      expect(parseFloat(String(btn.style.minHeight))).toBeGreaterThanOrEqual(32);
+      expect(btn.style.boxSizing).toBe("border-box");
+    }
+  });
+});
+
+// Task 6 ("Layout na janela mínima"): progressive disclosure — the trailing
+// repo/branch/ahead-behind footer duplicates context already visible in the
+// Sidebar/Titlebar, so it's the first thing to go at narrow widths, leaving
+// room for the primary action buttons instead of forcing them to scroll.
+describe("ActionBar: progressive disclosure (Task 6)", () => {
+  afterEach(() => {
+    Object.defineProperty(window, "innerWidth", { writable: true, configurable: true, value: 1024 });
+    Object.defineProperty(window, "innerHeight", { writable: true, configurable: true, value: 768 });
+  });
+
+  it("hides the repo/branch footer stats at the window minimum width", () => {
+    Object.defineProperty(window, "innerWidth", { writable: true, configurable: true, value: 900 });
+    Object.defineProperty(window, "innerHeight", { writable: true, configurable: true, value: 560 });
+    renderActionBar();
+    expect(screen.queryByTitle("commits por enviar")).toBeNull();
+  });
+
+  it("shows the repo/branch footer stats at a comfortable width", () => {
+    Object.defineProperty(window, "innerWidth", { writable: true, configurable: true, value: 1440 });
+    Object.defineProperty(window, "innerHeight", { writable: true, configurable: true, value: 900 });
+    renderActionBar();
+    expect(screen.getByTitle("commits por enviar")).toBeTruthy();
+  });
 });

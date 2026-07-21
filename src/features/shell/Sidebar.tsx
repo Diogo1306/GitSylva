@@ -13,6 +13,7 @@ import { Button } from "../../components/ui/Button";
 import { SelectableRow } from "../../components/ui/SelectableRow";
 import { activateOnKeyDown } from "../../components/ui/keys";
 import { groupBranches, type BranchGroup } from "../../lib/branchFolders";
+import { useBreakpoint } from "../../lib/useBreakpoint";
 import type { BranchInfo } from "../../lib/types";
 import type { View } from "../../state/appStore";
 
@@ -78,6 +79,13 @@ export function Sidebar() {
   const [confirmDeleteTag, setConfirmDeleteTag] = useState<string | null>(null);
   // Design: sidebar resizable 180–340, persisted.
   const sidebarW = usePanelWidth("gitsylva-w-sidebar", 232, 180, 340, "right");
+  // Task 6: below ~1024px wide the sidebar defaults to a collapsed icon
+  // strip (a width-driven default); an explicit toggle always wins over that
+  // default in either direction, so the user can pin it open on a narrow
+  // window or collapse it on a wide one. null = "use the width default".
+  const bp = useBreakpoint();
+  const [collapsedOverride, setCollapsedOverride] = useState<boolean | null>(null);
+  const collapsed = collapsedOverride ?? bp.sidebarCollapsed;
   // Branch folders (feature/, fix/, …): collapsed by default so big lists stay
   // short; the folder holding the CURRENT branch starts open, and the user's
   // explicit toggles win for the rest of the session.
@@ -281,6 +289,53 @@ export function Sidebar() {
     </SelectableRow>
   );
 
+  // Collapsed: a slim icon-only strip that keeps the sidebar's width
+  // footprint tiny at narrow windows while never losing access to nav or
+  // branches — the expand button is the way back, always keyboard-reachable.
+  if (collapsed) {
+    return (
+      <div
+        style={{
+          width: 44,
+          flexShrink: 0,
+          borderRight: "1px solid var(--border)",
+          background: "var(--panel)",
+          padding: "14px 6px",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          boxSizing: "border-box",
+        }}
+      >
+        <button
+          type="button"
+          onClick={() => setCollapsedOverride(false)}
+          onKeyDown={activateOnKeyDown}
+          title="Expandir barra lateral"
+          aria-label="Expandir barra lateral"
+          aria-expanded={false}
+          className="gs-lift"
+          style={{
+            width: 32,
+            height: 32,
+            borderRadius: 8,
+            display: "grid",
+            placeItems: "center",
+            background: "var(--btn)",
+            border: "1px solid var(--btnB)",
+            color: "var(--btnT)",
+            cursor: "pointer",
+            padding: 0,
+            fontSize: 13,
+            fontFamily: "inherit",
+          }}
+        >
+          »
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div
       style={{
@@ -301,6 +356,33 @@ export function Sidebar() {
       }}
     >
       <PanelHandle edge="right" handleProps={sidebarW.handleProps} />
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end" }}>
+        <button
+          type="button"
+          onClick={() => setCollapsedOverride(true)}
+          onKeyDown={activateOnKeyDown}
+          title="Colapsar barra lateral"
+          aria-label="Colapsar barra lateral"
+          aria-expanded={true}
+          className="gs-lift"
+          style={{
+            width: 32,
+            height: 32,
+            borderRadius: 8,
+            display: "grid",
+            placeItems: "center",
+            background: "transparent",
+            border: "1px solid transparent",
+            color: "var(--muted)",
+            cursor: "pointer",
+            padding: 0,
+            fontSize: 13,
+            fontFamily: "inherit",
+          }}
+        >
+          «
+        </button>
+      </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
         <SectionLabel>ESPAÇO DE TRABALHO</SectionLabel>
         {navRow(
@@ -332,7 +414,7 @@ export function Sidebar() {
             title="Nova branch"
             aria-label="Nova branch"
             className="gs-row"
-            style={{ width: 18, height: 18, borderRadius: 5, display: "grid", placeItems: "center", color: "var(--muted)", fontSize: 14, background: "transparent", border: "none", padding: 0, cursor: "pointer", fontFamily: "inherit" }}
+            style={{ width: 32, height: 32, borderRadius: 8, display: "grid", placeItems: "center", color: "var(--muted)", fontSize: 14, background: "transparent", border: "none", padding: 0, cursor: "pointer", fontFamily: "inherit" }}
           >
             +
           </button>
@@ -412,7 +494,7 @@ export function Sidebar() {
                 className="gs-row"
                 title={`${remote} · fetch/pull/push`}
                 aria-label={remote}
-                style={{ display: "flex", alignItems: "center", gap: 9, padding: "6px 10px", borderRadius: 8, fontSize: 13, fontFamily: mono, color: "var(--text2)", background: "transparent", border: "none", width: "100%", textAlign: "left", cursor: "pointer" }}
+                style={{ display: "flex", alignItems: "center", gap: 9, minHeight: 32, padding: "6px 10px", borderRadius: 8, fontSize: 13, fontFamily: mono, color: "var(--text2)", background: "transparent", border: "none", width: "100%", textAlign: "left", cursor: "pointer", boxSizing: "border-box" }}
               >
                 <span style={{ color: "var(--muted)", fontSize: 11 }}>▾</span>
                 <span style={{ flex: 1 }}>{remote}</span>
@@ -462,7 +544,7 @@ export function Sidebar() {
               title="Nova tag"
               aria-label="Nova tag"
               className="gs-row"
-              style={{ width: 18, height: 18, borderRadius: 5, display: "grid", placeItems: "center", color: "var(--muted)", fontSize: 14, background: "transparent", border: "none", padding: 0, cursor: "pointer", fontFamily: "inherit" }}
+              style={{ width: 32, height: 32, borderRadius: 8, display: "grid", placeItems: "center", color: "var(--muted)", fontSize: 14, background: "transparent", border: "none", padding: 0, cursor: "pointer", fontFamily: "inherit" }}
             >
               +
             </button>
