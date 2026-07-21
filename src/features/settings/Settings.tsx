@@ -10,6 +10,7 @@ import { About } from "./sections/About";
 import { Shortcuts } from "./sections/Shortcuts";
 import { Notifications } from "./sections/Notifications";
 import { StubSection } from "./sections/_shared";
+import { FormField } from "../../components/ui/FormField";
 import { fold } from "../../lib/fold";
 
 // Settings nav. Each entry is a section id rendered in the scroll area below;
@@ -63,12 +64,14 @@ export function Settings() {
         <div onClick={() => setView(prevView)} className="gs-lift" style={{ display: "flex", alignItems: "center", gap: 7, padding: "7px 11px", marginBottom: 8, borderRadius: 8, background: "var(--btn)", border: "1px solid var(--btnB)", color: "var(--btnT)", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>
           ← Voltar
         </div>
-        <input
-          value={navQuery}
-          onChange={(e) => setNavQuery(e.target.value)}
-          placeholder="Procurar…"
-          style={{ marginBottom: 8, background: "var(--input)", border: "1px solid var(--btnB)", borderRadius: 8, padding: "6px 10px", fontSize: 12.5, color: "var(--text)", outline: "none", fontFamily: "var(--font)", boxSizing: "border-box", width: "100%" }}
-        />
+        <FormField label="Procurar secções" hideLabel>
+          <input
+            value={navQuery}
+            onChange={(e) => setNavQuery(e.target.value)}
+            placeholder="Procurar…"
+            style={{ marginBottom: 8, background: "var(--input)", border: "1px solid var(--btnB)", borderRadius: 8, padding: "6px 10px", fontSize: 12.5, color: "var(--text)", fontFamily: "var(--font)", boxSizing: "border-box", width: "100%" }}
+          />
+        </FormField>
         {visibleNav.length === 0 && (
           <div style={{ padding: "6px 11px", fontSize: 12, color: "var(--muted)" }}>Sem secções para "{navQuery}"</div>
         )}

@@ -19,7 +19,7 @@ export function Notifications() {
         <div style={{ fontSize: 13.5, fontWeight: 600 }}>{label}</div>
         <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 2 }}>{hint}</div>
       </div>
-      <Toggle on={t[key]} />
+      <Toggle on={t[key]} aria-label={label} />
     </div>
   );
 

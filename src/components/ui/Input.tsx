@@ -7,7 +7,9 @@ const base = {
   padding: "9px 12px",
   fontSize: 13,
   color: "var(--text)",
-  outline: "none",
+  // No inline outline: the shared :focus-visible ring in tokens.css must
+  // win, otherwise every consumer of Input/Textarea loses keyboard focus
+  // visibility.
   fontFamily: "var(--font)",
   boxSizing: "border-box" as const,
 };

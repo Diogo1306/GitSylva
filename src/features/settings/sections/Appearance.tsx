@@ -159,7 +159,7 @@ export function Appearance() {
           <div style={{ fontSize: 13.5, fontWeight: 500 }}>Animações decorativas</div>
           <Hint>Folhas a cair, crescimento da árvore e flash na troca de tema</Hint>
         </div>
-        <Toggle on={t.anims} />
+        <Toggle on={t.anims} aria-label="Animações decorativas" />
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>

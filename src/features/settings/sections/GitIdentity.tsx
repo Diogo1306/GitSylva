@@ -4,7 +4,10 @@ import { useIdentity, useSetIdentity } from "../../../state/queries";
 import { toast } from "../../../state/toastStore";
 import { Input } from "../../../components/ui/Input";
 import { Button } from "../../../components/ui/Button";
+import { FormField } from "../../../components/ui/FormField";
 import { SectionTitle, Hint } from "./_shared";
+
+const fieldLabelStyle = { fontSize: 12.5, fontWeight: 600, color: "var(--text2)" } as const;
 
 export function GitIdentity() {
   const repo = useAppStore((s) => s.repo)!;
@@ -25,14 +28,12 @@ export function GitIdentity() {
     <div id="set-git" style={{ display: "flex", flexDirection: "column", gap: 16, scrollMarginTop: 20 }}>
       <SectionTitle>GIT</SectionTitle>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          <div style={{ fontSize: 12.5, fontWeight: 600, color: "var(--text2)" }}>Nome</div>
+        <FormField label={<span style={fieldLabelStyle}>Nome</span>}>
           <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="O teu nome" />
-        </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          <div style={{ fontSize: 12.5, fontWeight: 600, color: "var(--text2)" }}>Email</div>
+        </FormField>
+        <FormField label={<span style={fieldLabelStyle}>Email</span>}>
           <Input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="tu@exemplo.dev" />
-        </div>
+        </FormField>
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
         <Button
