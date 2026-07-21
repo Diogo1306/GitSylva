@@ -139,6 +139,42 @@ describe("Titlebar repo tab strip: keyboard", () => {
   });
 });
 
+// The roving-tabindex focus memory (which tab arrow-keys last landed on) must
+// live in the always-mounted Titlebar, not in TabStrip — Titlebar renders the
+// strip only in tab mode (`!rail`) and the rail/tabs layout is live-toggleable
+// (Settings → Aparência), so owning the state in TabStrip would reset it on
+// every layout flip. This asserts the state survives an unmount/remount of the
+// strip driven by the `rail` prop.
+describe("Titlebar repo tab strip: focus survives a rail<->tabs layout toggle", () => {
+  it("keeps the roving-focus target when the strip unmounts (rail) and remounts (tabs)", () => {
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const ui = (rail: boolean) => (
+      <QueryClientProvider client={qc}>
+        <Titlebar rail={rail} />
+      </QueryClientProvider>
+    );
+    const { rerender } = render(ui(false));
+
+    // Move the roving focus off the active tab (repo-a) onto repo-b.
+    const a = screen.getByRole("tab", { name: /repo-a/ });
+    a.focus();
+    fireEvent.keyDown(a, { key: "ArrowRight" });
+    expect((screen.getByRole("tab", { name: /repo-b/ }) as HTMLButtonElement).tabIndex).toBe(0);
+    expect((screen.getByRole("tab", { name: /repo-a/ }) as HTMLButtonElement).tabIndex).toBe(-1);
+
+    // Flip to rail mode: the tab strip unmounts entirely.
+    rerender(ui(true));
+    expect(screen.queryByRole("tablist")).toBeNull();
+
+    // Flip back to tab mode: the strip remounts. Because the focus memory lives
+    // in the always-mounted Titlebar, repo-b is still the roving-focus target —
+    // it did NOT reset to the active repo (repo-a).
+    rerender(ui(false));
+    expect((screen.getByRole("tab", { name: /repo-b/ }) as HTMLButtonElement).tabIndex).toBe(0);
+    expect((screen.getByRole("tab", { name: /repo-a/ }) as HTMLButtonElement).tabIndex).toBe(-1);
+  });
+});
+
 describe("Titlebar settings button", () => {
   it("is a real, labeled, focusable button with a visible tooltip on focus", () => {
     renderTitlebar();
