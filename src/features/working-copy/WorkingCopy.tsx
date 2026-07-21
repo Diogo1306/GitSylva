@@ -12,6 +12,7 @@ import { groupFilesByFolder } from "../../lib/fileGroups";
 import { statusStyle, statusTitle, isConflict } from "../../lib/status";
 import { FileIcon } from "../../components/FileIcon";
 import { errMsg } from "../../lib/errors";
+import { useBreakpoint } from "../../lib/useBreakpoint";
 import { headMessage, openPath, revealPath } from "../../lib/api";
 import { spawnLeaf } from "../../lib/leaf";
 import { toast } from "../../state/toastStore";
@@ -168,16 +169,11 @@ export function WorkingCopy() {
   const [fileMenu, setFileMenu] = useState<{ x: number; y: number; file: FileChange } | null>(null);
   const [stacked, setStacked] = useState(false);
   const [blameOn, setBlameOn] = useState(false);
-  // Below ~980px the working copy stacks automatically (handoff §8); the
-  // manual toggle still works on wide windows.
-  const [narrow, setNarrow] = useState(() => window.matchMedia("(max-width: 980px)").matches);
-  useEffect(() => {
-    const mq = window.matchMedia("(max-width: 980px)");
-    const onChange = () => setNarrow(mq.matches);
-    mq.addEventListener("change", onChange);
-    return () => mq.removeEventListener("change", onChange);
-  }, []);
-  const isStacked = stacked || narrow;
+  // Below ~980px the working copy stacks automatically (handoff §8; Task 6:
+  // consolidated onto the shared breakpoint hook, same threshold, no more
+  // local matchMedia listener); the manual toggle still works on wide windows.
+  const bp = useBreakpoint();
+  const isStacked = stacked || bp.workingCopyStacked;
   // Design: files panel resizable 320–540, persisted.
   const filesW = usePanelWidth("gitsylva-w-working", 400, 320, 540, "right");
   // R5.4: the unstaged pane's height is user-adjustable (drag the split).
@@ -458,8 +454,14 @@ export function WorkingCopy() {
         }}
       >
         {!isStacked && <PanelHandle edge="right" handleProps={filesW.handleProps} />}
-        {/* R5.4: each list scrolls inside its own pane, the split between the
-            two is draggable, and the commit box below never moves. */}
+        {/* Task 6: both lists live inside ONE bounded, scrollable region
+            (flex: 1, minHeight: 0 lets it shrink below its content size at
+            small window heights) so the commit box below — a flexShrink: 0
+            sibling, outside this wrapper — always keeps the room it needs
+            instead of being pushed off-screen with no way to reach it. */}
+        <div style={{ flex: "1 1 0%", minHeight: 0, display: "flex", flexDirection: "column", overflowY: "auto" }}>
+        {/* R5.4: each list scrolls inside its own pane too, the split between
+            the two is draggable. */}
         <div style={{ height: unstagedH.height, minHeight: 96, flexShrink: 0, display: "flex", flexDirection: "column" }}>
         <div style={{ padding: "12px 16px 8px", display: "flex", alignItems: "center", flexShrink: 0 }}>
           <SectionHead>NÃO PREPARADAS · {unstaged.length}</SectionHead>
@@ -510,6 +512,7 @@ export function WorkingCopy() {
         </div>
         <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "0 10px 10px", display: "flex", flexDirection: "column", gap: 1 }}>
           {fileList("s")}
+        </div>
         </div>
         </div>
 
@@ -585,13 +588,18 @@ export function WorkingCopy() {
           )}
           <div style={{ flex: 1 }} />
           {effSel && selStatus !== "?" && (
-            <div onClick={() => setBlameOn((v) => !v)} className="gs-lift" style={{ display: "flex", alignItems: "center", gap: 6, padding: "5px 11px", borderRadius: 7, background: blameOn ? "var(--sel)" : "var(--btn)", border: "1px solid var(--btnB)", fontSize: 12, color: "var(--btnT)", cursor: "pointer", whiteSpace: "nowrap" }}>
+            <div onClick={() => setBlameOn((v) => !v)} className="gs-lift" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, minHeight: 32, padding: "5px 11px", borderRadius: 7, background: blameOn ? "var(--sel)" : "var(--btn)", border: "1px solid var(--btnB)", fontSize: 12, color: "var(--btnT)", cursor: "pointer", whiteSpace: "nowrap", boxSizing: "border-box" }}>
               Blame
             </div>
           )}
-          {!blameOn && <span style={{ fontSize: 12, color: "var(--muted)" }}>{effSel?.staged ? "diff preparado" : "diff da cópia de trabalho"}</span>}
+          {/* Task 6 progressive disclosure: this label is redundant with the
+              file path + status badge already shown — hide it before the
+              Blame/split toggles would ever need to clip or wrap. */}
+          {!blameOn && !bp.hideSecondary && (
+            <span style={{ fontSize: 12, color: "var(--muted)" }}>{effSel?.staged ? "diff preparado" : "diff da cópia de trabalho"}</span>
+          )}
           {!blameOn && (
-            <div onClick={() => setStacked((v) => !v)} className="gs-lift" style={{ display: "flex", alignItems: "center", gap: 6, padding: "5px 11px", borderRadius: 7, background: "var(--btn)", border: "1px solid var(--btnB)", fontSize: 12, color: "var(--btnT)", cursor: "pointer", whiteSpace: "nowrap" }}>
+            <div onClick={() => setStacked((v) => !v)} className="gs-lift" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, minHeight: 32, padding: "5px 11px", borderRadius: 7, background: "var(--btn)", border: "1px solid var(--btnB)", fontSize: 12, color: "var(--btnT)", cursor: "pointer", whiteSpace: "nowrap", boxSizing: "border-box" }}>
               {isStacked ? "Lado a lado" : "Empilhado"}
             </div>
           )}
