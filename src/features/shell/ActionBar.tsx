@@ -2,6 +2,7 @@ import { useAppStore } from "../../state/appStore";
 import { useStatus, useSyncStatus } from "../../state/queries";
 import { Toolbar, ToolbarButton } from "../../components/ui/Toolbar";
 import { Badge } from "../../components/ui/misc";
+import { useBreakpoint } from "../../lib/useBreakpoint";
 
 const mono = "'JetBrains Mono', monospace";
 
@@ -65,6 +66,7 @@ export function ActionBar() {
   const setModal = useAppStore((s) => s.setModal);
   const { data } = useStatus(repo.path);
   const { data: syncData } = useSyncStatus(repo.path);
+  const bp = useBreakpoint();
 
   const files = data ?? [];
   const staged = files.filter((f) => f.index_status !== "." && f.index_status !== "?").length;
@@ -99,15 +101,20 @@ export function ActionBar() {
       {actionButton({ key: "stash", label: "Stash", onClick: () => setModal("stash") })}
       {actionButton({ key: "tag", label: "Tag", onClick: () => setModal("tag") })}
       <div style={{ flex: 1 }} />
-      <div style={{ display: "flex", alignItems: "center", gap: 10, fontFamily: mono, fontSize: 11.5, color: "var(--muted)", whiteSpace: "nowrap" }}>
-        <span>
-          {repoName}
-          <span style={{ color: "var(--muted)" }}> / </span>
-          <span style={{ color: "var(--l0)", fontWeight: 600 }}>{repo.current_branch}</span>
-        </span>
-        <span title="commits por enviar">↑{ahead}</span>
-        <span title="commits por integrar">↓{behind}</span>
-      </div>
+      {/* Task 6 progressive disclosure: this duplicates context already
+          visible in the Sidebar/Titlebar — hide it first at narrow widths so
+          the primary action buttons above get the room instead. */}
+      {!bp.hideSecondary && (
+        <div style={{ display: "flex", alignItems: "center", gap: 10, fontFamily: mono, fontSize: 11.5, color: "var(--muted)", whiteSpace: "nowrap" }}>
+          <span>
+            {repoName}
+            <span style={{ color: "var(--muted)" }}> / </span>
+            <span style={{ color: "var(--l0)", fontWeight: 600 }}>{repo.current_branch}</span>
+          </span>
+          <span title="commits por enviar">↑{ahead}</span>
+          <span title="commits por integrar">↓{behind}</span>
+        </div>
+      )}
     </Toolbar>
   );
 }
