@@ -4,12 +4,14 @@ import { relaunch } from "@tauri-apps/plugin-process";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { toast } from "../state/toastStore";
 import { errMsg } from "../lib/errors";
+import { useT } from "../i18n";
 
 // Startup update check (user request R5): if a newer release is published
 // (GitHub releases → latest.json), ask once whether to install it. The
 // download/verify/install runs in the Rust updater plugin; on success the app
 // relaunches itself into the new version.
 export function UpdatePrompt() {
+  const t = useT();
   const [update, setUpdate] = useState<Update | null>(null);
 
   useEffect(() => {
@@ -35,16 +37,16 @@ export function UpdatePrompt() {
   if (!update) return null;
   return (
     <ConfirmDialog
-      message={`Está disponível a versão ${update.version} do GitSylva (tens a ${update.currentVersion}). Transferir e instalar agora? A app reinicia sozinha no fim.`}
-      confirmLabel="Atualizar agora"
+      message={t("components.update.message", { version: update.version, current: update.currentVersion })}
+      confirmLabel={t("components.update.confirm")}
       onCancel={() => setUpdate(null)}
       onConfirm={() => {
         const u = update;
         setUpdate(null);
-        toast("A transferir a atualização…");
+        toast(t("components.update.downloading"));
         u.downloadAndInstall()
           .then(() => relaunch())
-          .catch((e: unknown) => toast(errMsg(e, "não foi possível atualizar"), "error"));
+          .catch((e: unknown) => toast(errMsg(e, t("components.update.failed")), "error"));
       }}
     />
   );

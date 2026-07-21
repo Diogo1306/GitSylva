@@ -5,8 +5,9 @@ import { useThemeStore } from "../../state/themeStore";
 import { useOnboardStore } from "../../state/onboardStore";
 import { useShortcutsStore } from "../../state/shortcutsStore";
 import { toast } from "../../state/toastStore";
-import { PALETTES, TREE_META, type ThemeKey, type TreeStyleKey } from "../../theme/themes";
+import { PALETTES, type ThemeKey, type TreeStyleKey, themeName, treeName } from "../../theme/themes";
 import { comboHint } from "../../lib/platform";
+import { useT } from "../../i18n";
 import { WinControls } from "../shell/Titlebar";
 import { Button } from "../../components/ui/Button";
 import { SelectableRow, SelectableCard } from "../../components/ui/SelectableRow";
@@ -119,7 +120,8 @@ function Splash({ theme }: { theme: ThemeKey }) {
 
 export function Onboarding() {
   const anims = useThemeStore((s) => s.anims);
-  const t = useThemeStore();
+  const ts = useThemeStore();
+  const t = useT();
   const finish = useOnboardStore((s) => s.finish);
   const [phase, setPhase] = useState<Phase>(anims ? "splash" : "login");
   // Same rebindable, platform-aware hint the titlebar search uses (Ctrl+K on
@@ -144,18 +146,23 @@ export function Onboarding() {
   if (phase === "splash")
     return (
       <>
-        <Splash theme={t.theme} />
+        <Splash theme={ts.theme} />
         <OnboardBar />
       </>
     );
 
   const stage = phase === "login" ? 0 : phase === "setup" ? 1 : 2;
-  const caption = phase === "login" ? "ENTRAR" : phase === "setup" ? "PERSONALIZAR" : "PLANTADO";
+  const caption =
+    phase === "login"
+      ? t("onboarding.caption.login")
+      : phase === "setup"
+        ? t("onboarding.caption.setup")
+        : t("onboarding.caption.grow");
 
   const providers: [string, string, string][] = [
-    ["G", "Continuar com GitHub", "github.com"],
-    ["GL", "Continuar com GitLab", "gitlab.com"],
-    ["B", "Continuar com Bitbucket", "bitbucket.org"],
+    ["G", "GitHub", "github.com"],
+    ["GL", "GitLab", "gitlab.com"],
+    ["B", "Bitbucket", "bitbucket.org"],
   ];
 
   return (
@@ -170,9 +177,9 @@ export function Onboarding() {
             S at login, the trunk extends at setup, full crown when planted. */}
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, flexShrink: 0, minWidth: 310 }}>
           <div
-            key={`${t.theme}-${stage}`}
+            key={`${ts.theme}-${stage}`}
             className="gs-treeanim"
-            dangerouslySetInnerHTML={{ __html: TREES[t.theme]?.[stage] ?? s0Escuro }}
+            dangerouslySetInnerHTML={{ __html: TREES[ts.theme]?.[stage] ?? s0Escuro }}
             style={{ height: TREE_H[stage], width: Math.round((TREE_H[stage] * 84) / 112), transition: "height 0.9s cubic-bezier(0.2,0.9,0.3,1)", ["--gs-bg" as never]: "var(--win)" }}
           />
           <div style={{ marginTop: 4 }}>
@@ -184,9 +191,9 @@ export function Onboarding() {
         {/* Right: stage content */}
         {phase === "login" && (
           <div style={{ width: 336, display: "flex", flexDirection: "column", gap: 8, animation: "fadeUp 0.45s ease 0.15s both" }}>
-            <div style={{ fontSize: 21, fontWeight: 700 }}>Bem-vindo</div>
+            <div style={{ fontSize: 21, fontWeight: 700 }}>{t("onboarding.login.welcome")}</div>
             <div style={{ fontSize: 13, color: "var(--text2)", marginBottom: 4, lineHeight: 1.5 }}>
-              Trabalha já nos teus repositórios locais.
+              {t("onboarding.login.subtitle")}
             </div>
             {/* Primary path (item 1): a real, accent, first-in-tab-order CTA. */}
             <Button
@@ -194,28 +201,28 @@ export function Onboarding() {
               onClick={() => setPhase("setup")}
               style={{ width: "100%", justifyContent: "center", padding: 12, borderRadius: 11, fontSize: 14, marginTop: 4 }}
             >
-              Continuar localmente
+              {t("onboarding.login.continueLocally")}
             </Button>
 
             {/* Secondary, de-emphasized path (item 2): not yet functional. */}
             <div style={{ display: "flex", flexDirection: "column", gap: 7, marginTop: 20 }}>
               <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "1.4px", color: "var(--muted)" }}>
-                INTEGRAÇÕES: EM BREVE
+                {t("onboarding.login.integrationsSoonLabel")}
               </div>
-              <ChoiceGroup label="Integrações: em breve" style={{ display: "flex", flexDirection: "column", gap: 6, opacity: 0.7 }}>
-                {providers.map(([initial, label, sub]) => (
+              <ChoiceGroup label={t("onboarding.login.integrationsGroup")} style={{ display: "flex", flexDirection: "column", gap: 6, opacity: 0.7 }}>
+                {providers.map(([initial, provider, sub]) => (
                   <SelectableRow
-                    key={label}
-                    onSelect={() => toast("Login com conta chega na fase de sincronização")}
+                    key={provider}
+                    onSelect={() => toast(t("onboarding.login.accountSoon"))}
                     className="gs-lift"
                     style={{ display: "flex", alignItems: "center", gap: 12, padding: "9px 13px", borderRadius: 11, background: "var(--btn)", border: "1px solid var(--btnB)" }}
                   >
                     <span style={{ width: 22, height: 22, borderRadius: "50%", background: "var(--badge)", color: "var(--badgeT)", display: "grid", placeItems: "center", fontWeight: 700, fontSize: 11.5, flexShrink: 0 }}>{initial}</span>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 12.5, fontWeight: 600 }}>{label}</div>
+                      <div style={{ fontSize: 12.5, fontWeight: 600 }}>{t("onboarding.login.continueWith", { provider })}</div>
                       <div style={{ fontSize: 10.5, color: "var(--muted)", fontFamily: "'JetBrains Mono', monospace" }}>{sub}</div>
                     </div>
-                    <span className="gs-soon">Em breve</span>
+                    <span className="gs-soon">{t("common.soon")}</span>
                   </SelectableRow>
                 ))}
               </ChoiceGroup>
@@ -226,21 +233,21 @@ export function Onboarding() {
         {phase === "setup" && (
           <div style={{ width: 360, display: "flex", flexDirection: "column", gap: 14, animation: "fadeUp 0.45s ease both" }}>
             <div>
-              <div style={{ fontSize: 21, fontWeight: 700 }}>Personaliza o teu jardim</div>
-              <div style={{ fontSize: 13, color: "var(--text2)", marginTop: 4 }}>Tudo isto muda depois nas Definições.</div>
+              <div style={{ fontSize: 21, fontWeight: 700 }}>{t("onboarding.setup.title")}</div>
+              <div style={{ fontSize: 13, color: "var(--text2)", marginTop: 4 }}>{t("onboarding.setup.subtitle")}</div>
             </div>
 
             <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
-              <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "1.4px", color: "var(--muted)" }}>TEMA</div>
-              <ChoiceGroup label="Tema" style={{ display: "flex", gap: 8 }}>
+              <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "1.4px", color: "var(--muted)" }}>{t("onboarding.setup.themeLabel")}</div>
+              <ChoiceGroup label={t("onboarding.setup.themeGroup")} style={{ display: "flex", gap: 8 }}>
                 {THEME_ORDER.map((k) => {
                   const v = PALETTES[k].vars;
-                  const active = t.theme === k;
+                  const active = ts.theme === k;
                   return (
                     <SelectableCard
                       key={k}
                       selected={active}
-                      onSelect={() => t.savePrefs({ theme: k })}
+                      onSelect={() => ts.savePrefs({ theme: k })}
                       style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 5, padding: 0, border: "none", background: "transparent" }}
                     >
                       <div className="gs-lift" style={{ width: 76, height: 52, borderRadius: 9, border: `2px solid ${active ? "var(--accent)" : "var(--btnB)"}`, background: v["--win"], overflow: "hidden", display: "flex" }}>
@@ -251,7 +258,7 @@ export function Onboarding() {
                           <div style={{ height: 5, width: "62%", borderRadius: 3, background: v["--border"] }} />
                         </div>
                       </div>
-                      <div style={{ fontSize: 11, fontWeight: 600, color: active ? "var(--text)" : "var(--muted)" }}>{PALETTES[k].name}</div>
+                      <div style={{ fontSize: 11, fontWeight: 600, color: active ? "var(--text)" : "var(--muted)" }}>{themeName(k)}</div>
                     </SelectableCard>
                   );
                 })}
@@ -259,18 +266,18 @@ export function Onboarding() {
             </div>
 
             <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
-              <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "1.4px", color: "var(--muted)" }}>ESTILO DA ÁRVORE</div>
-              <ChoiceGroup label="Estilo da árvore" style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+              <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "1.4px", color: "var(--muted)" }}>{t("onboarding.setup.treeStyleLabel")}</div>
+              <ChoiceGroup label={t("onboarding.setup.treeStyleGroup")} style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                 {TREE_ORDER.map((k) => {
-                  const active = t.treeStyle === k;
+                  const active = ts.treeStyle === k;
                   return (
                     <SelectableRow
                       key={k}
                       selected={active}
-                      onSelect={() => t.savePrefs({ treeStyle: k })}
+                      onSelect={() => ts.savePrefs({ treeStyle: k })}
                       style={{ display: "flex", alignItems: "center", gap: 7, padding: "6px 13px", borderRadius: 999, border: `2px solid ${active ? "var(--accent)" : "var(--btnB)"}`, fontSize: 12.5, color: active ? "var(--text)" : "var(--text2)", background: "transparent" }}
                     >
-                      {TREE_META[k].name}
+                      {treeName(k)}
                     </SelectableRow>
                   );
                 })}
@@ -278,16 +285,16 @@ export function Onboarding() {
             </div>
 
             <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
-              <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "1.4px", color: "var(--muted)" }}>REPOSITÓRIOS ABERTOS</div>
+              <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "1.4px", color: "var(--muted)" }}>{t("onboarding.setup.repoLayoutLabel")}</div>
               {/* Mini previews, same language as the theme cards (R5.18). */}
-              <ChoiceGroup label="Repositórios abertos" style={{ display: "flex", gap: 8 }}>
+              <ChoiceGroup label={t("onboarding.setup.repoLayoutGroup")} style={{ display: "flex", gap: 8 }}>
                 {(["tabs", "rail"] as const).map((k) => {
-                  const active = t.repoLayout === k;
+                  const active = ts.repoLayout === k;
                   return (
                     <SelectableCard
                       key={k}
                       selected={active}
-                      onSelect={() => t.savePrefs({ repoLayout: k })}
+                      onSelect={() => ts.savePrefs({ repoLayout: k })}
                       style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 5, padding: 0, border: "none", background: "transparent" }}
                     >
                       <div className="gs-lift" style={{ width: 76, height: 52, borderRadius: 9, border: `2px solid ${active ? "var(--accent)" : "var(--btnB)"}`, background: "var(--win)", overflow: "hidden", display: "flex", flexDirection: "column" }}>
@@ -312,7 +319,7 @@ export function Onboarding() {
                         )}
                       </div>
                       <div style={{ fontSize: 11, fontWeight: 600, color: active ? "var(--text)" : "var(--muted)" }}>
-                        {k === "tabs" ? "Abas (browser)" : "Barra lateral"}
+                        {k === "tabs" ? t("onboarding.setup.layoutTabs") : t("onboarding.setup.layoutRail")}
                       </div>
                     </SelectableCard>
                   );
@@ -335,19 +342,19 @@ export function Onboarding() {
               onClick={() => setPhase("grow")}
               style={{ width: "100%", padding: 12, borderRadius: 11, fontSize: 14, marginTop: 2, justifyContent: "center" }}
             >
-              Plantar e entrar
+              {t("onboarding.setup.plant")}
             </Button>
           </div>
         )}
 
         {phase === "grow" && (
           <div style={{ width: 336, display: "flex", flexDirection: "column", gap: 8, animation: "fadeUp 0.45s ease 0.25s both" }}>
-            <div style={{ fontSize: 21, fontWeight: 700 }}>A tua floresta está plantada</div>
+            <div style={{ fontSize: 21, fontWeight: 700 }}>{t("onboarding.grow.title")}</div>
             {/* Item 4: only the three essential concepts, nothing more. */}
             <div style={{ fontSize: 13, color: "var(--text2)", lineHeight: 1.6 }}>
-              A <strong>Cópia de trabalho</strong> mostra o que mudou, a <strong>árvore de commits</strong> é o teu histórico, e <strong>{paletteHint}</strong> abre a Palete de Comandos a qualquer momento.
+              {t("onboarding.grow.descPre")}<strong>{t("onboarding.grow.workingCopy")}</strong>{t("onboarding.grow.descMid1")}<strong>{t("onboarding.grow.commitTree")}</strong>{t("onboarding.grow.descMid2")}<strong>{paletteHint}</strong>{t("onboarding.grow.descPost")}
             </div>
-            <div style={{ fontSize: 13, color: "var(--text2)" }}>bom código.</div>
+            <div style={{ fontSize: 13, color: "var(--text2)" }}>{t("onboarding.grow.goodCode")}</div>
           </div>
         )}
       </div>

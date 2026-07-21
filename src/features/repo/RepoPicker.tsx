@@ -9,11 +9,16 @@ import { useOpenRepo } from "./useOpenRepo";
 import { FormField } from "../../components/ui/FormField";
 import { SelectableRow } from "../../components/ui/SelectableRow";
 import { activateOnKeyDown } from "../../components/ui/keys";
+import { useT } from "../../i18n";
 
 const mono = "'JetBrains Mono', monospace";
+// Illustrative clone URL shown as the input placeholder. A neutral example
+// (host + user/repo), intentionally the same in every language.
+const CLONE_URL_EXAMPLE = "https://github.com/user/repo.git";
 type Tab = "local" | "remote" | "clone" | "add" | "create";
 
 export function RepoPicker() {
+  const t = useT();
   const setView = useAppStore((s) => s.setView);
   const prevView = useAppStore((s) => s.prevView);
   // Standalone at startup (no repo open yet): there is nothing to close into.
@@ -63,11 +68,11 @@ export function RepoPicker() {
   );
 
   const tabs: [Tab, string][] = [
-    ["local", "Local"],
-    ["remote", "Remoto"],
-    ["clone", "Clonar"],
-    ["add", "Adicionar"],
-    ["create", "Criar"],
+    ["local", t("repo.tab.local")],
+    ["remote", t("repo.tab.remote")],
+    ["clone", t("repo.tab.clone")],
+    ["add", t("repo.tab.add")],
+    ["create", t("common.create")],
   ];
 
   const bigTitle = { fontSize: 24, fontWeight: 700, letterSpacing: "-0.3px" } as const;
@@ -108,7 +113,7 @@ export function RepoPicker() {
   };
 
   return (
-    <div data-screen-label="Adicionar repositório" style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0, animation: "fadeUp 0.25s ease both" }}>
+    <div data-screen-label={t("repo.screenLabel")} style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0, animation: "fadeUp 0.25s ease both" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 4, padding: "10px 16px", borderBottom: "1px solid var(--border)", background: "var(--panel)" }}>
         {tabs.map(([key, name]) => (
           <button
@@ -132,7 +137,7 @@ export function RepoPicker() {
             className="gs-lift"
             style={{ padding: "6px 12px", borderRadius: 8, border: "1px solid var(--btnB)", background: "var(--btn)", color: "var(--btnT)", fontSize: 12.5, cursor: "pointer", fontFamily: "inherit" }}
           >
-            ✕ Fechar
+            ✕ {t("common.close")}
           </button>
         )}
       </div>
@@ -143,9 +148,9 @@ export function RepoPicker() {
 
           {tab === "local" && (
             <div style={{ display: "flex", flexDirection: "column", gap: 14, animation: "fadeUp 0.3s ease both" }}>
-              <div style={bigTitle}>Repositórios recentes</div>
-              <FormField label="Procurar repositórios recentes" hideLabel>
-                <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Procurar…" style={{ ...inputStyle, fontFamily: "var(--font)" }} />
+              <div style={bigTitle}>{t("repo.local.title")}</div>
+              <FormField label={t("repo.local.searchLabel")} hideLabel>
+                <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("common.searchEllipsis")} style={{ ...inputStyle, fontFamily: "var(--font)" }} />
               </FormField>
               <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
                 {filteredRecents.map((r) => (
@@ -172,8 +177,8 @@ export function RepoPicker() {
                         e.stopPropagation();
                         activateOnKeyDown(e);
                       }}
-                      title="Remover dos recentes"
-                      aria-label={`Remover ${r.name} dos recentes`}
+                      title={t("repo.local.removeTitle")}
+                      aria-label={t("repo.local.removeAria", { name: r.name })}
                       style={{ color: "var(--muted)", fontSize: 12, padding: 4, borderRadius: 6, background: "transparent", border: "none", cursor: "pointer", fontFamily: "inherit" }}
                     >
                       ✕
@@ -183,16 +188,16 @@ export function RepoPicker() {
                 {filteredRecents.length === 0 && (
                   <div style={{ padding: 18, border: "1px dashed var(--btnB)", borderRadius: 11, textAlign: "center", color: "var(--muted)", fontSize: 13, display: "flex", flexDirection: "column", gap: 10, alignItems: "center" }}>
                     {recents.length === 0 ? (
-                      "Ainda sem repositórios recentes."
+                      t("repo.local.empty")
                     ) : (
                       <>
-                        <div>Nenhum recente corresponde. Abrir ou clonar um repositório?</div>
+                        <div>{t("repo.local.noMatch")}</div>
                         <div style={{ display: "flex", gap: 8 }}>
                           <button type="button" onClick={browseAndOpen} onKeyDown={activateOnKeyDown} disabled={busy} style={browseBtn} className="gs-lift">
-                            Abrir pasta…
+                            {t("repo.local.openFolder")}
                           </button>
                           <button type="button" onClick={() => setTab("clone")} onKeyDown={activateOnKeyDown} style={browseBtn} className="gs-lift">
-                            Clonar…
+                            {t("repo.local.cloneEllipsis")}
                           </button>
                         </div>
                       </>
@@ -208,19 +213,19 @@ export function RepoPicker() {
                 style={{ ...browseBtn, alignSelf: "flex-start" }}
                 className="gs-lift"
               >
-                + Procurar pasta…
+                + {t("repo.local.browseFolder")}
               </button>
             </div>
           )}
 
           {tab === "add" && (
             <div style={{ display: "flex", flexDirection: "column", gap: 14, animation: "fadeUp 0.3s ease both" }}>
-              <div style={bigTitle}>Adicionar repositório existente</div>
+              <div style={bigTitle}>{t("repo.add.title")}</div>
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                <label htmlFor={addPathId} style={fieldLabelStyle}>Caminho da pasta (com .git)</label>
+                <label htmlFor={addPathId} style={fieldLabelStyle}>{t("repo.add.pathLabel")}</label>
                 <div style={{ display: "flex", gap: 8 }}>
-                  <input id={addPathId} value={addPath} onChange={(e) => setAddPath(e.target.value)} placeholder="C:/projetos/o-meu-repo" style={{ ...inputStyle, flex: 1 }} />
-                  <button type="button" onClick={() => browseInto(setAddPath)} onKeyDown={activateOnKeyDown} style={browseBtn} className="gs-lift">Escolher…</button>
+                  <input id={addPathId} value={addPath} onChange={(e) => setAddPath(e.target.value)} placeholder={t("repo.add.pathPlaceholder")} style={{ ...inputStyle, flex: 1 }} />
+                  <button type="button" onClick={() => browseInto(setAddPath)} onKeyDown={activateOnKeyDown} style={browseBtn} className="gs-lift">{t("repo.choose")}</button>
                 </div>
               </div>
               <button
@@ -231,28 +236,28 @@ export function RepoPicker() {
                 style={{ ...primaryBtn, opacity: addPath.trim() ? 1 : 0.5 }}
                 className="gs-press"
               >
-                {busy ? "A abrir…" : "Adicionar"}
+                {busy ? t("repo.add.opening") : t("repo.tab.add")}
               </button>
             </div>
           )}
 
           {tab === "create" && (
             <div style={{ display: "flex", flexDirection: "column", gap: 14, animation: "fadeUp 0.3s ease both" }}>
-              <div style={bigTitle}>Criar repositório novo</div>
+              <div style={bigTitle}>{t("repo.create.title")}</div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1.4fr", gap: 8 }}>
-                <FormField label={<span style={fieldLabelStyle}>Nome</span>}>
-                  <input value={createName} onChange={(e) => setCreateName(e.target.value)} placeholder="o-meu-projeto" style={inputStyle} />
+                <FormField label={<span style={fieldLabelStyle}>{t("repo.create.nameLabel")}</span>}>
+                  <input value={createName} onChange={(e) => setCreateName(e.target.value)} placeholder={t("repo.create.namePlaceholder")} style={inputStyle} />
                 </FormField>
                 <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                  <label htmlFor={createParentId} style={fieldLabelStyle}>Pasta raiz</label>
+                  <label htmlFor={createParentId} style={fieldLabelStyle}>{t("repo.create.parentLabel")}</label>
                   <div style={{ display: "flex", gap: 8 }}>
                     <input id={createParentId} value={createParent} onChange={(e) => setCreateParent(e.target.value)} placeholder="C:/dev" style={{ ...inputStyle, flex: 1 }} />
-                    <button type="button" onClick={() => browseInto(setCreateParent)} onKeyDown={activateOnKeyDown} style={browseBtn} className="gs-lift">Escolher…</button>
+                    <button type="button" onClick={() => browseInto(setCreateParent)} onKeyDown={activateOnKeyDown} style={browseBtn} className="gs-lift">{t("repo.choose")}</button>
                   </div>
                 </div>
               </div>
               <div style={{ fontSize: 12, color: "var(--muted)" }}>
-                Corre <span style={{ fontFamily: mono }}>git init</span> em {createParent || "…"}/{createName || "nome"} com branch main.
+                {t("repo.create.runs")} <span style={{ fontFamily: mono }}>git init</span> {t("repo.create.runsIn", { path: `${createParent || "…"}/${createName || t("repo.create.defaultName")}` })}
               </div>
               <button
                 type="button"
@@ -264,30 +269,30 @@ export function RepoPicker() {
                 style={{ ...primaryBtn, opacity: createName.trim() && createParent.trim() ? 1 : 0.5 }}
                 className="gs-press"
               >
-                {busy ? "A criar…" : "Criar repositório"}
+                {busy ? t("repo.create.creating") : t("repo.create.submit")}
               </button>
             </div>
           )}
 
           {tab === "clone" && (
             <div style={{ display: "flex", flexDirection: "column", gap: 14, animation: "fadeUp 0.3s ease both" }}>
-              <div style={bigTitle}>Clonar repositório</div>
-              <FormField label={<span style={fieldLabelStyle}>URL de origem</span>}>
-                <input value={cloneUrl} onChange={(e) => setCloneUrl(e.target.value)} placeholder="https://github.com/user/repo.git" style={inputStyle} />
+              <div style={bigTitle}>{t("repo.clone.title")}</div>
+              <FormField label={<span style={fieldLabelStyle}>{t("repo.clone.urlLabel")}</span>}>
+                <input value={cloneUrl} onChange={(e) => setCloneUrl(e.target.value)} placeholder={CLONE_URL_EXAMPLE} style={inputStyle} />
               </FormField>
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                <label htmlFor={cloneParentId} style={fieldLabelStyle}>Pasta de destino</label>
+                <label htmlFor={cloneParentId} style={fieldLabelStyle}>{t("repo.clone.destLabel")}</label>
                 <div style={{ display: "flex", gap: 8 }}>
                   <input id={cloneParentId} value={cloneParent} onChange={(e) => setCloneParent(e.target.value)} placeholder="C:/dev" style={{ ...inputStyle, flex: 1 }} />
-                  <button type="button" onClick={() => browseInto(setCloneParent)} onKeyDown={activateOnKeyDown} style={browseBtn} className="gs-lift">Escolher…</button>
+                  <button type="button" onClick={() => browseInto(setCloneParent)} onKeyDown={activateOnKeyDown} style={browseBtn} className="gs-lift">{t("repo.choose")}</button>
                 </div>
               </div>
-              <div style={{ fontSize: 12, color: "var(--muted)" }}>Clona para {cloneParent || "…"}/{cloneName || "repo"}.</div>
+              <div style={{ fontSize: 12, color: "var(--muted)" }}>{t("repo.clone.into", { path: `${cloneParent || "…"}/${cloneName || "repo"}` })}</div>
               <button
                 type="button"
                 onClick={async () => {
                   if (await run(() => cloneRepo(cloneParent.trim(), cloneUrl.trim(), cloneName))) {
-                    notify("Clone concluído", `${cloneName} → ${cloneParent.trim()}/${cloneName}`);
+                    notify(t("repo.clone.doneTitle"), `${cloneName} → ${cloneParent.trim()}/${cloneName}`);
                     close();
                   }
                 }}
@@ -297,7 +302,7 @@ export function RepoPicker() {
                 className="gs-press"
               >
                 {busy && <span style={{ animation: "spin 0.8s linear infinite" }}>⟳</span>}
-                {busy ? "A clonar…" : "Clonar"}
+                {busy ? t("repo.clone.cloning") : t("repo.tab.clone")}
               </button>
             </div>
           )}
@@ -305,11 +310,11 @@ export function RepoPicker() {
           {tab === "remote" && (
             <div style={{ display: "flex", flexDirection: "column", gap: 14, animation: "fadeUp 0.3s ease both" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <div style={bigTitle}>Repositórios remotos</div>
-                <span className="gs-soon">Em breve</span>
+                <div style={bigTitle}>{t("repo.remote.title")}</div>
+                <span className="gs-soon">{t("common.soon")}</span>
               </div>
               <div style={{ padding: 20, border: "1px dashed var(--btnB)", borderRadius: 12, color: "var(--muted)", fontSize: 13.5, lineHeight: 1.6 }}>
-                Listar repositórios da tua conta (GitHub/GitLab/Bitbucket) chega quando o backend suportar autenticação. Entretanto, usa a aba Clonar com o URL.
+                {t("repo.remote.body")}
               </div>
             </div>
           )}

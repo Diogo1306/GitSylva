@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "./ui/Button";
+import { useT } from "../i18n";
 
 type Props = {
   message: string;
@@ -11,7 +12,8 @@ type Props = {
 // Small confirmation dialog for destructive actions (danger variant).
 // Autofocuses CANCEL (safe default), traps Tab between its controls, Escape
 // cancels with the exit animation, and focus returns to the opener.
-export function ConfirmDialog({ message, confirmLabel = "Descartar", onConfirm, onCancel }: Props) {
+export function ConfirmDialog({ message, confirmLabel, onConfirm, onCancel }: Props) {
+  const t = useT();
   const [closing, setClosing] = useState(false);
   const boxRef = useRef<HTMLDivElement>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
@@ -94,9 +96,9 @@ export function ConfirmDialog({ message, confirmLabel = "Descartar", onConfirm, 
       >
         <div style={{ fontSize: 14, lineHeight: 1.5, color: "var(--text)" }}>{message}</div>
         <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-          <Button ref={cancelRef} onClick={requestCancel}>Cancelar</Button>
+          <Button ref={cancelRef} onClick={requestCancel}>{t("common.cancel")}</Button>
           <Button variant="primary" style={{ background: "var(--danger)", color: "var(--dangerT)" }} onClick={onConfirm}>
-            {confirmLabel}
+            {confirmLabel ?? t("components.confirm.discard")}
           </Button>
         </div>
       </div>
