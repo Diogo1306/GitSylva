@@ -1,13 +1,5 @@
-import type { KeyboardEvent, ReactNode } from "react";
-
-// Cancels the button's own native Enter/Space click so the manual click()
-// below is the only one that ever fires (used by Toggle and IconButton).
-function activateOnKeyDown(e: KeyboardEvent<HTMLButtonElement>) {
-  if (e.key === "Enter" || e.key === " ") {
-    e.preventDefault();
-    e.currentTarget.click();
-  }
-}
+import type { ReactNode } from "react";
+import { activateOnKeyDown } from "./keys";
 
 // Small shared primitives: pill Chip, count Badge, IconButton, Toggle, labels.
 
