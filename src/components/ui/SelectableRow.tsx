@@ -1,4 +1,5 @@
 import type { CSSProperties, HTMLAttributes, KeyboardEvent, ReactNode } from "react";
+import { activateOnKeyDown } from "./keys";
 
 // Accessible replacement for `<div onClick>` rows: a real focusable element
 // with role="button" (a plain action row) or role="option" (inside a
@@ -21,13 +22,7 @@ type SelectableRowProps = {
 
 function Base({ selected, onSelect, disabled, role = "button", children, style, className, ...rest }: SelectableRowProps) {
   const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
-    if (disabled) return;
-    if (e.key === "Enter" || e.key === " ") {
-      // preventDefault cancels the browser's own Enter/Space activation so the
-      // manual click() below is the only one that ever fires.
-      e.preventDefault();
-      e.currentTarget.click();
-    }
+    if (!disabled) activateOnKeyDown(e);
   };
   return (
     <div
@@ -40,7 +35,8 @@ function Base({ selected, onSelect, disabled, role = "button", children, style, 
       className={["gs-row", className].filter(Boolean).join(" ")}
       style={{
         cursor: disabled ? "default" : "pointer",
-        outline: "none",
+        // No inline outline: the shared :focus-visible rule in tokens.css must
+        // win, otherwise this widely-reused row has no keyboard focus ring.
         opacity: disabled ? 0.5 : 1,
         background: selected ? "var(--sel)" : undefined,
         ...style,

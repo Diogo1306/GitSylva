@@ -71,6 +71,12 @@ describe("SelectableRow", () => {
     );
     expect(screen.getByRole("button", { name: "Row" }).getAttribute("aria-selected")).toBeNull();
   });
+
+  it("keeps a visible focus ring (does not disable the outline inline)", () => {
+    render(<SelectableRow selected onSelect={() => {}}>Row</SelectableRow>);
+    // An inline outline:none would beat the :focus-visible rule in tokens.css.
+    expect(screen.getByRole("button", { name: "Row" }).style.outline).not.toBe("none");
+  });
 });
 
 describe("SelectableCard", () => {
@@ -85,5 +91,10 @@ describe("SelectableCard", () => {
     expect(card.tabIndex).toBe(0);
     fireEvent.keyDown(card, { key: "Enter" });
     expect(onSelect).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps a visible focus ring (does not disable the outline inline)", () => {
+    render(<SelectableCard onSelect={() => {}}>Escuro</SelectableCard>);
+    expect(screen.getByRole("button", { name: "Escuro" }).style.outline).not.toBe("none");
   });
 });

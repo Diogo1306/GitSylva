@@ -54,4 +54,15 @@ describe("FormField", () => {
     expect(errorEl?.textContent).toBe("Obrigatório");
     expect(errorEl?.getAttribute("role")).toBe("alert");
   });
+
+  it("does not disable the control's focus outline (wrapping keeps it visible)", () => {
+    // Plain input so the assertion measures FormField's own effect, not the
+    // app Input's pre-existing style.
+    render(
+      <FormField label="Nome">
+        <input />
+      </FormField>,
+    );
+    expect((screen.getByLabelText("Nome") as HTMLInputElement).style.outline).not.toBe("none");
+  });
 });

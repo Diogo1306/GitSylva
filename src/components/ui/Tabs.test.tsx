@@ -71,6 +71,11 @@ describe("Tabs", () => {
     fireEvent.click(stashes);
     expect(onChange).not.toHaveBeenCalled();
   });
+
+  it("tabs keep a visible focus ring (do not disable the outline inline)", () => {
+    render(<Tabs items={items} activeId="history" onChange={() => {}} />);
+    expect(screen.getByRole("tab", { name: "Histórico" }).style.outline).not.toBe("none");
+  });
 });
 
 describe("TabPanel", () => {
@@ -101,5 +106,16 @@ describe("TabPanel", () => {
       </>,
     );
     expect(screen.getByRole("tabpanel").textContent).toBe("Conteúdo branches");
+  });
+
+  it("keeps a visible focus ring on the focusable panel (no inline outline:none)", () => {
+    render(
+      <TabPanel id="history" activeId="history">
+        Conteúdo
+      </TabPanel>,
+    );
+    const panel = screen.getByRole("tabpanel");
+    expect((panel as HTMLElement).tabIndex).toBe(0);
+    expect((panel as HTMLElement).style.outline).not.toBe("none");
   });
 });

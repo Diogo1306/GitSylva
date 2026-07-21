@@ -1,4 +1,5 @@
 import { useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import { activateOnKeyDown } from "./keys";
 
 // Accessible tabs: role="tablist"/"tab"/"tabpanel", roving tabindex, Left/Right
 // + Home/End move focus between tabs, Enter/Space commits the selection
@@ -49,10 +50,8 @@ export function Tabs({ items, activeId, onChange, ariaLabel }: TabsProps) {
         break;
       case "Enter":
       case " ":
-        // preventDefault cancels the button's own native Enter/Space click so
-        // the manual click() below is the only one that ever fires.
-        e.preventDefault();
-        e.currentTarget.click();
+        // Commit the focused tab (manual activation).
+        activateOnKeyDown(e);
         break;
     }
   };
@@ -101,8 +100,10 @@ export function Tabs({ items, activeId, onChange, ariaLabel }: TabsProps) {
 
 export function TabPanel({ id, activeId, children }: { id: string; activeId: string; children: ReactNode }) {
   if (id !== activeId) return null;
+  // No inline outline:none — the focusable panel keeps the shared
+  // :focus-visible ring from tokens.css.
   return (
-    <div role="tabpanel" id={`tabpanel-${id}`} aria-labelledby={`tab-${id}`} tabIndex={0} style={{ outline: "none" }}>
+    <div role="tabpanel" id={`tabpanel-${id}`} aria-labelledby={`tab-${id}`} tabIndex={0}>
       {children}
     </div>
   );

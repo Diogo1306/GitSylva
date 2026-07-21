@@ -62,4 +62,13 @@ describe("Tooltip", () => {
     fireEvent.focus(screen.getByText("+"));
     expect(screen.getByRole("tooltip").textContent).toContain("Ctrl+S");
   });
+
+  it("keeps the trigger's focus outline visible (wrapping does not disable it)", () => {
+    render(
+      <Tooltip content="Preparar ficheiro">
+        <button>+</button>
+      </Tooltip>,
+    );
+    expect((screen.getByText("+") as HTMLButtonElement).style.outline).not.toBe("none");
+  });
 });
