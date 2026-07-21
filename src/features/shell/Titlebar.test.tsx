@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, fireEvent, cleanup } from "@testing-library/react";
+import { render, screen, fireEvent, cleanup, within } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Titlebar } from "./Titlebar";
 import { useAppStore } from "../../state/appStore";
@@ -51,6 +51,17 @@ describe("Titlebar repo tab strip: keyboard", () => {
     const b = screen.getByRole("tab", { name: /repo-b/ });
     expect(a.tagName).toBe("BUTTON");
     expect(b.tagName).toBe("BUTTON");
+  });
+
+  it("wraps the repo tabs in a labeled role=tablist container", () => {
+    renderTitlebar();
+    const tablist = screen.getByRole("tablist", { name: "Repositórios abertos" });
+    // Every repo tab lives inside the tablist (WAI-ARIA tab pattern).
+    const tabsInList = within(tablist).getAllByRole("tab");
+    expect(tabsInList).toHaveLength(3);
+    for (const path of ["/repo-a", "/repo-b", "/repo-c"]) {
+      expect(within(tablist).getByRole("tab", { name: new RegExp(path.slice(1)) })).toBeTruthy();
+    }
   });
 
   it("marks the active repo's tab with aria-selected=true and the rest false", () => {

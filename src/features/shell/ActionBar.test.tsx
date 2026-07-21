@@ -64,10 +64,16 @@ describe("ActionBar", () => {
     expect(useAppStore.getState().modal).toBe("branch");
   });
 
-  it("activates an action on Enter/Space (real button, native activation)", () => {
+  it("activates an action on Enter and on Space (keyboard, via ToolbarButton)", () => {
     renderActionBar();
-    fireEvent.click(screen.getByRole("button", { name: "Stash" }));
+    const stash = screen.getByRole("button", { name: "Stash" });
+    fireEvent.keyDown(stash, { key: "Enter" });
     expect(useAppStore.getState().modal).toBe("stash");
+    // Reset, then confirm Space activates too (ToolbarButton wires both).
+    useAppStore.getState().setModal(null);
+    const tag = screen.getByRole("button", { name: "Tag" });
+    fireEvent.keyDown(tag, { key: " " });
+    expect(useAppStore.getState().modal).toBe("tag");
   });
 
   it("keeps the staged/ahead/behind badges", async () => {

@@ -469,6 +469,8 @@ export function Titlebar({ rail = false }: { rail?: boolean }) {
     {!rail && (
       <div
         data-tauri-drag-region
+        role="tablist"
+        aria-label="Repositórios abertos"
         style={{ height: 38, display: "flex", alignItems: "center", gap: 5, padding: "0 12px", borderTop: "1px solid var(--bsoft)", minWidth: 0, overflowX: "auto", overflowY: "hidden", scrollbarWidth: "thin", animation: "fadeUp 0.25s ease both" }}
       >
         {groups.map((g) => {
