@@ -3,8 +3,8 @@ import { classifySyncError, fetchFailureNotice } from "./errors";
 
 // Real substrings git/the backend emits on network-op failures (see
 // src-tauri/src/git/mod.rs `friendly()` and run_git's GIT_TERMINAL_PROMPT=0).
-// The backend may prepend a Portuguese hint, but always keeps the original
-// stderr below it — the classifier matches on that raw, stable text.
+// friendly() returns the raw git stderr (trimmed) with no added prose — the
+// classifier matches on that raw, stable, English text.
 
 describe("classifySyncError", () => {
   it("classifies HTTPS credential failures as auth", () => {
@@ -72,14 +72,17 @@ describe("classifySyncError", () => {
     expect(classifySyncError("fatal: something unexpected happened")).toBe("other");
   });
 
-  it("classifies with the backend's Portuguese hint still present (hint prefix + raw stderr below)", () => {
+  it("is robust to extra leading text ahead of the raw stderr", () => {
+    // The backend no longer prepends anything (see src-tauri/src/git/mod.rs
+    // `friendly()`), but the classifier only needs the raw substring to be
+    // present somewhere in the message, not at a fixed offset.
     const msg =
-      "Autenticação necessária: configura credenciais git (credential manager) ou usa um URL SSH com chave carregada.\nfatal: could not read Username for 'https://github.com': terminal prompts disabled";
+      "some unrelated prefix\nfatal: could not read Username for 'https://github.com': terminal prompts disabled";
     expect(classifySyncError(msg)).toBe("auth");
   });
 });
 
-// Fetch has no dedicated modal — it is a one-shot action wired to a top-right
+// Fetch has no dedicated modal — it is a one-shot action wired to a bottom-right
 // notification in several places (Titlebar, Sidebar, CommandPalette,
 // AppShell shortcut). This gives every one of those call sites the same
 // distinct auth-needed title without duplicating classification logic.

@@ -55,7 +55,9 @@ Primary surfaces: repository tabs/rail, History (graph + commit detail), Working
 
 Overlays that sit on top of any screen: **Modals** (New branch, Stash, Push, Pull, Merge,
 Tag, Discard confirm, Connect account, Generate SSH key, Reset settings), **branch context
-menu**, **toasts** (bottom-center) and **notifications** (top-right).
+menu**, and **toasts/notifications** — merged into a single bottom-right stack in the shipped
+app (this spec's original toasts-bottom-center / notifications-top-right split was changed by
+a later product decision; see `docs/GITSYLVA_FINAL_AUDIT.md` §10, Ronda 5.1/5.2).
 
 ---
 
@@ -134,8 +136,9 @@ Layout regions:
 - **Scroll containers:** commit list, diff panes, settings content, stage lists, sidebar.
 - **Resizable panels:** History graph list ⇔ CommitDetailPanel; Working Copy stage column ⇔
   diff; each has a min width (see §8). Persist sizes in prefs.
-- **Overlays:** modals/palette are centered fixed layers with a scrim; toasts bottom-center;
-  notifications top-right.
+- **Overlays:** modals/palette are centered fixed layers with a scrim; toasts and
+  notifications share one stack, bottom-right, in the shipped app (see the note in §2 —
+  updated from this spec's original toasts-bottom-center / notifications-top-right split).
 
 ---
 

@@ -14,10 +14,9 @@ export function errMsg(e: unknown, fallback = t("error.generic")): string {
 //
 // fetch/pull/push run with GIT_TERMINAL_PROMPT=0 (see src-tauri/src/git/mod.rs
 // `run_git`), so a missing/rejected credential fails fast with a raw git
-// stderr instead of hanging on a prompt. The backend's `friendly()` may
-// prepend a Portuguese hint, but it always keeps the original stderr below it
-// — so classification matches on that stable, English raw text and is
-// unaffected by whether a hint was prepended.
+// stderr instead of hanging on a prompt. The backend's `friendly()` returns
+// that stderr trimmed, with no added prose — classification matches on that
+// stable, English raw text.
 export type SyncErrorKind = "auth" | "network" | "conflict" | "other";
 
 export function classifySyncError(message: string): SyncErrorKind {
@@ -62,7 +61,7 @@ export function classifySyncError(message: string): SyncErrorKind {
 }
 
 // Fetch has no dedicated modal (it is a one-shot action fired from the
-// toolbar/sidebar/command palette/shortcut, surfaced only via a top-right
+// toolbar/sidebar/command palette/shortcut, surfaced only via a bottom-right
 // notification), so it gets a lighter-touch version of the same distinct
 // auth/network messaging the Pull/Push modals show inline.
 export function fetchFailureNotice(e: unknown): { title: string; sub: string } {

@@ -51,3 +51,8 @@ letterL, letterR, spin, notifIn, sway, leafFall, winMinimize`.
 | Window minimize | app window | min button | `winMinimize` (y0→64, scale→.86, opacity→0, back) | ~600ms | ease | — | — | — | instant |
 | Settings scroll-spy | SettingsSectionNav | scroll content | active section item highlights (bg `--sel`) as its section crosses the top | 150ms | ease | — | continuous | — | keep (color only) |
 | Recording shortcut pulse | Shortcuts row | click to rebind | input border → accent, opacity `recPulse` 1↔0.45 loop until key/Esc | 1s loop | ease-in-out | — | key captured / Esc stops | — | static accent border |
+
+**Implementation note (2026-07-15+):** the Toast and Notification rows above describe this
+spec's original positions (toast bottom-center, notification top-right). In the shipped app
+they were merged into a single bottom-right stack (with the vine flourish on both), per a
+later product decision — see `docs/GITSYLVA_FINAL_AUDIT.md` §10, Ronda 5.1/5.2.
