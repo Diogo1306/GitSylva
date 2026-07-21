@@ -3,6 +3,8 @@ import { render, screen, fireEvent, cleanup, within } from "@testing-library/rea
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Titlebar } from "./Titlebar";
 import { useAppStore } from "../../state/appStore";
+import { useShortcutsStore, DEFAULT_BINDINGS } from "../../state/shortcutsStore";
+import { comboHint } from "../../lib/platform";
 import type { RepoInfo } from "../../lib/types";
 
 // Semantic/keyboard migration (Task 3): the repo tab strip must expose real,
@@ -42,6 +44,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   useAppStore.setState({ repo: null, repos: [], groups: [], groupOf: {} });
+  useShortcutsStore.getState().reset();
 });
 
 describe("Titlebar repo tab strip: keyboard", () => {
@@ -176,5 +179,33 @@ describe("Titlebar: hit targets (Task 6)", () => {
     const btn = screen.getByRole("button", { name: "Abrir repositório" }) as HTMLElement;
     expect(parseFloat(String(btn.style.width))).toBeGreaterThanOrEqual(32);
     expect(parseFloat(String(btn.style.height))).toBeGreaterThanOrEqual(32);
+  });
+});
+
+// Task 14: Fetch and search/palette hints, pulled from shortcutsStore via
+// comboHint, shown through the Tooltip primitive on hover AND keyboard focus.
+describe("Titlebar: shortcut hint tooltips (Task 14)", () => {
+  it("shows the Fetch shortcut hint via the Tooltip primitive on keyboard focus", () => {
+    renderTitlebar();
+    const fetchBtn = screen.getByRole("button", { name: "Fetch de origin" });
+    expect(screen.queryByRole("tooltip")).toBeNull();
+    fireEvent.focus(fetchBtn);
+    const tooltip = screen.getByRole("tooltip");
+    expect(tooltip.textContent).toContain(comboHint(DEFAULT_BINDINGS.fetch));
+  });
+
+  it("shows the search/palette shortcut hint via the Tooltip primitive on keyboard focus", () => {
+    renderTitlebar();
+    const searchBtn = screen.getByRole("button", { name: /Pesquisar/ });
+    fireEvent.focus(searchBtn);
+    const tooltip = screen.getByRole("tooltip");
+    expect(tooltip.textContent).toContain(comboHint(DEFAULT_BINDINGS.palette));
+  });
+
+  it("reflects a rebound Fetch shortcut live (pulled from shortcutsStore, not hardcoded)", () => {
+    useShortcutsStore.getState().setBinding("fetch", "mod+9");
+    renderTitlebar();
+    fireEvent.focus(screen.getByRole("button", { name: "Fetch de origin" }));
+    expect(screen.getByRole("tooltip").textContent).toContain(comboHint("mod+9"));
   });
 });

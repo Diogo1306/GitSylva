@@ -99,19 +99,25 @@ function Tool({
   title,
   stub,
   children,
+  bareLabel,
+  ...rest
 }: {
   onClick?: () => void;
   title: string;
   stub?: boolean;
   children: React.ReactNode;
-}) {
+  // Task 14: when wrapped in the custom Tooltip primitive (which already
+  // surfaces the label on hover/focus), skip the native title attribute so
+  // mouse users don't get two overlapping tooltips.
+  bareLabel?: boolean;
+} & React.HTMLAttributes<HTMLButtonElement>) {
   return (
     <button
       type="button"
       onClick={stub ? undefined : onClick}
       onKeyDown={(e) => !stub && activateOnKeyDown(e)}
       disabled={stub}
-      title={stub ? `${title} · em breve` : title}
+      title={stub ? `${title} · em breve` : bareLabel ? undefined : title}
       aria-label={title}
       className={stub ? "gs-stub" : "gs-lift"}
       style={{
@@ -129,6 +135,7 @@ function Tool({
         boxSizing: "border-box",
         fontFamily: "inherit",
       }}
+      {...rest}
     >
       {children}
     </button>
@@ -161,6 +168,8 @@ export function Titlebar({ rail = false }: { rail?: boolean }) {
   // The search hint follows the rebindable palette shortcut and the platform
   // (Ctrl+K on Windows/Linux, ⌘K on macOS) — it was a hardcoded ⌘K before.
   const paletteHint = comboHint(useShortcutsStore((s) => s.bindings.palette));
+  // Task 14: same treatment for Fetch's tooltip hint.
+  const fetchHint = comboHint(useShortcutsStore((s) => s.bindings.fetch));
 
   const files = data ?? [];
   const unstaged = files.filter((f) => f.worktree_status !== ".").length;
@@ -359,10 +368,12 @@ export function Titlebar({ rail = false }: { rail?: boolean }) {
       <div data-tauri-drag-region style={{ flex: 1, alignSelf: "stretch" }} />
 
       <div style={{ display: "flex", gap: 6, alignItems: "center", flexShrink: 0 }}>
-        <Tool onClick={refresh} title="Fetch de origin">
-          <span style={{ fontSize: 14, lineHeight: 1, display: "inline-block", animation: sync.fetch.isPending ? "spin 0.8s linear infinite" : "none" }}>⟳</span>
-          {sync.fetch.isPending ? "A obter…" : "Fetch"}
-        </Tool>
+        <Tooltip content="Fetch de origin" shortcut={fetchHint}>
+          <Tool onClick={refresh} title="Fetch de origin" bareLabel>
+            <span style={{ fontSize: 14, lineHeight: 1, display: "inline-block", animation: sync.fetch.isPending ? "spin 0.8s linear infinite" : "none" }}>⟳</span>
+            {sync.fetch.isPending ? "A obter…" : "Fetch"}
+          </Tool>
+        </Tooltip>
         <Tool onClick={onDiscardClick} title="Descartar alterações não preparadas">
           ↩ Descartar
           {unstaged > 0 && (
@@ -405,33 +416,34 @@ export function Titlebar({ rail = false }: { rail?: boolean }) {
         >
           &gt;_
         </button>
-        <button
-          type="button"
-          onClick={() => setPaletteOpen(true)}
-          onKeyDown={activateOnKeyDown}
-          className="gs-lift"
-          title={`Pesquisar (${paletteHint})`}
-          aria-label={`Pesquisar (${paletteHint})`}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-            padding: "6px 11px",
-            borderRadius: 8,
-            background: "var(--input)",
-            border: "1px solid var(--btnB)",
-            fontSize: 12.5,
-            color: "var(--muted)",
-            whiteSpace: "nowrap",
-            cursor: "pointer",
-            fontFamily: "inherit",
-          }}
-        >
-          Pesquisar
-          <span style={{ fontFamily: mono, fontSize: 10, border: "1px solid var(--btnB)", borderRadius: 5, padding: "1px 4px" }}>
-            {paletteHint}
-          </span>
-        </button>
+        <Tooltip content="Pesquisar" shortcut={paletteHint}>
+          <button
+            type="button"
+            onClick={() => setPaletteOpen(true)}
+            onKeyDown={activateOnKeyDown}
+            className="gs-lift"
+            aria-label={`Pesquisar (${paletteHint})`}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              padding: "6px 11px",
+              borderRadius: 8,
+              background: "var(--input)",
+              border: "1px solid var(--btnB)",
+              fontSize: 12.5,
+              color: "var(--muted)",
+              whiteSpace: "nowrap",
+              cursor: "pointer",
+              fontFamily: "inherit",
+            }}
+          >
+            Pesquisar
+            <span style={{ fontFamily: mono, fontSize: 10, border: "1px solid var(--btnB)", borderRadius: 5, padding: "1px 4px" }}>
+              {paletteHint}
+            </span>
+          </button>
+        </Tooltip>
         {/* Definições: only entry point left after the Sidebar dedup (that nav
             row duplicated this exact action). Custom Tooltip (not just a
             native title, which never shows on keyboard focus) so keyboard
