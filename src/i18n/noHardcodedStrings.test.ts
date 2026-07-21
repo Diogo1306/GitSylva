@@ -1,7 +1,5 @@
 import { describe, it, expect } from "vitest";
-import ts from "typescript";
-import { readdirSync, readFileSync, statSync } from "node:fs";
-import { join } from "node:path";
+import * as ts from "typescript";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Completion gate for Task 16 (i18n). Scans the component/feature source for
@@ -19,9 +17,15 @@ import { join } from "node:path";
 // A literal is an offender when it either contains an accented Latin character
 // (á, ã, ç, é, …) OR — in a visible context — matches a curated Portuguese word.
 // Genuinely non-translatable literals live in the allowlist below.
+//
+// Source is read via Vite's import.meta.glob (?raw) so the test stays browser-
+// typed and needs no node types — see the *.test.* exclusion in the patterns.
 // ─────────────────────────────────────────────────────────────────────────────
 
-const ROOTS = [join(process.cwd(), "src", "features"), join(process.cwd(), "src", "components")];
+const sources = import.meta.glob(
+  ["../features/**/*.{ts,tsx}", "../components/**/*.{ts,tsx}", "!../**/*.test.{ts,tsx}", "!../**/*.d.ts"],
+  { query: "?raw", import: "default", eager: true },
+) as Record<string, string>;
 
 /** Exact (trimmed) literals that are allowed to stay hardcoded: brand/tech
  * tokens, git refs, symbols and punctuation. Documented, intentionally small. */
@@ -54,7 +58,7 @@ const PT_WORDS = [
   "idioma", "seccao", "secção", "seccoes", "secções", "obrigatorio", "obrigatório", "opcional",
   "copiado", "copiar", "colar", "atualizar", "limpar", "mensagem", "mensagens", "etiqueta",
   "etiquetas", "corrente", "atual", "sucesso", "falhou", "erro", "aviso", "conflito", "conflitos",
-  "guardadas", "guardados", "descartadas", "descartados", "enviadas", "recebidas",
+  "guardados", "descartadas", "descartados", "enviadas", "recebidas",
 ];
 const PT_WORD_RE = new RegExp(`(^|[^\\p{L}])(${PT_WORDS.join("|")})([^\\p{L}]|$)`, "iu");
 
@@ -71,22 +75,6 @@ function isSuspect(raw: string, visible: boolean): boolean {
   if (ACCENT_RE.test(raw)) return true;
   if (visible && PT_WORD_RE.test(raw)) return true;
   return false;
-}
-
-function collectFiles(dir: string): string[] {
-  const out: string[] = [];
-  for (const name of readdirSync(dir)) {
-    const full = join(dir, name);
-    if (statSync(full).isDirectory()) {
-      out.push(...collectFiles(full));
-      continue;
-    }
-    if (!/\.(ts|tsx)$/.test(name)) continue;
-    if (/\.test\.(ts|tsx)$/.test(name)) continue;
-    if (name.endsWith(".d.ts")) continue;
-    out.push(full);
-  }
-  return out;
 }
 
 type Offender = { file: string; line: number; text: string };
@@ -122,11 +110,10 @@ function isNotifyCall(call: ts.CallExpression, sf: ts.SourceFile): boolean {
   return false;
 }
 
-function scanFile(file: string): Offender[] {
-  const text = readFileSync(file, "utf8");
-  const sf = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+function scanSource(rawPath: string, text: string): Offender[] {
+  const sf = ts.createSourceFile(rawPath, text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
   const offenders: Offender[] = [];
-  const rel = file.replace(process.cwd(), "").replace(/\\/g, "/").replace(/^\//, "");
+  const rel = rawPath.replace(/^\.\.\//, "src/");
 
   const record = (node: ts.Node, raw: string) => {
     const { line } = sf.getLineAndCharacterOfPosition(node.getStart(sf));
@@ -152,7 +139,7 @@ function scanFile(file: string): Offender[] {
 describe("no hardcoded user-facing strings in components", () => {
   it("every user-facing literal goes through t()", () => {
     const offenders: Offender[] = [];
-    for (const root of ROOTS) offenders.push(...collectFiles(root).flatMap(scanFile));
+    for (const [path, text] of Object.entries(sources)) offenders.push(...scanSource(path, text));
 
     if (offenders.length > 0) {
       const byFile = new Map<string, Offender[]>();
@@ -162,6 +149,7 @@ describe("no hardcoded user-facing strings in components", () => {
         byFile.set(o.file, list);
       }
       const report = [...byFile.entries()]
+        .sort(([a], [b]) => a.localeCompare(b))
         .map(([file, list]) => `\n  ${file}\n${list.map((o) => `    L${o.line}: ${JSON.stringify(o.text)}`).join("\n")}`)
         .join("");
       throw new Error(`${offenders.length} hardcoded user-facing string(s) still need t():\n${report}\n`);
