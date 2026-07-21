@@ -127,3 +127,19 @@ describe("RepoPicker: keyboard operability", () => {
     expect((clone as HTMLElement).style.outline).not.toBe("none");
   });
 });
+
+describe("RepoPicker: accent-tolerant recents search", () => {
+  it("finds an accented recent when searching without accents", () => {
+    useRecentsStore.setState({ recents: [{ path: "/repo/x", name: "código-base", branch: "main" }] });
+    render(<RepoPicker />);
+    fireEvent.change(screen.getByLabelText(/Procurar/), { target: { value: "codigo" } });
+    expect(screen.getByRole("button", { name: /código-base.*main/ })).toBeTruthy();
+  });
+
+  it("finds a plain recent when searching with accents", () => {
+    useRecentsStore.setState({ recents: [{ path: "/repo/x", name: "historico", branch: "main" }] });
+    render(<RepoPicker />);
+    fireEvent.change(screen.getByLabelText(/Procurar/), { target: { value: "histórico" } });
+    expect(screen.getByRole("button", { name: /historico.*main/ })).toBeTruthy();
+  });
+});

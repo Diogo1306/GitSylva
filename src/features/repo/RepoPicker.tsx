@@ -4,6 +4,7 @@ import { useRecentsStore } from "../../state/recentsStore";
 import { pickFolder, initRepo, cloneRepo } from "../../lib/api";
 import { notify } from "../../state/notificationStore";
 import { initials } from "../../lib/format";
+import { fold } from "../../lib/fold";
 import { useOpenRepo } from "./useOpenRepo";
 import { FormField } from "../../components/ui/FormField";
 import { SelectableRow } from "../../components/ui/SelectableRow";
@@ -58,7 +59,7 @@ export function RepoPicker() {
   }
 
   const filteredRecents = recents.filter((r) =>
-    (r.name + " " + r.path).toLowerCase().includes(q.trim().toLowerCase()),
+    fold(r.name + " " + r.path).includes(fold(q.trim())),
   );
 
   const tabs: [Tab, string][] = [
