@@ -1,10 +1,12 @@
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useAppStore } from "../../state/appStore";
 import { useLog, useCommitDetail, useRewriteActions, useBranchActions, useTagActions } from "../../state/queries";
 import { Modal } from "../../components/ui/Modal";
 import { Input } from "../../components/ui/Input";
 import { Button } from "../../components/ui/Button";
 import { ContextMenu, type MenuItem } from "../../components/ui/ContextMenu";
+import { SelectableRow } from "../../components/ui/SelectableRow";
+import { FormField } from "../../components/ui/FormField";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
 import { PanelHandle } from "../../components/ui/PanelResize";
 import { usePanelWidth, usePanelHeight } from "../../lib/usePanelWidth";
@@ -29,6 +31,20 @@ import type { Commit } from "../../lib/types";
 
 const ROW_H = 52;
 const mono = "'JetBrains Mono', monospace";
+
+// Visually hides the filter's <label> text while keeping it in the
+// accessibility tree (the design has no visible label, only a placeholder).
+const srOnly: CSSProperties = {
+  position: "absolute",
+  width: 1,
+  height: 1,
+  padding: 0,
+  margin: -1,
+  overflow: "hidden",
+  clip: "rect(0,0,0,0)",
+  whiteSpace: "nowrap",
+  border: 0,
+};
 
 // Above this many rows the list renders in a window (uniform row height →
 // simple math). Measured: 2000 commits fully rendered = 2000 divs + 11.6k SVG
@@ -169,7 +185,12 @@ function DetailPanel({ repoPath, commit }: { repoPath: string; commit: Commit })
         {(data?.files ?? []).map((f) => {
           const st = statusStyle(f.status);
           return (
-            <div key={f.path} onClick={() => scrollToFile(f.path)} title="Ver o diff deste ficheiro" className="gs-row" style={{ display: "flex", alignItems: "center", gap: 9, padding: "6px 8px", borderRadius: 7, cursor: "pointer" }}>
+            <SelectableRow
+              key={f.path}
+              onSelect={() => scrollToFile(f.path)}
+              title="Ver o diff deste ficheiro"
+              style={{ gap: 9, padding: "6px 8px", borderRadius: 7 }}
+            >
               <FileIcon path={f.path} />
               <span
                 style={{
@@ -192,7 +213,7 @@ function DetailPanel({ repoPath, commit }: { repoPath: string; commit: Commit })
               >
                 {f.status}
               </span>
-            </div>
+            </SelectableRow>
           );
         })}
       </div>
@@ -240,25 +261,22 @@ const CommitRow = memo(function CommitRow({
   // it's findable at a glance even with the chips scrolled out of view.
   const isHead = commit.refs.includes("HEAD");
   return (
-    <div
-      onClick={() => onSelect(commit.hash)}
+    <SelectableRow
+      role="option"
+      selected={selected}
+      onSelect={() => onSelect(commit.hash)}
       onDoubleClick={() => onGoto(commit.hash)}
       onContextMenu={(e) => {
         e.preventDefault();
         onContext(commit.hash, e.clientX, e.clientY);
       }}
-      className="gs-row"
       title="1 clique: ver · 2 cliques: ir para este commit · botão direito: opções"
       style={{
         height: rowH,
-        display: "flex",
-        alignItems: "center",
         gap: 12,
         padding: filtering ? "0 16px" : `0 16px 0 ${gutter}px`,
-        cursor: "pointer",
+        borderRadius: 0,
         boxSizing: "border-box",
-        // undefined (not "transparent") so .gs-row:hover still paints.
-        background: selected ? "var(--sel)" : undefined,
         boxShadow: isHead ? "inset 3px 0 0 var(--l0)" : undefined,
         borderBottom: "1px solid var(--bsoft)",
         // Skip painting rows scrolled out of view; the box keeps its height so
@@ -276,7 +294,7 @@ const CommitRow = memo(function CommitRow({
       <Avatar name={commit.author} />
       <div style={{ width: 66, fontFamily: mono, fontSize: 12, color: "var(--text2)", flexShrink: 0 }}>{commit.hash.slice(0, 7)}</div>
       <div className="gs-resp-time" style={{ width: 96, fontSize: 12, color: "var(--muted)", textAlign: "right", flexShrink: 0 }}>{relativeTime(commit.date)}</div>
-    </div>
+    </SelectableRow>
   );
 });
 
@@ -465,28 +483,33 @@ export function History() {
     <div style={{ flex: 1, display: "flex", flexDirection: below ? "column" : "row", minWidth: 0, minHeight: 0, animation: "fadeUp 0.25s ease both" }}>
       <div style={{ flex: 1, minWidth: 0, minHeight: 0, display: "flex", flexDirection: "column", borderRight: below ? "none" : "1px solid var(--border)" }}>
         <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 10 }}>
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Filtrar histórico…"
-            style={{
-              flex: 1,
-              background: "var(--input)",
-              border: "1px solid var(--btnB)",
-              borderRadius: 8,
-              padding: "8px 12px",
-              fontSize: 13,
-              color: "var(--text)",
-              outline: "none",
-              fontFamily: "var(--font)",
-              boxSizing: "border-box",
-            }}
-          />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <FormField label={<span style={srOnly}>Filtrar histórico</span>}>
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Filtrar histórico…"
+                style={{
+                  width: "100%",
+                  background: "var(--input)",
+                  border: "1px solid var(--btnB)",
+                  borderRadius: 8,
+                  padding: "8px 12px",
+                  fontSize: 13,
+                  color: "var(--text)",
+                  fontFamily: "var(--font)",
+                  boxSizing: "border-box",
+                }}
+              />
+            </FormField>
+          </div>
           <div style={{ fontSize: 12, color: "var(--muted)", fontFamily: mono, whiteSpace: "nowrap" }}>
             {filtered.length} commits
           </div>
-          <div
+          <button
+            type="button"
             onClick={() => setDetailOpen(!detailOpen)}
+            aria-pressed={detailOpen}
             title={detailOpen ? "Esconder o painel de detalhe/diff" : "Mostrar o painel de detalhe/diff"}
             className="gs-lift"
             style={{
@@ -501,10 +524,11 @@ export function History() {
               color: "var(--btnT)",
               cursor: "pointer",
               whiteSpace: "nowrap",
+              fontFamily: "inherit",
             }}
           >
             Diff {detailOpen ? "✓" : ""}
-          </div>
+          </button>
         </div>
 
         <div
@@ -521,7 +545,11 @@ export function History() {
                 <CommitGraphSvg rows={rows} rowH={rowH} visibleRange={virtual ? { start: startIdx, end: endIdx } : undefined} />
               </div>
             )}
-            <div style={virtual ? { position: "absolute", top: startIdx * rowH, left: 0, right: 0 } : undefined}>
+            <div
+              role="listbox"
+              aria-label="Histórico de commits"
+              style={virtual ? { position: "absolute", top: startIdx * rowH, left: 0, right: 0 } : undefined}
+            >
               {visibleCommits.map((c) => (
                 <CommitRow
                   key={c.hash}
@@ -539,13 +567,26 @@ export function History() {
           </div>
           {/* When the log filled the window, there are probably older commits. */}
           {!filtering && commits.length >= limit && (
-            <div
+            <button
+              type="button"
               onClick={() => !isFetching && setLimit((l) => l + 200)}
               className="gs-row"
-              style={{ padding: "12px 16px", textAlign: "center", fontSize: 12.5, color: "var(--l0)", cursor: "pointer", fontWeight: 600 }}
+              style={{
+                display: "block",
+                width: "100%",
+                padding: "12px 16px",
+                textAlign: "center",
+                fontSize: 12.5,
+                color: "var(--l0)",
+                cursor: "pointer",
+                fontWeight: 600,
+                background: "transparent",
+                border: "none",
+                fontFamily: "inherit",
+              }}
             >
               {isFetching ? "A carregar…" : "Carregar mais commits"}
-            </div>
+            </button>
           )}
         </div>
       </div>
