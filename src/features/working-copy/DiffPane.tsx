@@ -4,6 +4,7 @@ import { BlameView } from "../../components/BlameView";
 import { statusStyle, statusTitle } from "../../lib/status";
 import { FileIcon } from "../../components/FileIcon";
 import { useT } from "../../i18n";
+import { activateOnKeyDown } from "../../components/ui/keys";
 import type { Sel } from "./WorkingCopy";
 
 const mono = "'JetBrains Mono', monospace";
@@ -53,9 +54,16 @@ export function DiffPane({
         )}
         <div style={{ flex: 1 }} />
         {effSel && selStatus !== "?" && (
-          <div onClick={onToggleBlame} className="gs-lift" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, minHeight: 32, padding: "5px 11px", borderRadius: 7, background: blameOn ? "var(--sel)" : "var(--btn)", border: "1px solid var(--btnB)", fontSize: 12, color: "var(--btnT)", cursor: "pointer", whiteSpace: "nowrap", boxSizing: "border-box" }}>
-            Blame
-          </div>
+          <button
+            type="button"
+            onClick={onToggleBlame}
+            onKeyDown={activateOnKeyDown}
+            aria-pressed={blameOn}
+            className="gs-lift"
+            style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, minHeight: 32, padding: "5px 11px", margin: 0, borderRadius: 7, background: blameOn ? "var(--sel)" : "var(--btn)", border: "1px solid var(--btnB)", fontSize: 12, fontFamily: "inherit", color: "var(--btnT)", cursor: "pointer", whiteSpace: "nowrap", boxSizing: "border-box" }}
+          >
+            {t("workingCopy.blame")}
+          </button>
         )}
         {/* Task 6 progressive disclosure: this label is redundant with the
             file path + status badge already shown — hide it before the
@@ -64,9 +72,15 @@ export function DiffPane({
           <span style={{ fontSize: 12, color: "var(--muted)" }}>{effSel?.staged ? t("workingCopy.stagedDiff") : t("workingCopy.worktreeDiff")}</span>
         )}
         {!blameOn && (
-          <div onClick={onToggleStacked} className="gs-lift" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, minHeight: 32, padding: "5px 11px", borderRadius: 7, background: "var(--btn)", border: "1px solid var(--btnB)", fontSize: 12, color: "var(--btnT)", cursor: "pointer", whiteSpace: "nowrap", boxSizing: "border-box" }}>
+          <button
+            type="button"
+            onClick={onToggleStacked}
+            onKeyDown={activateOnKeyDown}
+            className="gs-lift"
+            style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, minHeight: 32, padding: "5px 11px", margin: 0, borderRadius: 7, background: "var(--btn)", border: "1px solid var(--btnB)", fontSize: 12, fontFamily: "inherit", color: "var(--btnT)", cursor: "pointer", whiteSpace: "nowrap", boxSizing: "border-box" }}
+          >
             {isStacked ? t("workingCopy.sideBySide") : t("workingCopy.stacked")}
-          </div>
+          </button>
         )}
       </div>
       <div style={{ flex: 1, overflow: "auto", padding: "10px 0", background: "var(--panel2)" }}>

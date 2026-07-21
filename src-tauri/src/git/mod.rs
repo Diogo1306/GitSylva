@@ -129,24 +129,26 @@ pub fn cap_patch(patch: String, max: usize) -> String {
     format!("{}\n{}\n", &patch[..cut], PATCH_TRUNCATED_MARKER)
 }
 
-/// Prefix well-known raw git failures with an actionable Portuguese hint.
-/// The original stderr is kept below the hint — never hidden.
+/// Trim git's raw stderr for a failed command.
+///
+/// This used to prepend a hardcoded Portuguese hint sentence ahead of the raw
+/// text. That is now redundant AND an i18n bug: the frontend classifies and
+/// localizes auth/network/conflict guidance itself in the user's chosen
+/// language (see `classifySyncError` in src/lib/errors.ts and
+/// `SyncFailurePanel` in src/features/shell/Modals.tsx), so a hardcoded-PT
+/// hint from the backend would render verbatim Portuguese prose under an
+/// English UI. Return the raw stderr (trimmed) instead — this keeps the
+/// stable English substrings ("Authentication failed", "could not read
+/// Username", "Could not resolve host", "CONFLICT", "Automatic merge
+/// failed", …) that `classifySyncError` matches on, unchanged. Non-sync
+/// error surfaces now show this raw, technical (English) text directly,
+/// which is the intended outcome — never a hidden or empty message.
 fn friendly(stderr: &str) -> String {
-    let lower = stderr.to_lowercase();
-    let hint = if lower.contains("terminal prompts disabled") || lower.contains("could not read username") || lower.contains("authentication failed") {
-        Some("Autenticação necessária: configura credenciais git (credential manager) ou usa um URL SSH com chave carregada.")
-    } else if lower.contains("permission denied (publickey)") {
-        Some("O remoto recusou a chave SSH: confirma que a chave está no ssh-agent e registada na conta.")
-    } else if lower.contains("could not resolve host") || lower.contains("unable to access") && lower.contains("could not") {
-        Some("Sem ligação ao remoto: verifica a internet ou o URL do remoto.")
-    } else if lower.contains("index.lock") {
-        Some("Outra operação git está (ou ficou) em curso neste repositório. Tenta de novo; se persistir, apaga .git/index.lock.")
+    let trimmed = stderr.trim();
+    if trimmed.is_empty() {
+        "git command failed with no error output".to_owned()
     } else {
-        None
-    };
-    match hint {
-        Some(h) => format!("{h}\n{}", stderr.trim()),
-        None => stderr.trim().to_owned(),
+        trimmed.to_owned()
     }
 }
 
@@ -154,9 +156,9 @@ fn friendly(stderr: &str) -> String {
 /// failures put the actionable text on stderr, but a merge-mode `git pull`
 /// conflict prints "CONFLICT (content): ..." and "Automatic merge failed; ..."
 /// to STDOUT while stderr only carries the fetch summary. stderr is kept
-/// FIRST so `friendly()` still finds the auth/network/lock substrings (all on
-/// stderr) and keeps its hint at the top; stdout is appended when it adds
-/// anything, so a conflict stays visible and classifiable downstream.
+/// FIRST so the auth/network/lock substrings (all on stderr) stay at the top
+/// of the message; stdout is appended when it adds anything, so a conflict
+/// stays visible and classifiable downstream.
 pub fn combine_git_streams(stdout: &str, stderr: &str) -> String {
     let err = stderr.trim();
     let out = stdout.trim();
@@ -437,9 +439,46 @@ mod tests {
         let combined = combine_git_streams(stdout, stderr);
         assert!(combined.contains("CONFLICT"), "{combined:?}");
         assert!(combined.contains("Automatic merge failed"), "{combined:?}");
-        // stderr stays first so friendly()'s auth/network detection (all on
-        // stderr) still works and its hint stays on top.
+        // stderr stays first so the auth/network detection substrings (all on
+        // stderr) stay ahead of the conflict text.
         assert!(combined.find("From /tmp/remote").unwrap() < combined.find("CONFLICT").unwrap());
+    }
+
+    #[test]
+    fn friendly_returns_raw_stderr_trimmed_without_any_hint() {
+        // Regression for the i18n leak: friendly() must NOT prepend any
+        // hardcoded-language prose (the frontend now owns that guidance).
+        let raw = "  fatal: Authentication failed for 'https://github.com/x/y.git'\n";
+        let out = friendly(raw);
+        assert_eq!(out, "fatal: Authentication failed for 'https://github.com/x/y.git'");
+        assert!(!out.contains("Autenticação"), "{out:?}");
+        assert!(!out.contains("Sem ligação"), "{out:?}");
+    }
+
+    #[test]
+    fn friendly_preserves_raw_substrings_the_frontend_classifier_matches_on() {
+        // src/lib/errors.ts classifySyncError matches on these RAW git
+        // strings — friendly() must keep them byte-for-byte.
+        let cases = [
+            "fatal: Authentication failed for 'https://github.com/x/y.git'",
+            "fatal: could not read Username for 'https://github.com': terminal prompts disabled",
+            "fatal: unable to access 'https://x': Could not resolve host: github.com",
+            "git@github.com: Permission denied (publickey).",
+            "CONFLICT (content): Merge conflict in a.txt\nAutomatic merge failed; fix conflicts and then commit the result.",
+        ];
+        for raw in cases {
+            assert_eq!(friendly(raw), raw, "friendly() altered a raw substring in {raw:?}");
+        }
+    }
+
+    #[test]
+    fn friendly_falls_back_to_a_neutral_message_when_stderr_is_empty() {
+        // git can exit non-zero with nothing on stderr; the caller must never
+        // see an empty error message.
+        let out = friendly("");
+        assert!(!out.is_empty());
+        let out2 = friendly("   \n  ");
+        assert!(!out2.is_empty());
     }
 
     #[test]
