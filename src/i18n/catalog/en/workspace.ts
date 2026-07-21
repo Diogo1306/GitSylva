@@ -153,6 +153,7 @@ export const enWorkspace: Record<WorkspaceKey, MessageValue> = {
   "workingCopy.worktreeDiff": "working copy diff",
   "workingCopy.sideBySide": "Side by side",
   "workingCopy.stacked": "Stacked",
+  "workingCopy.blame": "Blame",
   "workingCopy.loadingBlame": "Loading blame…",
   "workingCopy.noBlame": "No blame (new file?).",
   "workingCopy.loadingDiff": "Loading diff…",

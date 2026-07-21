@@ -154,6 +154,7 @@ export const ptWorkspace = {
   "workingCopy.worktreeDiff": "diff da cópia de trabalho",
   "workingCopy.sideBySide": "Lado a lado",
   "workingCopy.stacked": "Empilhado",
+  "workingCopy.blame": "Blame",
   "workingCopy.loadingBlame": "A carregar blame…",
   "workingCopy.noBlame": "Sem blame (ficheiro novo?).",
   "workingCopy.loadingDiff": "A carregar diff…",
