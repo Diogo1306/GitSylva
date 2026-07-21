@@ -1,6 +1,6 @@
 use crate::error::GitError;
 use crate::git::log::{log_range, Commit};
-use crate::git::run_git;
+use crate::git::{run_git, run_git_full};
 use serde::Serialize;
 
 #[derive(Debug, Serialize)]
@@ -70,13 +70,18 @@ pub fn incoming(path: String) -> Result<Vec<Commit>, GitError> {
 
 /// Pull using the chosen mode: "ff" (fast-forward only, safe default),
 /// "merge" (default git merge), or "rebase".
+///
+/// Uses `run_git_full` (not plain `run_git`) so a merge/rebase conflict's
+/// "CONFLICT ..."/"Automatic merge failed ..." text — which git prints to
+/// STDOUT — reaches the frontend and is classified as a conflict instead of a
+/// generic error.
 pub fn pull(path: String, mode: String) -> Result<(), GitError> {
     let flag = match mode.as_str() {
         "merge" => "--no-rebase",
         "rebase" => "--rebase",
         _ => "--ff-only",
     };
-    run_git(&path, &["pull", flag]).map(|_| ())
+    run_git_full(&path, &["pull", flag]).map(|_| ())
 }
 
 /// Push the current branch. Sets the upstream if the branch has none yet.
@@ -183,5 +188,58 @@ mod tests {
         assert_eq!(outgoing(down_s.clone()).unwrap().len(), 1);
         push(down_s.clone()).unwrap();
         assert_eq!(run_git(&bare_s, &["rev-list", "--count", "main"]).unwrap().trim(), "3");
+    }
+
+    #[test]
+    fn pull_merge_conflict_surfaces_conflict_text() {
+        // Regression: a merge-mode `git pull` prints "CONFLICT ..."/"Automatic
+        // merge failed ..." to STDOUT, which plain run_git discards. `pull`
+        // uses run_git_full so that text reaches the frontend classifier —
+        // without it the user saw only the fetch summary in an error box.
+        let base = std::env::temp_dir().join(format!("gitsylva-pull-conflict-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&base);
+        fs::create_dir_all(&base).unwrap();
+
+        let bare = base.join("remote.git");
+        fs::create_dir_all(&bare).unwrap();
+        let bare_s = slug(&bare);
+        run_git(&bare_s, &["init", "--bare", "-b", "main"]).unwrap();
+
+        // Uploader: base commit pushed to origin/main.
+        let up = base.join("up");
+        fs::create_dir_all(&up).unwrap();
+        let up_s = up.to_string_lossy().to_string();
+        run_git(&up_s, &["init", "-b", "main"]).unwrap();
+        run_git(&up_s, &["config", "user.email", "t@t.com"]).unwrap();
+        run_git(&up_s, &["config", "user.name", "T"]).unwrap();
+        fs::write(up.join("a.txt"), "base\n").unwrap();
+        run_git(&up_s, &["add", "-A"]).unwrap();
+        run_git(&up_s, &["commit", "-m", "base"]).unwrap();
+        run_git(&up_s, &["remote", "add", "origin", &bare_s]).unwrap();
+        run_git(&up_s, &["push", "-u", "origin", "main"]).unwrap();
+
+        // Downloader clones, then both sides edit the same line differently so
+        // the histories diverge with a real content conflict.
+        let down = base.join("down");
+        run_git(&slug(&base), &["clone", &bare_s, "down"]).unwrap();
+        let down_s = down.to_string_lossy().to_string();
+        run_git(&down_s, &["config", "user.email", "d@d.com"]).unwrap();
+        run_git(&down_s, &["config", "user.name", "D"]).unwrap();
+
+        fs::write(up.join("a.txt"), "uploader change\n").unwrap();
+        run_git(&up_s, &["commit", "-am", "up"]).unwrap();
+        run_git(&up_s, &["push"]).unwrap();
+
+        fs::write(down.join("a.txt"), "downloader change\n").unwrap();
+        run_git(&down_s, &["commit", "-am", "down"]).unwrap();
+
+        // Merge-mode pull (`--no-rebase`) fetches, diverges, and conflicts.
+        let err = pull(down_s.clone(), "merge".into()).unwrap_err();
+        assert_eq!(err.code, "git_failed");
+        assert!(
+            err.message.contains("CONFLICT") || err.message.contains("Automatic merge failed"),
+            "conflict text missing from pull error message: {:?}",
+            err.message
+        );
     }
 }
