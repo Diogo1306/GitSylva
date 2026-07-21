@@ -6,35 +6,16 @@ import {
   useShortcutsStore,
   comboFromEvent,
   formatCombo,
-  SHORTCUT_LABELS,
+  shortcutLabel,
+  SHORTCUT_ACTIONS,
   type ShortcutAction,
 } from "../../../state/shortcutsStore";
 import { isMac } from "../../../lib/platform";
+import { useT } from "../../../i18n";
 
 // Rebindable shortcuts (handoff: click a row → record → key applies, Esc
 // cancels; the kbd pulses while recording). Combos always require Ctrl/⌘ so
 // plain typing can never fire a git action.
-
-const ACTIONS: ShortcutAction[] = ["palette", "commit", "push", "pull", "fetch", "branch", "stash"];
-
-const STATIC_GROUPS: { title: string; rows: [string[], string][] }[] = [
-  {
-    title: "Paleta de comandos",
-    rows: [
-      [["↑", "↓"], "Navegar nos resultados"],
-      [["↵"], "Abrir o item selecionado"],
-      [["Esc"], "Fechar a paleta"],
-    ],
-  },
-  { title: "Histórico", rows: [[["↑", "↓"], "Percorrer os commits"]] },
-  {
-    title: "Diálogos e menus",
-    rows: [
-      [["↵"], "Confirmar (branch, stash, tag…)"],
-      [["Esc"], "Cancelar / fechar"],
-    ],
-  },
-];
 
 function Keys({ keys, pulsing }: { keys: string[]; pulsing?: boolean }) {
   return (
@@ -52,10 +33,30 @@ function Keys({ keys, pulsing }: { keys: string[]; pulsing?: boolean }) {
 }
 
 export function Shortcuts() {
+  const t = useT();
   const bindings = useShortcutsStore((s) => s.bindings);
   const setBinding = useShortcutsStore((s) => s.setBinding);
   const reset = useShortcutsStore((s) => s.reset);
   const [recording, setRecording] = useState<ShortcutAction | null>(null);
+
+  const STATIC_GROUPS: { title: string; rows: [string[], string][] }[] = [
+    {
+      title: t("settings.shortcuts.groupPalette"),
+      rows: [
+        [["↑", "↓"], t("settings.shortcuts.navigateResults")],
+        [["↵"], t("settings.shortcuts.openSelected")],
+        [["Esc"], t("settings.shortcuts.closePalette")],
+      ],
+    },
+    { title: t("settings.shortcuts.groupHistory"), rows: [[["↑", "↓"], t("settings.shortcuts.scrollCommits")]] },
+    {
+      title: t("settings.shortcuts.groupDialogs"),
+      rows: [
+        [["↵"], t("settings.shortcuts.confirmDialog")],
+        [["Esc"], t("settings.shortcuts.cancelClose")],
+      ],
+    },
+  ];
 
   // While recording, capture the next combo; Esc cancels. The root attribute
   // tells the global handler to stand down.
@@ -73,7 +74,7 @@ export function Shortcuts() {
       const combo = comboFromEvent(e);
       if (!combo) return; // needs Ctrl/⌘ — keep waiting
       setBinding(recording, combo);
-      toast(`${SHORTCUT_LABELS[recording]} → ${formatCombo(combo, isMac).join(isMac ? "" : "+")}`);
+      toast(t("settings.shortcuts.rebound", { label: shortcutLabel(recording), combo: formatCombo(combo, isMac).join(isMac ? "" : "+") }));
       setRecording(null);
     };
     window.addEventListener("keydown", onKey, true);
@@ -81,24 +82,24 @@ export function Shortcuts() {
       root.removeAttribute("data-recording-shortcut");
       window.removeEventListener("keydown", onKey, true);
     };
-  }, [recording, setBinding]);
+  }, [recording, setBinding, t]);
 
   return (
     <div id="set-atalhos" style={{ display: "flex", flexDirection: "column", gap: 14, scrollMarginTop: 20 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <SectionTitle>ATALHOS DE TECLADO</SectionTitle>
+        <SectionTitle>{t("settings.shortcuts.title")}</SectionTitle>
         <div style={{ flex: 1 }} />
-        <Button size="sm" onClick={() => { reset(); toast("Atalhos repostos"); }}>Repor predefinições</Button>
+        <Button size="sm" onClick={() => { reset(); toast(t("settings.shortcuts.resetDone")); }}>{t("settings.shortcuts.resetDefaults")}</Button>
       </div>
-      <Hint>Clica num atalho para o regravar (Esc cancela). Todos exigem {isMac ? "⌘" : "Ctrl"} para nunca dispararem enquanto escreves.</Hint>
+      <Hint>{t("settings.shortcuts.intro", { mod: isMac ? "⌘" : "Ctrl" })}</Hint>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 6, padding: 18, border: "1px solid var(--border)", borderRadius: 12, background: "var(--panel)" }}>
-        {ACTIONS.map((a) => (
+        {SHORTCUT_ACTIONS.map((a) => (
           <div
             key={a}
             onClick={() => setRecording(a)}
             className="gs-row"
-            title="Clique para regravar"
+            title={t("settings.shortcuts.clickToRebind")}
             style={{ display: "flex", alignItems: "center", gap: 12, padding: "6px 8px", borderRadius: 8, cursor: "pointer" }}
           >
             <div style={{ width: 132, flexShrink: 0 }}>
@@ -109,7 +110,7 @@ export function Shortcuts() {
               )}
             </div>
             <span style={{ fontSize: 13, color: "var(--text2)" }}>
-              {recording === a ? "Prime a combinação nova… (Esc cancela)" : SHORTCUT_LABELS[a]}
+              {recording === a ? t("settings.shortcuts.pressNewCombo") : shortcutLabel(a)}
             </span>
           </div>
         ))}

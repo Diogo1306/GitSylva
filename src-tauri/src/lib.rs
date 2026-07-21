@@ -72,6 +72,8 @@ pub fn run() {
       git::commit::commit_cmd,
       git::commit::head_message_cmd,
       git::log::get_log_cmd,
+      git::log::get_branch_commits_cmd,
+      git::log::get_path_commits_cmd,
       git::diff::get_diff_cmd,
       git::hunk::apply_hunk_cmd,
       git::detail::commit_detail_cmd,

@@ -1,5 +1,6 @@
 // Maps a git status letter to the design's status colours: added green,
 // deleted red, conflicted red, everything else (modified, renamed...) amber.
+import { t } from "../i18n";
 
 export function statusStyle(s: string): { bg: string; color: string } {
   if (s === "A" || s === "?") return { bg: "var(--stAB)", color: "var(--stAT)" };
@@ -9,13 +10,13 @@ export function statusStyle(s: string): { bg: string; color: string } {
 
 /** Human title for a status letter (tooltips next to the file-type icon). */
 export function statusTitle(s: string): string {
-  if (s === "A") return "Adicionado";
-  if (s === "?") return "Não rastreado";
-  if (s === "D") return "Apagado";
-  if (s === "U") return "Em conflito";
-  if (s === "R") return "Renomeado";
-  if (s === "C") return "Copiado";
-  return "Modificado";
+  if (s === "A") return t("status.added");
+  if (s === "?") return t("status.untracked");
+  if (s === "D") return t("status.deleted");
+  if (s === "U") return t("status.conflict");
+  if (s === "R") return t("status.renamed");
+  if (s === "C") return t("status.copied");
+  return t("status.modified");
 }
 
 // A porcelain-v2 unmerged entry: either side is "U", or both added / both deleted.

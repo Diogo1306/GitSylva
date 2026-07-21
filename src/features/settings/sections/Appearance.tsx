@@ -1,7 +1,24 @@
 import { useRef } from "react";
 import { useThemeStore } from "../../../state/themeStore";
 import { toast } from "../../../state/toastStore";
-import { PALETTES, FONTS, TREE_META, BRANCH_COLOR_META, treeLeafColor, type ThemeKey, type TreeStyleKey, type FontKey } from "../../../theme/themes";
+import {
+  PALETTES,
+  FONTS,
+  BRANCH_COLOR_META,
+  treeLeafColor,
+  themeName,
+  themeHint,
+  accentName,
+  fontName,
+  fontDesc,
+  treeName,
+  treeDesc,
+  branchColorName,
+  type ThemeKey,
+  type TreeStyleKey,
+  type FontKey,
+} from "../../../theme/themes";
+import { useT } from "../../../i18n";
 import { Toggle } from "../../../components/ui/misc";
 import { Button } from "../../../components/ui/Button";
 import { SectionTitle, FieldLabel, Hint } from "./_shared";
@@ -30,8 +47,8 @@ function ThemeCard({ themeKey, active, onPick }: { themeKey: ThemeKey; active: b
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         <span style={{ width: 14, height: 14, borderRadius: "50%", border: `2px solid ${v["--l0"]}`, background: accent, boxSizing: "border-box" }} />
-        <span style={{ fontSize: 13, fontWeight: 600 }}>{p.name}</span>
-        <span style={{ fontSize: 12, color: "var(--muted)" }}>{p.hint}</span>
+        <span style={{ fontSize: 13, fontWeight: 600 }}>{themeName(themeKey)}</span>
+        <span style={{ fontSize: 12, color: "var(--muted)" }}>{themeHint(themeKey)}</span>
       </div>
     </div>
   );
@@ -74,17 +91,18 @@ function TreeIcon({ kind, leaf }: { kind: TreeStyleKey; leaf: string }) {
 }
 
 export function Appearance() {
-  const t = useThemeStore();
-  const accents = PALETTES[t.theme].accents;
+  const t = useT();
+  const prefs = useThemeStore();
+  const accents = PALETTES[prefs.theme].accents;
   // "Auto" previews the CURRENT THEME's own vivid pair — the live --l1/--l2
   // vars are already recolored by the selected palette, so reading them made
   // Auto mirror whatever palette was active instead of the theme default.
-  const vivid = PALETTES[t.theme].vivid;
+  const vivid = PALETTES[prefs.theme].vivid;
   const autoSwatch = `linear-gradient(90deg, ${vivid[0]}, ${vivid[1]})`;
   const fileRef = useRef<HTMLInputElement>(null);
 
   function exportTheme() {
-    const data = Object.fromEntries(THEME_KEYS.map((k) => [k, t[k]]));
+    const data = Object.fromEntries(THEME_KEYS.map((k) => [k, prefs[k]]));
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -92,7 +110,7 @@ export function Appearance() {
     a.download = "gitsylva-theme.json";
     a.click();
     URL.revokeObjectURL(url);
-    toast("Tema exportado");
+    toast(t("settings.appearance.exported"));
   }
 
   function importTheme(file: File) {
@@ -101,126 +119,126 @@ export function Appearance() {
         const data = JSON.parse(text);
         const patch: Record<string, unknown> = {};
         for (const k of THEME_KEYS) if (k in data) patch[k] = data[k];
-        t.savePrefs(patch);
-        toast("Tema importado");
+        prefs.savePrefs(patch);
+        toast(t("settings.appearance.imported"));
       } catch {
-        toast("Ficheiro de tema inválido");
+        toast(t("settings.appearance.invalidFile"));
       }
     });
   }
 
   return (
     <div id="set-aparencia" style={{ display: "flex", flexDirection: "column", gap: 16, scrollMarginTop: 20 }}>
-      <SectionTitle>APARÊNCIA</SectionTitle>
+      <SectionTitle>{t("settings.appearance.title")}</SectionTitle>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        <FieldLabel>Tema</FieldLabel>
+        <FieldLabel>{t("settings.appearance.theme")}</FieldLabel>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           {THEME_ORDER.map((k) => (
-            <ThemeCard key={k} themeKey={k} active={t.theme === k} onPick={() => t.savePrefs({ theme: k })} />
+            <ThemeCard key={k} themeKey={k} active={prefs.theme === k} onPick={() => prefs.savePrefs({ theme: k })} />
           ))}
         </div>
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        <FieldLabel>Estilo da árvore</FieldLabel>
+        <FieldLabel>{t("settings.appearance.treeStyle")}</FieldLabel>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           {TREE_ORDER.map((k) => {
-            const active = t.treeStyle === k;
+            const active = prefs.treeStyle === k;
             return (
-              <div key={k} onClick={() => t.savePrefs({ treeStyle: k })} className="gs-lift" style={{ border: `2px solid ${active ? "var(--accent)" : "var(--btnB)"}`, borderRadius: 12, padding: "12px 14px", cursor: "pointer", display: "flex", alignItems: "center", gap: 11, background: "var(--panel)" }}>
-                <TreeIcon kind={k} leaf={treeLeafColor(t.theme, k)} />
+              <div key={k} onClick={() => prefs.savePrefs({ treeStyle: k })} className="gs-lift" style={{ border: `2px solid ${active ? "var(--accent)" : "var(--btnB)"}`, borderRadius: 12, padding: "12px 14px", cursor: "pointer", display: "flex", alignItems: "center", gap: 11, background: "var(--panel)" }}>
+                <TreeIcon kind={k} leaf={treeLeafColor(prefs.theme, k)} />
                 <div>
-                  <div style={{ fontSize: 13, fontWeight: 600 }}>{TREE_META[k].name}</div>
-                  <div style={{ fontSize: 11.5, color: "var(--muted)" }}>{TREE_META[k].desc}</div>
+                  <div style={{ fontSize: 13, fontWeight: 600 }}>{treeName(k)}</div>
+                  <div style={{ fontSize: 11.5, color: "var(--muted)" }}>{treeDesc(k)}</div>
                 </div>
               </div>
             );
           })}
         </div>
-        <Hint>Muda as folhas da árvore de commits · combina com qualquer tema.</Hint>
+        <Hint>{t("settings.appearance.treeHint")}</Hint>
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        <FieldLabel>Cor das branches</FieldLabel>
+        <FieldLabel>{t("settings.appearance.branchColor")}</FieldLabel>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
           {BRANCH_COLOR_META.map((lc) => (
-            <div key={lc.key} onClick={() => t.savePrefs({ branchColor: lc.key })} style={pillStyle(t.branchColor === lc.key)}>
+            <div key={lc.key} onClick={() => prefs.savePrefs({ branchColor: lc.key })} style={pillStyle(prefs.branchColor === lc.key)}>
               <span style={{ width: 16, height: 16, borderRadius: "50%", background: lc.key === "auto" ? autoSwatch : lc.swatch }} />
-              <span>{lc.name}</span>
+              <span>{branchColorName(lc.key)}</span>
             </div>
           ))}
         </div>
-        <Hint>Recolore as linhas que partem da main · Auto usa o par vivo do tema.</Hint>
+        <Hint>{t("settings.appearance.branchHint")}</Hint>
       </div>
 
-      <div onClick={() => t.savePrefs({ anims: !t.anims })} style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 4px", cursor: "pointer", borderBottom: "1px solid var(--bsoft)" }}>
+      <div onClick={() => prefs.savePrefs({ anims: !prefs.anims })} style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 4px", cursor: "pointer", borderBottom: "1px solid var(--bsoft)" }}>
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 13.5, fontWeight: 500 }}>Animações decorativas</div>
-          <Hint>Folhas a cair, crescimento da árvore e flash na troca de tema</Hint>
+          <div style={{ fontSize: 13.5, fontWeight: 500 }}>{t("settings.appearance.anims")}</div>
+          <Hint>{t("settings.appearance.animsHint")}</Hint>
         </div>
-        <Toggle on={t.anims} aria-label="Animações decorativas" />
+        <Toggle on={prefs.anims} aria-label={t("settings.appearance.anims")} />
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        <FieldLabel>Cor de destaque</FieldLabel>
+        <FieldLabel>{t("settings.appearance.accent")}</FieldLabel>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
           {accents.map((a, i) => (
-            <div key={a[0]} onClick={() => t.savePrefs({ accentIdx: i })} style={pillStyle(t.accentIdx === i)}>
+            <div key={a[0]} onClick={() => prefs.savePrefs({ accentIdx: i })} style={pillStyle(prefs.accentIdx === i)}>
               <span style={{ width: 16, height: 16, borderRadius: "50%", background: a[1] }} />
-              <span>{a[0]}</span>
+              <span>{accentName(prefs.theme, i)}</span>
             </div>
           ))}
         </div>
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        <FieldLabel>Densidade</FieldLabel>
+        <FieldLabel>{t("settings.appearance.density")}</FieldLabel>
         <div style={{ display: "inline-flex", gap: 4, padding: 4, borderRadius: 10, background: "var(--panel2)", border: "1px solid var(--border)", alignSelf: "flex-start" }}>
           {(["conforto", "compacta"] as const).map((k) => (
-            <div key={k} onClick={() => t.savePrefs({ density: k })} style={{ padding: "6px 16px", borderRadius: 7, fontSize: 13, fontWeight: 600, cursor: "pointer", background: t.density === k ? "var(--win)" : "transparent", color: t.density === k ? "var(--text)" : "var(--muted)" }}>
-              {k === "conforto" ? "Conforto" : "Compacta"}
+            <div key={k} onClick={() => prefs.savePrefs({ density: k })} style={{ padding: "6px 16px", borderRadius: 7, fontSize: 13, fontWeight: 600, cursor: "pointer", background: prefs.density === k ? "var(--win)" : "transparent", color: prefs.density === k ? "var(--text)" : "var(--muted)" }}>
+              {k === "conforto" ? t("settings.appearance.densityComfort") : t("settings.appearance.densityCompact")}
             </div>
           ))}
         </div>
-        <Hint>Altura das linhas do histórico: 52px em conforto, 40px em compacta.</Hint>
+        <Hint>{t("settings.appearance.densityHint")}</Hint>
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        <FieldLabel>Repositórios abertos</FieldLabel>
+        <FieldLabel>{t("settings.appearance.openRepos")}</FieldLabel>
         <div style={{ display: "inline-flex", gap: 4, padding: 4, borderRadius: 10, background: "var(--panel2)", border: "1px solid var(--border)", alignSelf: "flex-start" }}>
           {(["tabs", "rail"] as const).map((k) => (
-            <div key={k} onClick={() => t.savePrefs({ repoLayout: k })} style={{ padding: "6px 16px", borderRadius: 7, fontSize: 13, fontWeight: 600, cursor: "pointer", background: t.repoLayout === k ? "var(--win)" : "transparent", color: t.repoLayout === k ? "var(--text)" : "var(--muted)" }}>
-              {k === "tabs" ? "Abas em cima" : "Barra lateral"}
+            <div key={k} onClick={() => prefs.savePrefs({ repoLayout: k })} style={{ padding: "6px 16px", borderRadius: 7, fontSize: 13, fontWeight: 600, cursor: "pointer", background: prefs.repoLayout === k ? "var(--win)" : "transparent", color: prefs.repoLayout === k ? "var(--text)" : "var(--muted)" }}>
+              {k === "tabs" ? t("settings.appearance.layoutTabs") : t("settings.appearance.layoutRail")}
             </div>
           ))}
         </div>
-        <Hint>Barra lateral: estilo VS Code · escala melhor com muitos repositórios.</Hint>
+        <Hint>{t("settings.appearance.openReposHint")}</Hint>
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        <FieldLabel>Painel de detalhe do histórico</FieldLabel>
+        <FieldLabel>{t("settings.appearance.historyPanel")}</FieldLabel>
         <div style={{ display: "inline-flex", gap: 4, padding: 4, borderRadius: 10, background: "var(--panel2)", border: "1px solid var(--border)", alignSelf: "flex-start" }}>
           {(["lado", "baixo"] as const).map((k) => (
-            <div key={k} onClick={() => t.savePrefs({ historyLayout: k })} style={{ padding: "6px 16px", borderRadius: 7, fontSize: 13, fontWeight: 600, cursor: "pointer", background: t.historyLayout === k ? "var(--win)" : "transparent", color: t.historyLayout === k ? "var(--text)" : "var(--muted)" }}>
-              {k === "lado" ? "Ao lado" : "Em baixo"}
+            <div key={k} onClick={() => prefs.savePrefs({ historyLayout: k })} style={{ padding: "6px 16px", borderRadius: 7, fontSize: 13, fontWeight: 600, cursor: "pointer", background: prefs.historyLayout === k ? "var(--win)" : "transparent", color: prefs.historyLayout === k ? "var(--text)" : "var(--muted)" }}>
+              {k === "lado" ? t("settings.appearance.historySide") : t("settings.appearance.historyBelow")}
             </div>
           ))}
         </div>
-        <Hint>Em baixo = estilo SourceTree: lista em cima, diff em toda a largura. Esconde/mostra com o botão "Diff" na barra do histórico.</Hint>
+        <Hint>{t("settings.appearance.historyPanelHint")}</Hint>
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        <FieldLabel>Fonte da interface</FieldLabel>
+        <FieldLabel>{t("settings.appearance.font")}</FieldLabel>
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           {FONT_ORDER.map((k) => {
-            const active = t.fontKey === k;
+            const active = prefs.fontKey === k;
             return (
-              <div key={k} onClick={() => t.savePrefs({ fontKey: k })} style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 14px", borderRadius: 10, border: `2px solid ${active ? "var(--accent)" : "var(--btnB)"}`, cursor: "pointer", background: "var(--panel)" }}>
+              <div key={k} onClick={() => prefs.savePrefs({ fontKey: k })} style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 14px", borderRadius: 10, border: `2px solid ${active ? "var(--accent)" : "var(--btnB)"}`, cursor: "pointer", background: "var(--panel)" }}>
                 <span style={{ width: 14, height: 14, borderRadius: "50%", border: `2px solid ${active ? "var(--accent)" : "var(--btnB)"}`, background: active ? "var(--accent)" : "transparent", boxSizing: "border-box", flexShrink: 0 }} />
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 13.5, fontWeight: 600 }}>{FONTS[k].name}</div>
-                  <Hint>{FONTS[k].desc}</Hint>
+                  <div style={{ fontSize: 13.5, fontWeight: 600 }}>{fontName(k)}</div>
+                  <Hint>{fontDesc(k)}</Hint>
                 </div>
                 <div style={{ fontSize: 16, color: "var(--text2)", fontFamily: FONTS[k].stack }}>AaBbCc 0123</div>
               </div>
@@ -230,10 +248,10 @@ export function Appearance() {
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        <FieldLabel>Partilhar tema</FieldLabel>
+        <FieldLabel>{t("settings.appearance.shareTheme")}</FieldLabel>
         <div style={{ display: "flex", gap: 8 }}>
-          <Button onClick={exportTheme}>Exportar</Button>
-          <Button onClick={() => fileRef.current?.click()}>Importar</Button>
+          <Button onClick={exportTheme}>{t("settings.appearance.export")}</Button>
+          <Button onClick={() => fileRef.current?.click()}>{t("settings.appearance.import")}</Button>
           <input
             ref={fileRef}
             type="file"
@@ -246,7 +264,7 @@ export function Appearance() {
             }}
           />
         </div>
-        <Hint>Guarda ou carrega tema, estilo de árvore, cores, accent e fonte num ficheiro.</Hint>
+        <Hint>{t("settings.appearance.shareHint")}</Hint>
       </div>
     </div>
   );

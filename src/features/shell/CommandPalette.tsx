@@ -3,15 +3,18 @@ import { useAppStore } from "../../state/appStore";
 import { useLog, useBranches, useBranchActions, useStatus, useSyncActions } from "../../state/queries";
 import { toast } from "../../state/toastStore";
 import { notify } from "../../state/notificationStore";
+import { fetchFailureNotice } from "../../lib/errors";
+import { useRecentBranchesStore } from "../../state/recentBranchesStore";
 import { spawnLeaf } from "../../lib/leaf";
 import { fold, foldChars } from "../../lib/fold";
 import { comboHint } from "../../lib/platform";
 import { useShortcutsStore } from "../../state/shortcutsStore";
+import { useT } from "../../i18n";
 import type { View } from "../../state/appStore";
 
 const mono = "'JetBrains Mono', monospace";
 
-type Item = { label: string; sub: string; dot: string; dotR: string; run: () => void };
+type Item = { label: string; sub: string; badge?: string; dot: string; dotR: string; run: () => void };
 type Group = { title: string; items: Item[] };
 
 // Bold the matched portion of a result label.
@@ -31,6 +34,7 @@ function markMatch(text: string, q: string) {
 }
 
 export function CommandPalette() {
+  const t = useT();
   const open = useAppStore((s) => s.paletteOpen);
   const setOpen = useAppStore((s) => s.setPaletteOpen);
   // Lingering render: when the store closes the palette, keep it mounted for
@@ -86,32 +90,76 @@ export function CommandPalette() {
         run: () => { switchRepo(r.path); setOpen(false); },
       }));
 
+    // Task 12: remote branches used to be excluded outright. They now show up
+    // too, labelled "remota" — but a remote whose short name already has a
+    // local branch is skipped (the local row already reaches the same
+    // branch, so listing both would just be a distinct-looking duplicate).
+    const localNames = new Set((branches ?? []).filter((b) => !b.is_remote).map((b) => b.name));
+    const remoteShortName = (name: string) => {
+      const slash = name.indexOf("/");
+      return slash >= 0 ? name.slice(slash + 1) : name;
+    };
+
+    const runCheckout = (checkoutName: string) => () => {
+      checkout.mutate(checkoutName, {
+        onSuccess: () => {
+          // Task 10: track the checkout so it surfaces under "Recentes"
+          // in the sidebar, same as a checkout triggered from there.
+          if (repo) useRecentBranchesStore.getState().record(repo.path, checkoutName);
+          toast(t("shell.toast.nowOn", { name: checkoutName }));
+        },
+        onError: (e: unknown) => toast((e as { message?: string })?.message ?? t("shell.error.checkout"), "error"),
+      });
+      setOpen(false);
+    };
+
     const br: Item[] = (branches ?? [])
-      .filter((b) => !b.is_remote && !b.is_current)
+      .filter((b) => !b.is_current)
+      .filter((b) => !b.is_remote || !localNames.has(remoteShortName(b.name)))
       .filter((b) => match(b.name))
       .slice(0, 6)
-      .map((b) => ({
-        label: b.name,
-        sub: "checkout",
-        dot: "var(--leaf)",
-        dotR: "2px",
-        run: () => {
-          checkout.mutate(b.name, {
-            onSuccess: () => toast(`Em ${b.name}`),
-            onError: (e: unknown) => toast((e as { message?: string })?.message ?? "não foi possível fazer checkout", "error"),
-          });
-          setOpen(false);
-        },
-      }));
+      .map((b) =>
+        b.is_remote
+          ? {
+              label: b.name,
+              sub: t("shell.palette.createLocalBranch"),
+              badge: t("shell.palette.remoteBadge"),
+              dot: "var(--muted)",
+              dotR: "2px",
+              // Remote rows check out the short name — same DWIM `git
+              // checkout <name>` the Sidebar's remote rows use, which git
+              // resolves into a new local branch tracking the remote one.
+              run: runCheckout(remoteShortName(b.name)),
+            }
+          : {
+              label: b.name,
+              sub: "checkout",
+              dot: "var(--leaf)",
+              dotR: "2px",
+              run: runCheckout(b.name),
+            },
+      );
     const navItems: [string, View][] = [
-      ["Histórico", "history"],
-      ["Cópia de trabalho", "working"],
-      ["Stashes", "stashes"],
-      ["Definições", "settings"],
+      [t("shell.nav.history"), "history"],
+      [t("shell.nav.workingCopy"), "working"],
+      [t("shell.nav.stashes"), "stashes"],
+      [t("shell.nav.settings"), "settings"],
     ];
     const nav: Item[] = navItems
       .filter(([n]) => match(n))
-      .map(([n, v]) => ({ label: n, sub: "ir para", dot: "var(--muted)", dotR: "50%", run: go(v) }));
+      .map(([n, v]) => ({ label: n, sub: t("shell.palette.goTo"), dot: "var(--muted)", dotR: "50%", run: go(v) }));
+    // Task 14: short shortcuts help, reachable from the palette. Opens the
+    // compact ShortcutsModal (reuses shortcutsStore's data) instead of
+    // navigating — Definições → Atalhos stays the place to rebind them.
+    if (match(t("shell.nav.shortcuts"))) {
+      nav.push({
+        label: t("shell.nav.shortcuts"),
+        sub: t("shell.palette.shortcutsSub"),
+        dot: "var(--muted)",
+        dotR: "50%",
+        run: () => { setModal("shortcuts"); setOpen(false); },
+      });
+    }
 
     const fl: Item[] = (files ?? [])
       .filter((f) => match(f.path))
@@ -145,24 +193,27 @@ export function CommandPalette() {
 
     // Git actions: each opens the same modal/flow as the toolbar buttons.
     const actionDefs: [string, string, () => void][] = [
-      ["Fazer commit…", "cópia de trabalho", go("working")],
-      ["Pull…", "integrar do remoto", () => { setModal("pull"); setOpen(false); }],
-      ["Push…", "enviar para o remoto", () => { setModal("push"); setOpen(false); }],
-      ["Fetch", "atualizar do remoto", () => {
+      [t("shell.palette.action.commit"), t("shell.palette.action.commitSub"), go("working")],
+      ["Pull…", t("shell.palette.action.pullSub"), () => { setModal("pull"); setOpen(false); }],
+      ["Push…", t("shell.palette.action.pushSub"), () => { setModal("push"); setOpen(false); }],
+      ["Fetch", t("shell.palette.action.fetchSub"), () => {
         if (sync.fetch.isPending) { setOpen(false); return; }
         sync.fetch.mutate(undefined, {
           onSuccess: () => {
             spawnLeaf();
-            notify("Fetch concluído", "origin", "success", "fetch");
+            notify(t("shell.fetch.doneTitle"), "origin", "success", "fetch");
           },
-          onError: (e: unknown) => notify("Fetch falhou", (e as { message?: string })?.message ?? "não foi possível fazer fetch", "error", "fetch"),
+          onError: (e: unknown) => {
+            const n = fetchFailureNotice(e);
+            notify(n.title, n.sub, "error", "fetch");
+          },
         });
         setOpen(false);
       }],
-      ["Nova branch…", "criar branch", () => { setModal("branch"); setOpen(false); }],
-      ["Merge…", "integrar branch", () => { setModal("merge"); setOpen(false); }],
-      ["Guardar stash…", "guardar alterações", () => { setModal("stash"); setOpen(false); }],
-      ["Nova tag…", "criar tag", () => { setModal("tag"); setOpen(false); }],
+      [t("shell.palette.action.newBranch"), t("shell.palette.action.newBranchSub"), () => { setModal("branch"); setOpen(false); }],
+      ["Merge…", t("shell.palette.action.mergeSub"), () => { setModal("merge"); setOpen(false); }],
+      [t("shell.palette.action.stash"), t("shell.palette.action.stashSub"), () => { setModal("stash"); setOpen(false); }],
+      [t("shell.palette.action.newTag"), t("shell.palette.action.newTagSub"), () => { setModal("tag"); setOpen(false); }],
     ];
     const ac: Item[] = repo
       ? actionDefs
@@ -171,14 +222,14 @@ export function CommandPalette() {
       : [];
 
     const gs: Group[] = [];
-    if (rp.length) gs.push({ title: "REPOSITÓRIOS", items: rp });
-    if (br.length) gs.push({ title: "BRANCHES", items: br });
-    if (fl.length) gs.push({ title: "FICHEIROS", items: fl });
-    if (cm.length) gs.push({ title: "COMMITS", items: cm });
-    if (ac.length) gs.push({ title: "AÇÕES", items: ac });
-    if (nav.length) gs.push({ title: "IR PARA", items: nav });
+    if (rp.length) gs.push({ title: t("shell.palette.group.repos"), items: rp });
+    if (br.length) gs.push({ title: t("shell.palette.group.branches"), items: br });
+    if (fl.length) gs.push({ title: t("shell.palette.group.files"), items: fl });
+    if (cm.length) gs.push({ title: t("shell.palette.group.commits"), items: cm });
+    if (ac.length) gs.push({ title: t("shell.palette.group.actions"), items: ac });
+    if (nav.length) gs.push({ title: t("shell.palette.group.goto"), items: nav });
     return gs;
-  }, [render, q, commits, branches, files, repos, repo, switchRepo, checkout, sync, setView, setOpen, setFocusCommit, setSelectedFile, setModal]);
+  }, [t, render, q, commits, branches, files, repos, repo, switchRepo, checkout, sync, setView, setOpen, setFocusCommit, setSelectedFile, setModal]);
 
   if (!render) return null;
 
@@ -224,7 +275,7 @@ export function CommandPalette() {
             else if (e.key === "ArrowUp") { e.preventDefault(); setActive((a) => Math.max(0, a - 1)); }
             else if (e.key === "Enter") flat[activeIdx]?.run();
           }}
-          placeholder="Pesquisar commits, ficheiros, branches…"
+          placeholder={t("shell.palette.searchPlaceholder")}
           style={{
             width: "100%",
             boxSizing: "border-box",
@@ -255,6 +306,11 @@ export function CommandPalette() {
                   >
                     <span style={{ width: 7, height: 7, borderRadius: it.dotR, background: it.dot, flexShrink: 0 }} />
                     <span style={{ flex: 1, fontSize: 13.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{markMatch(it.label, q.trim())}</span>
+                    {it.badge && (
+                      <span style={{ fontFamily: mono, fontSize: 10, fontWeight: 700, padding: "1px 7px", borderRadius: 999, background: "var(--l1bg)", color: "var(--l1)", border: "1px solid var(--l1bd)", flexShrink: 0 }}>
+                        {it.badge}
+                      </span>
+                    )}
                     <span style={{ fontFamily: mono, fontSize: 11, color: "var(--muted)", whiteSpace: "nowrap" }}>{it.sub}</span>
                   </div>
                 );
@@ -263,15 +319,30 @@ export function CommandPalette() {
           ))}
           {groups.length === 0 && (
             <div style={{ padding: 24, textAlign: "center", color: "var(--muted)", fontSize: 13 }}>
-              {q.trim() ? `Sem resultados para "${q}"` : "Escreve para pesquisar…"}
+              {q.trim() ? (
+                <>
+                  <div>{t("shell.palette.noResults", { query: q })}</div>
+                  <div style={{ marginTop: 6, fontSize: 12 }}>{t("shell.palette.noResultsHint")}</div>
+                  <button
+                    type="button"
+                    onClick={() => { setQ(""); setActive(0); }}
+                    className="gs-lift"
+                    style={{ marginTop: 10, padding: "6px 14px", borderRadius: 8, border: "1px solid var(--btnB)", background: "var(--btn)", color: "var(--btnT)", fontSize: 12.5, cursor: "pointer", fontFamily: "inherit" }}
+                  >
+                    {t("shell.palette.clearSearch")}
+                  </button>
+                </>
+              ) : (
+                t("shell.palette.typeToSearch")
+              )}
             </div>
           )}
         </div>
         <div style={{ padding: "8px 14px", borderTop: "1px solid var(--border)", display: "flex", gap: 14, fontSize: 11, color: "var(--muted)" }}>
-          <span>↑↓ navegar</span>
-          <span>↵ abrir</span>
-          <span>esc fechar</span>
-          <span>{comboHint(useShortcutsStore.getState().bindings.palette)} em qualquer ecrã</span>
+          <span>{t("shell.palette.hintNavigate")}</span>
+          <span>{t("shell.palette.hintOpen")}</span>
+          <span>{t("shell.palette.hintClose")}</span>
+          <span>{comboHint(useShortcutsStore.getState().bindings.palette)} {t("shell.palette.onAnyScreen")}</span>
         </div>
       </div>
     </div>

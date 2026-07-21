@@ -1,10 +1,9 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { toast } from "./toastStore";
 import type { RepoInfo } from "../lib/types";
 
 export type View = "working" | "history" | "stashes" | "settings" | "picker";
-export type Modal = "branch" | "stash" | "tag" | "merge" | "pull" | "push" | null;
+export type Modal = "branch" | "stash" | "tag" | "merge" | "pull" | "push" | "shortcuts" | null;
 
 export type RepoGroup = { id: string; name: string; color: number; collapsed: boolean };
 
@@ -17,6 +16,12 @@ type AppState = {
   // Optional grouping of the open repos (name + color), shown in the rail.
   groups: RepoGroup[];
   groupOf: Record<string, string | undefined>;
+  // Repo paths with a Git operation (fetch/pull/push) currently in flight.
+  // Transient — never persisted. Drives the close-repo confirmation (B9).
+  busyRepos: Record<string, boolean>;
+  // Path a close was requested for while busy; the UI shows a confirm
+  // dialog until it resolves via confirmCloseRepo/cancelCloseRepo.
+  pendingClose: string | null;
   view: View;
   // The view to return to when leaving settings/picker.
   prevView: View;
@@ -30,7 +35,16 @@ type AppState = {
   // Refresh an open repo's info in place (never changes which repo is active).
   updateRepo: (oldPath: string, repo: RepoInfo) => void;
   switchRepo: (path: string) => void;
+  // Unconditional close — no confirmation, no refusal. Used internally by
+  // requestCloseRepo/confirmCloseRepo and by startup cleanup of repos that
+  // no longer exist on disk (AppShell), where a prompt would be wrong.
   closeRepo: (path: string) => void;
+  setRepoBusy: (path: string, busy: boolean) => void;
+  // User-facing close: closes immediately unless the repo is busy, in which
+  // case it sets pendingClose so the UI can confirm first.
+  requestCloseRepo: (path: string) => void;
+  confirmCloseRepo: () => void;
+  cancelCloseRepo: () => void;
   addGroup: (name: string) => string;
   renameGroup: (id: string, name: string) => void;
   setGroupColor: (id: string, color: number) => void;
@@ -46,11 +60,13 @@ type AppState = {
 
 export const useAppStore = create<AppState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
   repos: [],
   repo: null,
   groups: [],
   groupOf: {},
+  busyRepos: {},
+  pendingClose: null,
   view: "history",
   prevView: "history",
   selectedFile: null,
@@ -76,22 +92,40 @@ export const useAppStore = create<AppState>()(
     }),
   closeRepo: (path) =>
     set((s) => {
-      // Spec: the last open repository can't be closed (toast instead).
-      if (s.repos.length <= 1 && s.repos.some((r) => r.path === path)) {
-        toast("Não podes fechar o último repositório");
-        return {};
-      }
+      // Closing the last open repo is allowed: repos/repo empty out and
+      // App.tsx falls back to the RepoPicker on its own (no repo -> picker).
       const repos = s.repos.filter((r) => r.path !== path);
       const wasActive = s.repo?.path === path;
       const groupOf = { ...s.groupOf };
       delete groupOf[path];
+      const busyRepos = { ...s.busyRepos };
+      delete busyRepos[path];
       return {
         repos,
         groupOf,
+        busyRepos,
         repo: wasActive ? repos[repos.length - 1] ?? null : s.repo,
         selectedFile: wasActive ? null : s.selectedFile,
       };
     }),
+  setRepoBusy: (path, busy) =>
+    set((s) => {
+      if (!busy && !s.busyRepos[path]) return {};
+      const busyRepos = { ...s.busyRepos };
+      if (busy) busyRepos[path] = true;
+      else delete busyRepos[path];
+      return { busyRepos };
+    }),
+  requestCloseRepo: (path) => {
+    if (get().busyRepos[path]) set({ pendingClose: path });
+    else get().closeRepo(path);
+  },
+  confirmCloseRepo: () => {
+    const path = get().pendingClose;
+    if (path) get().closeRepo(path);
+    set({ pendingClose: null });
+  },
+  cancelCloseRepo: () => set({ pendingClose: null }),
   addGroup: (name) => {
     const id = (globalThis.crypto?.randomUUID?.() ?? String(performance.now())).slice(0, 12);
     set((s) => ({ groups: [...s.groups, { id, name, color: s.groups.length % 3, collapsed: false }] }));

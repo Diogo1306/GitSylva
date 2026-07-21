@@ -1,5 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
 import { reportRenderError } from "../lib/telemetry";
+import { t } from "../i18n";
 
 type Props = {
   children: ReactNode;
@@ -29,9 +30,9 @@ export class ErrorBoundary extends Component<Props, State> {
       return (
         <div style={{ height: "100%", flex: 1, display: "grid", placeItems: "center", background: "var(--win, #141618)", color: "var(--text, #EAECEE)" }}>
           <div style={{ maxWidth: 440, display: "flex", flexDirection: "column", gap: 12, textAlign: "center", padding: 24 }}>
-            <div style={{ fontSize: 16, fontWeight: 700 }}>Algo correu mal</div>
+            <div style={{ fontSize: 16, fontWeight: 700 }}>{t("components.error.title")}</div>
             <div style={{ fontSize: 13, color: "var(--text2, #A5ACB2)", lineHeight: 1.5 }}>
-              Ocorreu um erro inesperado ao desenhar este ecrã. Os teus repositórios não foram afetados.
+              {t("components.error.body")}
             </div>
             <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11.5, color: "var(--muted, #61686E)", whiteSpace: "pre-wrap", wordBreak: "break-word", maxHeight: 120, overflowY: "auto", textAlign: "left", background: "var(--panel2, #0C0E10)", border: "1px solid var(--border, #272B2E)", borderRadius: 10, padding: 12 }}>
               {this.state.error.message}
@@ -41,7 +42,7 @@ export class ErrorBoundary extends Component<Props, State> {
                 onClick={() => this.setState({ error: null })}
                 style={{ padding: "8px 16px", borderRadius: 9, background: "var(--accent, #EAECEE)", color: "var(--accentT, #111315)", border: "none", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}
               >
-                Tentar novamente
+                {t("components.error.retry")}
               </button>
               {this.props.onHome && (
                 <button
@@ -51,14 +52,14 @@ export class ErrorBoundary extends Component<Props, State> {
                   }}
                   style={{ padding: "8px 16px", borderRadius: 9, background: "var(--btn, #1B1E21)", color: "var(--btnT, #C8CDD2)", border: "1px solid var(--btnB, #2D3134)", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
                 >
-                  {this.props.homeLabel ?? "Voltar ao início"}
+                  {this.props.homeLabel ?? t("components.error.home")}
                 </button>
               )}
               <button
                 onClick={() => window.location.reload()}
                 style={{ padding: "8px 16px", borderRadius: 9, background: "var(--btn, #1B1E21)", color: "var(--btnT, #C8CDD2)", border: "1px solid var(--btnB, #2D3134)", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
               >
-                Recarregar aplicação
+                {t("components.error.reload")}
               </button>
             </div>
           </div>

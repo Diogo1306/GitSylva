@@ -4,6 +4,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Sidebar } from "./Sidebar";
 import { Titlebar } from "./Titlebar";
 import { useAppStore } from "../../state/appStore";
+import { useRecentBranchesStore } from "../../state/recentBranchesStore";
+import { listBranches, checkoutBranch } from "../../lib/api";
 import type { RepoInfo, BranchInfo } from "../../lib/types";
 
 // Semantic/keyboard migration (Task 3): branch/nav rows become real,
@@ -13,12 +15,16 @@ import type { RepoInfo, BranchInfo } from "../../lib/types";
 // removed from the Sidebar entirely.
 
 // Flat (no "/") so none of these group into a folder — folder collapse
-// behavior is covered separately below with its own branch set.
+// behavior is covered separately below with its own branch set. The remote
+// entry uses a name distinct from any local branch ("feature-x", once the
+// "origin/" prefix is stripped for display) so role/name queries stay
+// unambiguous between the local and remote sections.
 const { branches } = vi.hoisted(() => ({
   branches: [
     { name: "main", is_current: true, is_remote: false, upstream: null, tip: "aaa1111", ahead: 0, behind: 0 },
     { name: "login", is_current: false, is_remote: false, upstream: null, tip: "bbb2222", ahead: 1, behind: 0 },
     { name: "logout", is_current: false, is_remote: false, upstream: null, tip: "ccc3333", ahead: 0, behind: 2 },
+    { name: "origin/feature-x", is_current: false, is_remote: true, upstream: null, tip: "ddd4444", ahead: 0, behind: 0 },
   ] satisfies BranchInfo[],
 }));
 
@@ -30,6 +36,7 @@ vi.mock("../../lib/api", async (importOriginal) => {
     listBranches: vi.fn().mockResolvedValue(branches),
     listStashes: vi.fn().mockResolvedValue([]),
     listTags: vi.fn().mockResolvedValue([]),
+    checkoutBranch: vi.fn().mockResolvedValue(undefined),
   };
 });
 
@@ -42,12 +49,20 @@ function renderWithProviders(ui: React.ReactElement) {
 
 beforeEach(() => {
   useAppStore.setState({ repo, repos: [repo], view: "history", groups: [], groupOf: {}, focusCommit: null });
+  useRecentBranchesStore.setState({ byRepo: {} });
 });
 
 afterEach(() => {
   cleanup();
   useAppStore.setState({ repo: null, repos: [], groups: [], groupOf: {} });
+  useRecentBranchesStore.setState({ byRepo: {} });
 });
+
+// Remotes collapse by default (Task 10): tests that need to see a remote
+// branch row must expand it first, same as a real user clicking the toggle.
+function expandRemote(remote: string) {
+  fireEvent.click(screen.getByRole("button", { name: `Expandir ${remote}` }));
+}
 
 describe("Sidebar: Definições dedup", () => {
   it("no longer renders a Definições nav entry", () => {
@@ -173,6 +188,86 @@ describe("Sidebar: branch rows", () => {
   });
 });
 
+// Task 8 ("Dar feedback visual inequívoco"): a single click on a branch row
+// must leave a PERSISTENT selected state — background + a lateral accent bar
+// — distinct from the is_current dot/halo (a branch can be selected without
+// being the checked-out branch). role stays "button" (folder toggles, a
+// nested delete button and a rename <input> live inside/among these rows, so
+// restructuring into a role="listbox"/"option" pair is not a clean fit here
+// — see History's commit list for that pattern where it DOES fit cleanly).
+// The selected branch carries aria-pressed (a toggled-button state, valid on
+// role="button"), NOT aria-current: in a git client "current branch" means
+// the CHECKED-OUT branch (is_current), so aria-current on a merely
+// single-clicked non-current branch would be misread as "now checked out".
+describe("Sidebar: branch selection persists (Task 8)", () => {
+  it("single click on a branch row marks it aria-pressed and gives it the selected background, until another branch is clicked", async () => {
+    renderWithProviders(<Sidebar />);
+    const login = await screen.findByRole("button", { name: "login" });
+    const logout = screen.getByRole("button", { name: "logout" });
+    expect(login.getAttribute("aria-pressed")).toBe("false");
+
+    fireEvent.click(login);
+    expect(login.getAttribute("aria-pressed")).toBe("true");
+    expect(login.style.background).toContain("--sel");
+    expect(logout.getAttribute("aria-pressed")).toBe("false");
+
+    fireEvent.click(logout);
+    expect(logout.getAttribute("aria-pressed")).toBe("true");
+    expect(logout.style.background).toContain("--sel");
+    // Selection moved: the previous branch loses it.
+    expect(login.getAttribute("aria-pressed")).toBe("false");
+  });
+
+  it("does not emit aria-selected or aria-current on branch rows (role=button: aria-current would misread as 'checked out')", async () => {
+    renderWithProviders(<Sidebar />);
+    const login = await screen.findByRole("button", { name: "login" });
+    fireEvent.click(login);
+    expect(login.getAttribute("aria-selected")).toBeNull();
+    expect(login.getAttribute("aria-current")).toBeNull();
+  });
+
+  it("selecting a branch keeps focusing its tip commit in the history (existing behavior, unchanged)", async () => {
+    renderWithProviders(<Sidebar />);
+    const login = await screen.findByRole("button", { name: "login" });
+    fireEvent.click(login);
+    expect(useAppStore.getState().focusCommit).toBe("bbb2222");
+  });
+
+  it("the selected-branch accent is distinct from the current-branch (checked out) dot/halo styling", async () => {
+    renderWithProviders(<Sidebar />);
+    // "main" is_current (checked out) but never clicked: no selection accent,
+    // and not aria-pressed (selection and checkout are independent states).
+    const main = await screen.findByRole("button", { name: "main" });
+    expect(main.getAttribute("aria-pressed")).toBe("false");
+    expect(main.style.background).not.toContain("--sel");
+
+    const login = screen.getByRole("button", { name: "login" });
+    fireEvent.click(login);
+    // Selecting a non-current branch: it gets the selection accent while
+    // remaining visually distinct from is_current (still not is_current).
+    expect(login.getAttribute("aria-pressed")).toBe("true");
+  });
+
+  it("also persists selection for a remote-tracking branch row, independently from local branches", async () => {
+    renderWithProviders(<Sidebar />);
+    await screen.findByRole("button", { name: "main" });
+    expandRemote("origin");
+    const remoteBranch = await screen.findByRole("button", { name: "feature-x" });
+    const login = screen.getByRole("button", { name: "login" });
+
+    fireEvent.click(remoteBranch);
+    expect(remoteBranch.getAttribute("aria-pressed")).toBe("true");
+    expect(remoteBranch.style.background).toContain("--sel");
+    expect(login.getAttribute("aria-pressed")).toBe("false");
+
+    // Selecting a local branch afterwards does not clear the remote row's own
+    // id space by accident (they never collide: "login" vs "origin/feature-x").
+    fireEvent.click(login);
+    expect(login.getAttribute("aria-pressed")).toBe("true");
+    expect(remoteBranch.getAttribute("aria-pressed")).toBe("false");
+  });
+});
+
 // Task 6 ("Layout na janela mínima"): below ~1024px wide the sidebar
 // defaults to a collapsed icon rail (a width-driven default), but a real,
 // keyboard-operable toggle always lets the user get nav/branches back — the
@@ -236,5 +331,166 @@ describe("Sidebar: responsive collapse (Task 6)", () => {
     fireEvent.keyDown(collapse, { key: "Enter" });
     expect(screen.queryByRole("button", { name: /Cópia de trabalho/ })).toBeNull();
     expect(screen.getByRole("button", { name: "Expandir barra lateral" })).toBeTruthy();
+  });
+});
+
+// Task 10 ("Fazer a sidebar escalar para muitos branches"): a search box
+// filters local + remote branches (accent-tolerant, reusing lib/fold), remote
+// sections collapse by default, and a small persisted "recent branches"
+// section surfaces what was checked out most recently.
+describe("Sidebar: branch search filter (Task 10)", () => {
+  // "época" (accented) lives inside a folder that does NOT hold the current
+  // branch, so it stays collapsed by default — proving the filter reaches
+  // into collapsed folders, not just the always-visible top level. A
+  // same-folder sibling ("login") is included to prove non-matches stay
+  // hidden while filtering, and a remote counterpart to prove the filter also
+  // reaches into the (separately) collapsed remote section.
+  const filterBranches: BranchInfo[] = [
+    { name: "main", is_current: true, is_remote: false, upstream: null, tip: "aaa1111", ahead: 0, behind: 0 },
+    { name: "feature/época", is_current: false, is_remote: false, upstream: null, tip: "bbb2222", ahead: 0, behind: 0 },
+    { name: "feature/login", is_current: false, is_remote: false, upstream: null, tip: "ccc3333", ahead: 0, behind: 0 },
+    { name: "origin/época", is_current: false, is_remote: true, upstream: null, tip: "ddd4444", ahead: 0, behind: 0 },
+  ];
+
+  it("has an accessible, labeled search box in the branches area", async () => {
+    vi.mocked(listBranches).mockResolvedValueOnce(filterBranches);
+    renderWithProviders(<Sidebar />);
+    expect(await screen.findByRole("searchbox", { name: "Procurar branches" })).toBeTruthy();
+  });
+
+  it("matches an unaccented query against an accented branch name and reveals it inside its (default-collapsed) folder", async () => {
+    vi.mocked(listBranches).mockResolvedValueOnce(filterBranches);
+    renderWithProviders(<Sidebar />);
+    await screen.findByRole("button", { name: "main" });
+    // "feature" doesn't hold the current branch, so it starts collapsed.
+    expect(screen.queryByRole("button", { name: "época" })).toBeNull();
+
+    const search = screen.getByRole("searchbox", { name: "Procurar branches" });
+    fireEvent.change(search, { target: { value: "epoca" } });
+
+    // Both the local AND remote "época" match (see the dedicated remote
+    // test below) — assert the LOCAL one specifically, by its title.
+    const matches = await screen.findAllByRole("button", { name: "época" });
+    expect(matches.some((el) => el.title.includes("feature/época"))).toBe(true);
+    // The non-matching sibling in the same folder stays hidden.
+    expect(screen.queryByRole("button", { name: "login" })).toBeNull();
+  });
+
+  it("also reveals a matching remote branch, auto-expanding the (default-collapsed) remote", async () => {
+    vi.mocked(listBranches).mockResolvedValueOnce(filterBranches);
+    renderWithProviders(<Sidebar />);
+    await screen.findByRole("button", { name: "main" });
+    expect(screen.queryByRole("button", { name: "época" })).toBeNull();
+
+    const search = screen.getByRole("searchbox", { name: "Procurar branches" });
+    // Uppercase, accented query: still matches the lowercase-accented name.
+    fireEvent.change(search, { target: { value: "ÉPOCA" } });
+
+    const matches = await screen.findAllByRole("button", { name: "época" });
+    // One local ("feature/época") + one remote ("origin/época").
+    expect(matches.length).toBe(2);
+  });
+
+  it("clearing the query restores the default collapsed folder state", async () => {
+    vi.mocked(listBranches).mockResolvedValueOnce(filterBranches);
+    renderWithProviders(<Sidebar />);
+    await screen.findByRole("button", { name: "main" });
+    const search = screen.getByRole("searchbox", { name: "Procurar branches" });
+    fireEvent.change(search, { target: { value: "epoca" } });
+    await screen.findAllByRole("button", { name: "época" });
+
+    fireEvent.change(search, { target: { value: "" } });
+    expect(screen.queryByRole("button", { name: "época" })).toBeNull();
+  });
+
+  // Reviewer fix: while filtering, a folder is force-open via the override in
+  // folderOpen(), so a toggle click would compute !true and write an explicit
+  // `false` — invisible during filtering but silently collapsing the folder
+  // once the query clears (defeating "current-branch folder open by default").
+  // The toggle handlers no-op while filtering, so a filtering-time click must
+  // leave the folder's persisted open/closed state untouched.
+  it("clicking a folder toggle WHILE filtering does not collapse that folder after the query is cleared", async () => {
+    // "feature" holds the current branch → open by default; both members
+    // visible with no query.
+    const foldered: BranchInfo[] = [
+      { name: "feature/atual", is_current: true, is_remote: false, upstream: null, tip: "aaa1111", ahead: 0, behind: 0 },
+      { name: "feature/login", is_current: false, is_remote: false, upstream: null, tip: "bbb2222", ahead: 0, behind: 0 },
+    ];
+    vi.mocked(listBranches).mockResolvedValueOnce(foldered);
+    renderWithProviders(<Sidebar />);
+    // Default state: folder open, so the current-branch member is visible.
+    expect(await screen.findByRole("button", { name: "atual" })).toBeTruthy();
+
+    const search = screen.getByRole("searchbox", { name: "Procurar branches" });
+    fireEvent.change(search, { target: { value: "login" } });
+    // While filtering the folder is force-open (its title reads "Colapsar").
+    const toggle = await screen.findByTitle("Colapsar feature");
+    // Click it while the query is active — this must NOT write collapsed state.
+    fireEvent.click(toggle);
+
+    fireEvent.change(search, { target: { value: "" } });
+    // Folder is still open by default: the filtering-time click was a no-op,
+    // so the current-branch member is visible again.
+    expect(await screen.findByRole("button", { name: "atual" })).toBeTruthy();
+  });
+});
+
+describe("Sidebar: remotes collapsed by default (Task 10)", () => {
+  it("does not render remote branch rows until the remote is expanded", async () => {
+    renderWithProviders(<Sidebar />);
+    await screen.findByRole("button", { name: "main" });
+    expect(screen.queryByRole("button", { name: "feature-x" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Expandir origin" })).toBeTruthy();
+  });
+
+  it("a real, keyboard-operable toggle expands and re-collapses the remote's branches", async () => {
+    renderWithProviders(<Sidebar />);
+    await screen.findByRole("button", { name: "main" });
+    const toggle = screen.getByRole("button", { name: "Expandir origin" });
+    expect(toggle.tagName).toBe("BUTTON");
+    expect(toggle.getAttribute("aria-expanded")).toBe("false");
+
+    fireEvent.click(toggle);
+    expect(await screen.findByRole("button", { name: "feature-x" })).toBeTruthy();
+    const collapseToggle = screen.getByRole("button", { name: "Colapsar origin" });
+    expect(collapseToggle.getAttribute("aria-expanded")).toBe("true");
+
+    fireEvent.click(collapseToggle);
+    expect(screen.queryByRole("button", { name: "feature-x" })).toBeNull();
+  });
+
+  it("the toggle activates on Enter (keyboard, not just click)", async () => {
+    renderWithProviders(<Sidebar />);
+    await screen.findByRole("button", { name: "main" });
+    fireEvent.keyDown(screen.getByRole("button", { name: "Expandir origin" }), { key: "Enter" });
+    expect(await screen.findByRole("button", { name: "feature-x" })).toBeTruthy();
+  });
+
+  it("still opens the fetch/pull/push quick menu from its own control, independent of the collapse toggle", async () => {
+    renderWithProviders(<Sidebar />);
+    await screen.findByRole("button", { name: "main" });
+    fireEvent.click(screen.getByRole("button", { name: /Opções de origin/ }));
+    expect(await screen.findByText(/Fetch de origin/)).toBeTruthy();
+  });
+});
+
+describe("Sidebar: recent branches section (Task 10)", () => {
+  it("renders no 'Recentes' section before any checkout has happened", async () => {
+    renderWithProviders(<Sidebar />);
+    await screen.findByRole("button", { name: "main" });
+    expect(screen.queryByText("RECENTES")).toBeNull();
+  });
+
+  it("records the branch and shows a 'Recentes' section after a checkout succeeds", async () => {
+    renderWithProviders(<Sidebar />);
+    await screen.findByRole("button", { name: "main" });
+
+    const logout = screen.getByRole("button", { name: "logout" });
+    fireEvent.doubleClick(logout);
+    fireEvent.click(screen.getByRole("button", { name: "Mudar" }));
+
+    await screen.findByText("RECENTES");
+    expect(checkoutBranch).toHaveBeenCalledWith("/repo", "logout");
+    expect(useRecentBranchesStore.getState().byRepo["/repo"]).toEqual(["logout"]);
   });
 });

@@ -150,12 +150,42 @@ fn friendly(stderr: &str) -> String {
     }
 }
 
+/// Combine git's STDOUT into the failure message alongside STDERR. Most git
+/// failures put the actionable text on stderr, but a merge-mode `git pull`
+/// conflict prints "CONFLICT (content): ..." and "Automatic merge failed; ..."
+/// to STDOUT while stderr only carries the fetch summary. stderr is kept
+/// FIRST so `friendly()` still finds the auth/network/lock substrings (all on
+/// stderr) and keeps its hint at the top; stdout is appended when it adds
+/// anything, so a conflict stays visible and classifiable downstream.
+pub fn combine_git_streams(stdout: &str, stderr: &str) -> String {
+    let err = stderr.trim();
+    let out = stdout.trim();
+    match (err.is_empty(), out.is_empty()) {
+        (false, false) => format!("{err}\n{out}"),
+        (true, false) => out.to_owned(),
+        _ => err.to_owned(),
+    }
+}
+
 /// Run the system git in `repo` with `args`. Returns stdout on success.
 ///
 /// GIT_TERMINAL_PROMPT=0 makes network operations fail fast instead of hanging
 /// on a credential prompt. GIT_EDITOR=true stops merge/rebase --continue from
 /// opening an editor and blocking. A GUI must never block on either.
 pub fn run_git(repo: &str, args: &[&str]) -> Result<String, GitError> {
+    run_git_capturing(repo, args, false)
+}
+
+/// Like `run_git`, but on failure the error message includes git's STDOUT as
+/// well as STDERR (see `combine_git_streams`). Used by `pull`: a merge-mode
+/// conflict's "CONFLICT ..."/"Automatic merge failed ..." text is on STDOUT,
+/// which `run_git` discards — the frontend would otherwise receive only the
+/// fetch summary and never classify the failure as a conflict.
+pub fn run_git_full(repo: &str, args: &[&str]) -> Result<String, GitError> {
+    run_git_capturing(repo, args, true)
+}
+
+fn run_git_capturing(repo: &str, args: &[&str], include_stdout_on_error: bool) -> Result<String, GitError> {
     let started = Instant::now();
     let mut cmd = Command::new("git");
     cmd.arg("-C")
@@ -180,10 +210,13 @@ pub fn run_git(repo: &str, args: &[&str]) -> Result<String, GitError> {
     if output.status.success() {
         Ok(String::from_utf8_lossy(&output.stdout).into_owned())
     } else {
-        Err(GitError {
-            code: "git_failed".into(),
-            message: friendly(&String::from_utf8_lossy(&output.stderr)),
-        })
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        let message = if include_stdout_on_error {
+            friendly(&combine_git_streams(&String::from_utf8_lossy(&output.stdout), &stderr))
+        } else {
+            friendly(&stderr)
+        };
+        Err(GitError { code: "git_failed".into(), message })
     }
 }
 
@@ -392,6 +425,28 @@ mod tests {
         let repo = temp_repo("timeout-ok");
         let out = run_git_timeout(&repo, &["rev-parse", "--is-inside-work-tree"], 30).unwrap();
         assert_eq!(out.trim(), "true");
+    }
+
+    #[test]
+    fn combine_git_streams_keeps_stdout_conflict_text_after_stderr() {
+        // A merge-mode pull conflict: fetch summary on stderr, the conflict
+        // text on stdout. run_git discards stdout, so `pull` uses run_git_full
+        // which combines them — both halves must survive, stderr first.
+        let stderr = "From /tmp/remote\n * branch            main       -> FETCH_HEAD";
+        let stdout = "Auto-merging a.txt\nCONFLICT (content): Merge conflict in a.txt\nAutomatic merge failed; fix conflicts and then commit the result.";
+        let combined = combine_git_streams(stdout, stderr);
+        assert!(combined.contains("CONFLICT"), "{combined:?}");
+        assert!(combined.contains("Automatic merge failed"), "{combined:?}");
+        // stderr stays first so friendly()'s auth/network detection (all on
+        // stderr) still works and its hint stays on top.
+        assert!(combined.find("From /tmp/remote").unwrap() < combined.find("CONFLICT").unwrap());
+    }
+
+    #[test]
+    fn combine_git_streams_falls_back_to_a_single_stream() {
+        assert_eq!(combine_git_streams("", "só stderr"), "só stderr");
+        assert_eq!(combine_git_streams("só stdout", ""), "só stdout");
+        assert_eq!(combine_git_streams("  ", "  "), "");
     }
 
     #[test]

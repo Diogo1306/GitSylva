@@ -364,6 +364,25 @@ export function treeLeafColor(theme: ThemeKey, style: TreeStyleKey): string {
   return PALETTES[theme].vars["--leaf"];
 }
 
+// ── Localized display labels ─────────────────────────────────────────────────
+// The PALETTES/FONTS/TREE_META/BRANCH_COLOR_META objects above keep their
+// original names as stable identifiers/fallbacks; the UI reads display text
+// through these helpers so the picker follows the active language. Keys live in
+// the i18n "theme.*" catalog namespace; the cast is safe because the sets are
+// finite and covered by the catalog-parity test.
+import { t, type MessageKey } from "../i18n";
+
+const tk = (key: string): string => t(key as MessageKey);
+
+export const themeName = (k: ThemeKey): string => tk(`theme.name.${k}`);
+export const themeHint = (k: ThemeKey): string => tk(`theme.hint.${k}`);
+export const accentName = (theme: ThemeKey, idx: number): string => tk(`theme.accent.${theme}.${idx}`);
+export const fontName = (k: FontKey): string => tk(`theme.font.${k}.name`);
+export const fontDesc = (k: FontKey): string => tk(`theme.font.${k}.desc`);
+export const treeName = (k: TreeStyleKey): string => tk(`theme.tree.${k}.name`);
+export const treeDesc = (k: TreeStyleKey): string => tk(`theme.tree.${k}.desc`);
+export const branchColorName = (k: BranchColorKey): string => tk(`theme.branch.${k}`);
+
 export type ThemePrefs = {
   theme: ThemeKey;
   treeStyle: TreeStyleKey;

@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { DiffLines } from "./DiffLines";
 import { DiffSplit } from "./DiffSplit";
 import { DIFF_PAGE_LINES, TRUNCATED_MARKER } from "../lib/diffLimits";
+import { useT } from "../i18n";
 
 // Diff with a unified/side-by-side toggle. The mode is remembered per session
 // (sessionStorage) so switching files keeps the chosen view.
@@ -27,6 +28,7 @@ export function DiffView({
   /** Present when the backend capped this patch; requests the uncapped one. */
   onLoadFull?: () => void;
 }) {
+  const t = useT();
   const [mode, setMode] = useState<DiffMode>(() =>
     sessionStorage.getItem(MODE_KEY) === "split" ? "split" : "unified",
   );
@@ -76,8 +78,8 @@ export function DiffView({
     <div style={{ display: "flex", flexDirection: "column", minHeight: 0 }}>
       <div style={{ display: "flex", justifyContent: "flex-end", padding: "0 10px 6px" }}>
         <div style={{ display: "inline-flex", gap: 3, padding: 3, borderRadius: 8, background: "var(--panel2)", border: "1px solid var(--border)" }}>
-          {tab("unified", "Unificado")}
-          {tab("split", "Lado a lado")}
+          {tab("unified", t("components.diff.unified"))}
+          {tab("split", t("components.diff.split"))}
         </div>
       </div>
       {/* Diff text IS content — it stays selectable/copyable (R5.12). */}
@@ -94,15 +96,15 @@ export function DiffView({
           className="gs-row"
           style={{ padding: "10px 14px", textAlign: "center", fontSize: 12.5, color: "var(--l0)", cursor: "pointer", fontWeight: 600 }}
         >
-          Mostrar mais {Math.min(hidden, DIFF_PAGE_LINES)} linhas ({hidden} ocultas)
+          {t("components.diff.showMoreLines", { count: Math.min(hidden, DIFF_PAGE_LINES) })} {t("components.diff.hiddenCount", { count: hidden })}
         </div>
       )}
       {hidden === 0 && backendCapped && (
         <div style={{ padding: "10px 14px", display: "flex", alignItems: "center", justifyContent: "center", gap: 10, fontSize: 12.5, color: "var(--muted)" }}>
-          <span>Diff demasiado grande — mostrada apenas a primeira parte.</span>
+          <span>{t("components.diff.tooLarge")}</span>
           {onLoadFull && (
             <span onClick={onLoadFull} className="gs-row" style={{ color: "var(--l0)", cursor: "pointer", fontWeight: 600, padding: "2px 8px", borderRadius: 6 }}>
-              Carregar diff completo
+              {t("components.diff.loadFull")}
             </span>
           )}
         </div>

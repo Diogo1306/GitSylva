@@ -10,6 +10,8 @@ import {
   discardAll as discardAllApi,
   commit,
   getLog,
+  getBranchCommits,
+  getPathCommits,
   getDiff,
   applyHunk,
   commitDetail,
@@ -52,6 +54,8 @@ import type { ConflictKind } from "../lib/types";
 export const queryKeys = {
   status: (path: string) => ["status", path] as const,
   log: (path: string) => ["log", path] as const,
+  branchCommits: (path: string, branch: string) => ["branchCommits", path, branch] as const,
+  pathCommits: (path: string, pathspec: string) => ["pathCommits", path, pathspec] as const,
   diff: (path: string, file: string, staged: boolean) =>
     ["diff", path, file, staged] as const,
   commit: (path: string, hash: string) => ["commit", path, hash] as const,
@@ -76,6 +80,30 @@ export function useLog(path: string, limit = 200) {
     queryKey: [...queryKeys.log(path), limit],
     queryFn: () => getLog(path, limit),
     // Keep showing the previous page while a bigger one loads.
+    placeholderData: (prev) => prev,
+  });
+}
+
+// History filters (Task 11): the loaded log window carries no branch
+// reachability or per-commit changed files, so the branch/path filters ask
+// the backend for just the matching hashes. Disabled (no request at all)
+// when the corresponding filter isn't active. `placeholderData` keeps the
+// previous set visible while the limit grows ("Carregar mais"), the same
+// pattern as `useLog`.
+export function useBranchCommits(path: string, branch: string, limit: number) {
+  return useQuery({
+    queryKey: [...queryKeys.branchCommits(path, branch), limit],
+    queryFn: () => getBranchCommits(path, branch, limit),
+    enabled: branch !== "",
+    placeholderData: (prev) => prev,
+  });
+}
+
+export function usePathCommits(path: string, pathspec: string, limit: number) {
+  return useQuery({
+    queryKey: [...queryKeys.pathCommits(path, pathspec), limit],
+    queryFn: () => getPathCommits(path, pathspec, limit),
+    enabled: pathspec.trim() !== "",
     placeholderData: (prev) => prev,
   });
 }
@@ -274,6 +302,32 @@ export function useIncoming(path: string, enabled: boolean) {
   return useQuery({ queryKey: ["incoming", path], queryFn: () => incoming(path), enabled });
 }
 
+// Busy-flag lifecycle for a network Git op (B9 close-repo confirmation).
+// fetch/pull/push are the operations worth warning about before closing a tab
+// — they hit the network and can run for seconds, unlike the near-instant
+// local ops (stage/commit/discard).
+//
+// The repo path is captured in onMutate's returned CONTEXT and read back from
+// that context at settle time — NEVER from the enclosing render's `path`.
+// These mutations carry no mutationKey, so TanStack Query v5 overwrites a
+// still-pending mutation's callbacks with the newest render's closures on
+// every render (MutationObserver.setOptions). Reading `path` at settle time
+// would therefore clear whichever repo is active *now*, orphaning the flag on
+// the original repo after a mid-op tab switch. The per-invocation context is
+// immune to that: it is fixed when onMutate runs (at click time) and handed to
+// onSettled regardless of which callback closure is current. Cleared in
+// onSettled so it fires on BOTH success and error.
+type BusyCtx = { busyPath: string };
+
+export function markRepoBusy(path: string): BusyCtx {
+  useAppStore.getState().setRepoBusy(path, true);
+  return { busyPath: path };
+}
+
+export function clearRepoBusy(ctx: BusyCtx | undefined) {
+  if (ctx) useAppStore.getState().setRepoBusy(ctx.busyPath, false);
+}
+
 export function useSyncActions(path: string) {
   const qc = useQueryClient();
   // After a network op, everything local may have moved.
@@ -283,11 +337,28 @@ export function useSyncActions(path: string) {
     }
   };
   return {
-    fetch: useMutation({ mutationFn: () => fetchRemote(path), onSuccess: refresh }),
+    fetch: useMutation({
+      mutationFn: () => fetchRemote(path),
+      onMutate: () => markRepoBusy(path),
+      onSuccess: refresh,
+      onSettled: (_d, _e, _v, ctx) => clearRepoBusy(ctx),
+    }),
     // Pull uses the mode chosen in Settings (read at call time). A conflicting
     // pull (merge/rebase mode) leaves the repo mid-operation: refresh on error too.
-    pull: useMutation({ mutationFn: () => pull(path, useThemeStore.getState().pullMode), onSettled: refresh }),
-    push: useMutation({ mutationFn: () => push(path), onSuccess: refresh }),
+    pull: useMutation({
+      mutationFn: () => pull(path, useThemeStore.getState().pullMode),
+      onMutate: () => markRepoBusy(path),
+      onSettled: (_d, _e, _v, ctx) => {
+        refresh();
+        clearRepoBusy(ctx);
+      },
+    }),
+    push: useMutation({
+      mutationFn: () => push(path),
+      onMutate: () => markRepoBusy(path),
+      onSuccess: refresh,
+      onSettled: (_d, _e, _v, ctx) => clearRepoBusy(ctx),
+    }),
   };
 }
 

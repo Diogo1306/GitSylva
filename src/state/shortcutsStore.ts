@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { t } from "../i18n";
 
 // Rebindable global shortcuts (handoff interactions §Global + Settings).
 // A combo is stored as "mod+shift+k" — `mod` is ⌘ on macOS, Ctrl elsewhere.
@@ -7,15 +8,13 @@ import { persist } from "zustand/middleware";
 
 export type ShortcutAction = "palette" | "commit" | "push" | "pull" | "fetch" | "branch" | "stash";
 
-export const SHORTCUT_LABELS: Record<ShortcutAction, string> = {
-  palette: "Pesquisa rápida",
-  commit: "Commit (na Cópia de trabalho)",
-  push: "Push",
-  pull: "Pull",
-  fetch: "Fetch",
-  branch: "Nova branch",
-  stash: "Guardar stash",
-};
+/** All actions, in display order — for iterating the shortcut list. */
+export const SHORTCUT_ACTIONS: ShortcutAction[] = ["palette", "commit", "push", "pull", "fetch", "branch", "stash"];
+
+/** The localized label for an action (reads the active language at call time). */
+export function shortcutLabel(action: ShortcutAction): string {
+  return t(`shortcut.${action}`);
+}
 
 export const DEFAULT_BINDINGS: Record<ShortcutAction, string> = {
   palette: "mod+k",

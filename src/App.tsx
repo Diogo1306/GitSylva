@@ -2,6 +2,7 @@ import { Suspense, lazy, useEffect } from "react";
 import { useAppStore } from "./state/appStore";
 import { useOnboardStore } from "./state/onboardStore";
 import { useApplyTheme } from "./theme/useApplyTheme";
+import { detectLocale, useLocaleStore } from "./i18n";
 import { AppShell } from "./features/shell/AppShell";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { Notifications } from "./components/Notifications";
@@ -51,6 +52,12 @@ function Root() {
 
 export default function App() {
   useApplyTheme();
+
+  // Initial language from the OS locale, applied once and only until the user
+  // makes an explicit choice in Settings (applyDetected is a no-op after that).
+  useEffect(() => {
+    useLocaleStore.getState().applyDetected(detectLocale());
+  }, []);
 
   // Ambient loops (falling leaves, sway) pause while the window is blurred,
   // minimized or hidden — see the [data-win-hidden] rule in tokens.css.

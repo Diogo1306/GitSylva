@@ -1,26 +1,27 @@
 // Presentation helpers for the history view: relative times, author avatars
 // and branch/tag ref chips.
+import { t, localeTag, useLocaleStore } from "../i18n";
 
 export function relativeTime(iso: string): string {
   const then = new Date(iso).getTime();
   if (Number.isNaN(then)) return "";
   const secs = Math.max(0, (Date.now() - then) / 1000);
-  if (secs < 45) return "agora";
+  if (secs < 45) return t("time.now");
   const mins = secs / 60;
-  if (mins < 60) return `há ${Math.round(mins)} min`;
+  if (mins < 60) return t("time.minutesAgo", { count: Math.round(mins) });
   const hours = mins / 60;
-  if (hours < 24) return `há ${Math.round(hours)} h`;
+  if (hours < 24) return t("time.hoursAgo", { count: Math.round(hours) });
   const days = hours / 24;
-  if (days < 7) return `há ${Math.round(days)} dias`;
+  if (days < 7) return t("time.daysAgo", { count: Math.round(days) });
   const weeks = days / 7;
-  if (weeks < 5) return `há ${Math.round(weeks)} sem`;
-  return new Date(iso).toLocaleDateString();
+  if (weeks < 5) return t("time.weeksAgo", { count: Math.round(weeks) });
+  return new Date(iso).toLocaleDateString(localeTag(useLocaleStore.getState().locale));
 }
 
 export function fullDate(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleString();
+  return d.toLocaleString(localeTag(useLocaleStore.getState().locale));
 }
 
 export function initials(name: string): string {

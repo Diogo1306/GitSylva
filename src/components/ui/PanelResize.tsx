@@ -1,10 +1,13 @@
+import { useT } from "../../i18n";
+
 /** The invisible-until-hover grab area for usePanelWidth; the host panel needs position:relative. */
 export function PanelHandle({ edge, handleProps }: { edge: "left" | "right"; handleProps: React.HTMLAttributes<HTMLDivElement> }) {
+  const t = useT();
   return (
     <div
       {...handleProps}
       className="gs-resize"
-      title="Arrastar para redimensionar"
+      title={t("components.panel.resizeTitle")}
       style={{
         position: "absolute",
         top: 0,

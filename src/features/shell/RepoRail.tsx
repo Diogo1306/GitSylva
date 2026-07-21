@@ -4,6 +4,7 @@ import type { RepoInfo } from "../../lib/types";
 import { ContextMenu, type MenuItem } from "../../components/ui/ContextMenu";
 import { GroupEditModal } from "./GroupEditModal";
 import { groupColor } from "../../lib/groupColors";
+import { useT } from "../../i18n";
 
 const mono = "'JetBrains Mono', monospace";
 
@@ -11,12 +12,16 @@ const mono = "'JetBrains Mono', monospace";
 // colour). Right-click a repo to move it between groups; right-click a group to
 // rename or delete it.
 export function RepoRail() {
+  const t = useT();
   const repos = useAppStore((s) => s.repos);
   const repo = useAppStore((s) => s.repo);
   const groups = useAppStore((s) => s.groups);
   const groupOf = useAppStore((s) => s.groupOf);
   const switchRepo = useAppStore((s) => s.switchRepo);
-  const closeRepo = useAppStore((s) => s.closeRepo);
+  // Goes through the busy-aware requestCloseRepo (not the raw closeRepo);
+  // the confirm dialog it may trigger is rendered by Titlebar, which is
+  // always mounted alongside this rail (shared appStore state, B9).
+  const requestCloseRepo = useAppStore((s) => s.requestCloseRepo);
   const setView = useAppStore((s) => s.setView);
   const addGroup = useAppStore((s) => s.addGroup);
   const removeGroup = useAppStore((s) => s.removeGroup);
@@ -44,7 +49,7 @@ export function RepoRail() {
           <div style={{ fontSize: 12.5, fontWeight: active ? 600 : 400, color: active ? "var(--text)" : "var(--text2)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name}</div>
           <div style={{ fontFamily: mono, fontSize: 10, color: "var(--muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{active ? repo?.current_branch : r.current_branch}</div>
         </div>
-        <span onClick={(e) => { e.stopPropagation(); closeRepo(r.path); }} title="Fechar" className="gs-row" style={{ width: 15, height: 15, borderRadius: 5, display: "grid", placeItems: "center", color: "var(--muted)", fontSize: 9, flexShrink: 0 }}>✕</span>
+        <span onClick={(e) => { e.stopPropagation(); requestCloseRepo(r.path); }} title={t("common.close")} className="gs-row" style={{ width: 15, height: 15, borderRadius: 5, display: "grid", placeItems: "center", color: "var(--muted)", fontSize: 9, flexShrink: 0 }}>✕</span>
       </div>
     );
   };
@@ -71,28 +76,28 @@ export function RepoRail() {
         );
       })}
 
-      {ungrouped.length > 0 && <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "1.2px", color: "var(--muted)", padding: "6px 8px 4px" }}>PROJETOS</div>}
+      {ungrouped.length > 0 && <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "1.2px", color: "var(--muted)", padding: "6px 8px 4px" }}>{t("shell.rail.projects")}</div>}
       {ungrouped.map((r) => repoRow(r, repos.indexOf(r)))}
 
       <div onClick={() => setView("picker")} className="gs-row" style={{ marginTop: 6, padding: "7px 10px", borderRadius: 8, border: "1.5px dashed var(--btnB)", color: "var(--muted)", fontSize: 12, textAlign: "center", cursor: "pointer" }}>
-        + Abrir repositório
+        + {t("shell.openRepo")}
       </div>
 
       {menu &&
         (() => {
           if (menu.kind === "group") {
             const items: MenuItem[] = [
-              { label: "Editar nome e cor…", onClick: () => setEditGroup(menu.id) },
-              { label: "Apagar grupo", danger: true, onClick: () => removeGroup(menu.id) },
+              { label: t("shell.group.editNameColor"), onClick: () => setEditGroup(menu.id) },
+              { label: t("shell.group.delete"), danger: true, onClick: () => removeGroup(menu.id) },
             ];
             return <ContextMenu x={menu.x} y={menu.y} items={items} onClose={() => setMenu(null)} />;
           }
           const path = menu.id;
           const items: MenuItem[] = [
-            { label: "Novo grupo com este repo", onClick: () => { const id = addGroup("Grupo"); setRepoGroup(path, id); } },
-            ...groups.map((g) => ({ label: `Mover para “${g.name}”`, onClick: () => setRepoGroup(path, g.id) })),
+            { label: t("shell.group.newWithRepo"), onClick: () => { const id = addGroup(t("shell.group.defaultName")); setRepoGroup(path, id); } },
+            ...groups.map((g) => ({ label: t("shell.group.moveTo", { name: g.name }), onClick: () => setRepoGroup(path, g.id) })),
           ];
-          if (groupOf[path]) items.push({ label: "Remover do grupo", onClick: () => setRepoGroup(path, undefined) });
+          if (groupOf[path]) items.push({ label: t("shell.group.removeFrom"), onClick: () => setRepoGroup(path, undefined) });
           return <ContextMenu x={menu.x} y={menu.y} items={items} onClose={() => setMenu(null)} />;
         })()}
 
