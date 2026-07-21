@@ -3,6 +3,7 @@ import { useAppStore } from "../../state/appStore";
 import { useStatus, useBranches, useBranchActions, useStashes, useTags, useTagActions, useRewriteActions, useSyncActions } from "../../state/queries";
 import { notify } from "../../state/notificationStore";
 import { toast } from "../../state/toastStore";
+import { useRecentBranchesStore } from "../../state/recentBranchesStore";
 import { ContextMenu, type MenuItem } from "../../components/ui/ContextMenu";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
 import { PanelHandle } from "../../components/ui/PanelResize";
@@ -10,9 +11,11 @@ import { usePanelWidth } from "../../lib/usePanelWidth";
 import { Input } from "../../components/ui/Input";
 import { Modal } from "../../components/ui/Modal";
 import { Button } from "../../components/ui/Button";
+import { FormField } from "../../components/ui/FormField";
 import { SelectableRow } from "../../components/ui/SelectableRow";
 import { activateOnKeyDown } from "../../components/ui/keys";
 import { groupBranches, type BranchGroup } from "../../lib/branchFolders";
+import { fold } from "../../lib/fold";
 import { useBreakpoint } from "../../lib/useBreakpoint";
 import type { BranchInfo } from "../../lib/types";
 import type { View } from "../../state/appStore";
@@ -25,6 +28,11 @@ const mono = "'JetBrains Mono', monospace";
 // the list. A class (not a data-* prop) because SelectableRow's typed props
 // don't declare arbitrary data attributes, while className always does.
 const BRANCH_ROW_CLASS = "gs-branch-row";
+
+// A stable reference for "no recents yet" — a fresh `[]` on every selector
+// call would make useSyncExternalStore see a "changed" snapshot every render
+// and loop forever.
+const NO_RECENTS: string[] = [];
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
@@ -95,8 +103,22 @@ export function Sidebar() {
   // short; the folder holding the CURRENT branch starts open, and the user's
   // explicit toggles win for the rest of the session.
   const [openFolders, setOpenFolders] = useState<Record<string, boolean>>({});
+  // Task 10: an accent-tolerant branch search (reuses lib/fold, same helper
+  // the command palette and settings search use). While a query is active,
+  // folders/remotes force themselves open to reveal matches — the underlying
+  // openFolders/openRemotes state is never written by filtering, so clearing
+  // the query snaps straight back to whatever was explicitly toggled (or the
+  // defaults) without any extra bookkeeping.
+  const [branchQuery, setBranchQuery] = useState("");
+  const filtering = branchQuery.trim().length > 0;
+  const branchMatches = (name: string) => !filtering || fold(name).includes(fold(branchQuery.trim()));
   const folderOpen = (g: Extract<BranchGroup, { kind: "folder" }>) =>
-    openFolders[g.name] ?? g.members.some((m) => m.is_current);
+    filtering || (openFolders[g.name] ?? g.members.some((m) => m.is_current));
+  // Remotes collapse by default (Task 10) — unlike local folders there's no
+  // "holds the current branch" signal to auto-open one, so every remote
+  // starts closed until the user (or a search match) opens it.
+  const [openRemotes, setOpenRemotes] = useState<Record<string, boolean>>({});
+  const remoteOpen = (remote: string) => filtering || (openRemotes[remote] ?? false);
 
   // Show a branch's tip commit in the history (single click, user request
   // R5.1) and mark that branch SELECTED (Task 8) — a persistent background +
@@ -296,6 +318,19 @@ export function Sidebar() {
   const tags = (tagData ?? []).slice(0, 8);
   // Remote names derived from "<remote>/<branch>" refs.
   const remotes = Array.from(new Set(remoteBranches.map((b) => b.name.split("/")[0])));
+  // Task 10: branches surviving the search filter (identity when no query),
+  // grouped the same way as the unfiltered list so matches still fold into
+  // their folders/remotes (force-opened above via filtering).
+  const localGroups = groupBranches(localBranches.filter((b) => branchMatches(b.name)));
+  const visibleRemoteBranches = remoteBranches.filter((b) => branchMatches(b.name));
+  const visibleRemotes = filtering ? remotes.filter((r) => visibleRemoteBranches.some((b) => b.name.startsWith(r + "/"))) : remotes;
+  // Task 10: recently checked-out branches for THIS repo, most-recent first,
+  // dropping any name that no longer exists (deleted/renamed since). Hidden
+  // while filtering — the filtered list already surfaces what's relevant.
+  const recentNames = useRecentBranchesStore((s) => s.byRepo[repo.path] ?? NO_RECENTS);
+  const recentBranches = recentNames
+    .map((n) => localBranches.find((b) => b.name === n))
+    .filter((b): b is BranchInfo => !!b);
 
   const navRow = (
     key: View,
@@ -455,7 +490,29 @@ export function Sidebar() {
             +
           </button>
         </div>
-        {groupBranches(localBranches).map((g) =>
+        <div style={{ padding: "0 10px 8px" }}>
+          <FormField label="Procurar branches" hideLabel>
+            <Input
+              type="search"
+              value={branchQuery}
+              onChange={(e) => setBranchQuery(e.target.value)}
+              placeholder="Procurar branches…"
+              mono
+              style={{ width: "100%", fontSize: 12.5, padding: "6px 10px" }}
+            />
+          </FormField>
+        </div>
+        {/* Task 10: recently checked-out branches, most-recent first — a
+            quick-access shortcut on top of the folder grouping below.
+            Hidden while filtering, since the filtered list already surfaces
+            what matters. */}
+        {!filtering && recentBranches.length > 0 && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 1, marginBottom: 6 }}>
+            <SectionLabel>RECENTES</SectionLabel>
+            {recentBranches.map((b) => branchRow(b, b.name, false))}
+          </div>
+        )}
+        {localGroups.map((g) =>
           g.kind === "branch" ? (
             branchRow(g.branch, g.branch.name, false)
           ) : (
@@ -504,7 +561,10 @@ export function Sidebar() {
             </div>
           ),
         )}
-        {localBranches.length === 0 && (
+        {filtering && localGroups.length === 0 && (
+          <div style={{ padding: "6px 10px", fontSize: 12, color: "var(--muted)", fontFamily: mono }}>Sem branches correspondentes</div>
+        )}
+        {!filtering && localBranches.length === 0 && (
           <div style={{ padding: "6px 10px", fontSize: 12, color: "var(--muted)", fontFamily: mono }}>{repo.current_branch}</div>
         )}
       </div>
@@ -513,59 +573,84 @@ export function Sidebar() {
         <SectionLabel>REMOTOS</SectionLabel>
         {remotes.length === 0 ? (
           <div style={{ padding: "6px 10px", fontSize: 12, color: "var(--muted)" }}>Sem remotos configurados</div>
+        ) : visibleRemotes.length === 0 ? (
+          <div style={{ padding: "6px 10px", fontSize: 12, color: "var(--muted)" }}>Sem remotos correspondentes</div>
         ) : (
-          remotes.map((remote) => (
-            <div key={remote} style={{ display: "flex", flexDirection: "column", gap: 1 }}>
-              <button
-                type="button"
-                onClick={(e) => {
-                  const rect = e.currentTarget.getBoundingClientRect();
-                  setRemoteMenu({ x: rect.left, y: rect.bottom, remote });
-                }}
-                onKeyDown={activateOnKeyDown}
-                onContextMenu={(e) => {
-                  e.preventDefault();
-                  setRemoteMenu({ x: e.clientX, y: e.clientY, remote });
-                }}
-                className="gs-row"
-                title={`${remote} · fetch/pull/push`}
-                aria-label={remote}
-                style={{ display: "flex", alignItems: "center", gap: 9, minHeight: 32, padding: "6px 10px", borderRadius: 8, fontSize: 13, fontFamily: mono, color: "var(--text2)", background: "transparent", border: "none", width: "100%", textAlign: "left", cursor: "pointer", boxSizing: "border-box" }}
-              >
-                <span style={{ color: "var(--muted)", fontSize: 11 }}>▾</span>
-                <span style={{ flex: 1 }}>{remote}</span>
-              </button>
-              {groupBranches(
-                remoteBranches
-                  .filter((b) => b.name.startsWith(remote + "/"))
-                  .map((b) => ({ ...b, name: b.name.slice(remote.length + 1) })),
-              ).map((g) =>
-                g.kind === "branch" ? (
-                  remoteRow(remote, g.branch.name, g.branch.name, 20, g.branch.tip)
-                ) : (
-                  <div key={`pasta-${remote}:${g.name}`} style={{ display: "flex", flexDirection: "column", gap: 1 }}>
-                    <button
-                      type="button"
-                      onClick={() => setOpenFolders((s) => ({ ...s, [`${remote}:${g.name}`]: !(s[`${remote}:${g.name}`] ?? false) }))}
-                      onKeyDown={activateOnKeyDown}
-                      className="gs-row"
-                      title={`${openFolders[`${remote}:${g.name}`] ? "Colapsar" : "Expandir"} ${g.name}`}
-                      aria-expanded={openFolders[`${remote}:${g.name}`] ?? false}
-                      style={{ display: "flex", alignItems: "center", gap: 9, padding: "5px 10px 5px 20px", borderRadius: 8, fontSize: 12.5, fontFamily: mono, color: "var(--muted)", cursor: "pointer", background: "transparent", border: "none", width: "100%", textAlign: "left" }}
-                    >
-                      <span style={{ fontSize: 8, transform: `rotate(${openFolders[`${remote}:${g.name}`] ? 90 : 0}deg)`, transition: "transform 0.15s", display: "inline-block", width: 5, flexShrink: 0 }}>▶</span>
-                      <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{g.name}</span>
-                    </button>
-                    {openFolders[`${remote}:${g.name}`] && (
-                      <div style={{ display: "flex", flexDirection: "column", gap: 1, animation: "fadeIn 0.15s ease both" }}>
-                        {g.members.map((m) => remoteRow(remote, m.name, m.name.slice(g.name.length + 1), 34, m.tip))}
+          visibleRemotes.map((remote) => {
+            const isOpen = remoteOpen(remote);
+            return (
+              <div key={remote} style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                <div style={{ display: "flex", alignItems: "center" }}>
+                  {/* Real collapse toggle (Task 10) — remotes default closed
+                      (openRemotes[remote] ?? false) since, unlike local
+                      folders, there's no "holds the current branch" signal to
+                      auto-open one. A separate control from the quick-menu
+                      button below so both stay independently reachable. */}
+                  <button
+                    type="button"
+                    onClick={() => setOpenRemotes((s) => ({ ...s, [remote]: !isOpen }))}
+                    onKeyDown={activateOnKeyDown}
+                    className="gs-row"
+                    title={`${isOpen ? "Colapsar" : "Expandir"} ${remote}`}
+                    aria-label={`${isOpen ? "Colapsar" : "Expandir"} ${remote}`}
+                    aria-expanded={isOpen}
+                    style={{ display: "flex", alignItems: "center", gap: 9, flex: 1, minWidth: 0, minHeight: 32, padding: "6px 4px 6px 10px", borderRadius: 8, fontSize: 13, fontFamily: mono, color: "var(--text2)", background: "transparent", border: "none", textAlign: "left", cursor: "pointer", boxSizing: "border-box" }}
+                  >
+                    <span style={{ fontSize: 9, color: "var(--muted)", transform: `rotate(${isOpen ? 90 : 0}deg)`, transition: "transform 0.15s", display: "inline-block", width: 6, flexShrink: 0 }}>▶</span>
+                    <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{remote}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      setRemoteMenu({ x: rect.left, y: rect.bottom, remote });
+                    }}
+                    onKeyDown={activateOnKeyDown}
+                    onContextMenu={(e) => {
+                      e.preventDefault();
+                      setRemoteMenu({ x: e.clientX, y: e.clientY, remote });
+                    }}
+                    className="gs-row"
+                    title={`${remote} · fetch/pull/push`}
+                    aria-label={`Opções de ${remote}`}
+                    style={{ width: 28, height: 28, borderRadius: 8, display: "grid", placeItems: "center", color: "var(--muted)", fontSize: 12, background: "transparent", border: "none", padding: 0, cursor: "pointer", fontFamily: "inherit", flexShrink: 0, marginRight: 2 }}
+                  >
+                    ⋯
+                  </button>
+                </div>
+                {isOpen &&
+                  groupBranches(
+                    visibleRemoteBranches
+                      .filter((b) => b.name.startsWith(remote + "/"))
+                      .map((b) => ({ ...b, name: b.name.slice(remote.length + 1) })),
+                  ).map((g) =>
+                    g.kind === "branch" ? (
+                      remoteRow(remote, g.branch.name, g.branch.name, 20, g.branch.tip)
+                    ) : (
+                      <div key={`pasta-${remote}:${g.name}`} style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                        <button
+                          type="button"
+                          onClick={() => setOpenFolders((s) => ({ ...s, [`${remote}:${g.name}`]: !(filtering || (s[`${remote}:${g.name}`] ?? false)) }))}
+                          onKeyDown={activateOnKeyDown}
+                          className="gs-row"
+                          title={`${filtering || (openFolders[`${remote}:${g.name}`] ?? false) ? "Colapsar" : "Expandir"} ${g.name}`}
+                          aria-expanded={filtering || (openFolders[`${remote}:${g.name}`] ?? false)}
+                          style={{ display: "flex", alignItems: "center", gap: 9, padding: "5px 10px 5px 20px", borderRadius: 8, fontSize: 12.5, fontFamily: mono, color: "var(--muted)", cursor: "pointer", background: "transparent", border: "none", width: "100%", textAlign: "left" }}
+                        >
+                          <span style={{ fontSize: 8, transform: `rotate(${filtering || (openFolders[`${remote}:${g.name}`] ?? false) ? 90 : 0}deg)`, transition: "transform 0.15s", display: "inline-block", width: 5, flexShrink: 0 }}>▶</span>
+                          <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{g.name}</span>
+                        </button>
+                        {(filtering || (openFolders[`${remote}:${g.name}`] ?? false)) && (
+                          <div style={{ display: "flex", flexDirection: "column", gap: 1, animation: "fadeIn 0.15s ease both" }}>
+                            {g.members.map((m) => remoteRow(remote, m.name, m.name.slice(g.name.length + 1), 34, m.tip))}
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
-                ),
-              )}
-            </div>
-          ))
+                    ),
+                  )}
+              </div>
+            );
+          })
         )}
       </div>
 
@@ -758,7 +843,11 @@ export function Sidebar() {
             setConfirmSwitch(null);
             if (checkout.isPending) return;
             checkout.mutate(name, {
-              onSuccess: () => toast(`Em ${name}`),
+              onSuccess: () => {
+                // Task 10: track the checkout so it surfaces under "Recentes".
+                useRecentBranchesStore.getState().record(repo.path, name);
+                toast(`Em ${name}`);
+              },
               onError: (e: unknown) => toast((e as { message?: string })?.message ?? "não foi possível mudar de branch", "error"),
             });
           }}
