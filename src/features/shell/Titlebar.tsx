@@ -139,6 +139,10 @@ export function Titlebar({ rail = false }: { rail?: boolean }) {
   const repos = useAppStore((s) => s.repos);
   const switchRepo = useAppStore((s) => s.switchRepo);
   const closeRepo = useAppStore((s) => s.closeRepo);
+  const requestCloseRepo = useAppStore((s) => s.requestCloseRepo);
+  const pendingClose = useAppStore((s) => s.pendingClose);
+  const confirmCloseRepo = useAppStore((s) => s.confirmCloseRepo);
+  const cancelCloseRepo = useAppStore((s) => s.cancelCloseRepo);
   const setView = useAppStore((s) => s.setView);
   const setPaletteOpen = useAppStore((s) => s.setPaletteOpen);
   const qc = useQueryClient();
@@ -275,7 +279,7 @@ export function Titlebar({ rail = false }: { rail?: boolean }) {
         </button>
         <button
           type="button"
-          onClick={() => closeRepo(r.path)}
+          onClick={() => requestCloseRepo(r.path)}
           title="Fechar"
           aria-label={`Fechar ${name}`}
           className="gs-row"
@@ -561,6 +565,15 @@ export function Titlebar({ rail = false }: { rail?: boolean }) {
       )}
 
       {editGroup && <GroupEditModal groupId={editGroup} onClose={() => setEditGroup(null)} />}
+
+      {pendingClose && (
+        <ConfirmDialog
+          message="Uma operação Git está em curso. Fechar mesmo assim?"
+          confirmLabel="Fechar"
+          onCancel={cancelCloseRepo}
+          onConfirm={confirmCloseRepo}
+        />
+      )}
     </div>
   );
 }

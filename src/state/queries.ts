@@ -274,6 +274,32 @@ export function useIncoming(path: string, enabled: boolean) {
   return useQuery({ queryKey: ["incoming", path], queryFn: () => incoming(path), enabled });
 }
 
+// Busy-flag lifecycle for a network Git op (B9 close-repo confirmation).
+// fetch/pull/push are the operations worth warning about before closing a tab
+// — they hit the network and can run for seconds, unlike the near-instant
+// local ops (stage/commit/discard).
+//
+// The repo path is captured in onMutate's returned CONTEXT and read back from
+// that context at settle time — NEVER from the enclosing render's `path`.
+// These mutations carry no mutationKey, so TanStack Query v5 overwrites a
+// still-pending mutation's callbacks with the newest render's closures on
+// every render (MutationObserver.setOptions). Reading `path` at settle time
+// would therefore clear whichever repo is active *now*, orphaning the flag on
+// the original repo after a mid-op tab switch. The per-invocation context is
+// immune to that: it is fixed when onMutate runs (at click time) and handed to
+// onSettled regardless of which callback closure is current. Cleared in
+// onSettled so it fires on BOTH success and error.
+type BusyCtx = { busyPath: string };
+
+export function markRepoBusy(path: string): BusyCtx {
+  useAppStore.getState().setRepoBusy(path, true);
+  return { busyPath: path };
+}
+
+export function clearRepoBusy(ctx: BusyCtx | undefined) {
+  if (ctx) useAppStore.getState().setRepoBusy(ctx.busyPath, false);
+}
+
 export function useSyncActions(path: string) {
   const qc = useQueryClient();
   // After a network op, everything local may have moved.
@@ -283,11 +309,28 @@ export function useSyncActions(path: string) {
     }
   };
   return {
-    fetch: useMutation({ mutationFn: () => fetchRemote(path), onSuccess: refresh }),
+    fetch: useMutation({
+      mutationFn: () => fetchRemote(path),
+      onMutate: () => markRepoBusy(path),
+      onSuccess: refresh,
+      onSettled: (_d, _e, _v, ctx) => clearRepoBusy(ctx),
+    }),
     // Pull uses the mode chosen in Settings (read at call time). A conflicting
     // pull (merge/rebase mode) leaves the repo mid-operation: refresh on error too.
-    pull: useMutation({ mutationFn: () => pull(path, useThemeStore.getState().pullMode), onSettled: refresh }),
-    push: useMutation({ mutationFn: () => push(path), onSuccess: refresh }),
+    pull: useMutation({
+      mutationFn: () => pull(path, useThemeStore.getState().pullMode),
+      onMutate: () => markRepoBusy(path),
+      onSettled: (_d, _e, _v, ctx) => {
+        refresh();
+        clearRepoBusy(ctx);
+      },
+    }),
+    push: useMutation({
+      mutationFn: () => push(path),
+      onMutate: () => markRepoBusy(path),
+      onSuccess: refresh,
+      onSettled: (_d, _e, _v, ctx) => clearRepoBusy(ctx),
+    }),
   };
 }
 
