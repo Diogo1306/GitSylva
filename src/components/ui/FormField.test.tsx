@@ -65,4 +65,40 @@ describe("FormField", () => {
     );
     expect((screen.getByLabelText("Nome") as HTMLInputElement).style.outline).not.toBe("none");
   });
+
+  it("keeps the association but removes layout footprint with hideLabel", () => {
+    const { container } = render(
+      <FormField label="Filtrar commits" hideLabel>
+        <input />
+      </FormField>,
+    );
+    // Association intact: the control is still reachable by its label text.
+    const input = screen.getByLabelText("Filtrar commits") as HTMLInputElement;
+    expect(input).toBeTruthy();
+
+    // The label is present but visually hidden (zero layout footprint).
+    const labelEl = container.querySelector("label") as HTMLLabelElement;
+    expect(labelEl.textContent).toBe("Filtrar commits");
+    expect(labelEl.style.position).toBe("absolute");
+    expect(labelEl.style.width).toBe("1px");
+    expect(labelEl.style.height).toBe("1px");
+
+    // The wrapper drops the 6px column gap so the hidden label adds no height.
+    const wrapper = labelEl.parentElement as HTMLDivElement;
+    expect(wrapper.style.gap).not.toBe("6px");
+    expect(wrapper.style.gap).toBe("0px");
+  });
+
+  it("keeps the visible label and the 6px gap by default (no hideLabel)", () => {
+    const { container } = render(
+      <FormField label="Nome da branch">
+        <input />
+      </FormField>,
+    );
+    const labelEl = container.querySelector("label") as HTMLLabelElement;
+    // Default label is in normal flow (not absolutely positioned).
+    expect(labelEl.style.position).not.toBe("absolute");
+    const wrapper = labelEl.parentElement as HTMLDivElement;
+    expect(wrapper.style.gap).toBe("6px");
+  });
 });
