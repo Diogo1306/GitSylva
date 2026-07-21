@@ -79,3 +79,15 @@ describe("CommandPalette: remote branches", () => {
     await vi.waitFor(() => expect(checkoutBranch).toHaveBeenCalledWith("/repo", "feature-x"));
   });
 });
+
+describe("CommandPalette: empty state with suggestion", () => {
+  it("offers a real 'clear search' action when a query has no matches", async () => {
+    renderWithProviders(<CommandPalette />);
+    const input = screen.getByPlaceholderText(/Pesquisar/);
+    fireEvent.change(input, { target: { value: "zzz-no-such-thing-zzz" } });
+    expect(await screen.findByText(/Sem resultados/)).toBeTruthy();
+    const clear = screen.getByRole("button", { name: "Limpar pesquisa" });
+    fireEvent.click(clear);
+    expect((screen.getByPlaceholderText(/Pesquisar/) as HTMLInputElement).value).toBe("");
+  });
+});

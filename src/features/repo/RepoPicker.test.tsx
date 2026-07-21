@@ -143,3 +143,21 @@ describe("RepoPicker: accent-tolerant recents search", () => {
     expect(screen.getByRole("button", { name: /historico.*main/ })).toBeTruthy();
   });
 });
+
+describe("RepoPicker: empty search state with suggestion", () => {
+  it("offers to open or clone when a recents search matches nothing", () => {
+    useRecentsStore.setState({ recents: [{ path: "/repo/x", name: "meurepo", branch: "main" }] });
+    render(<RepoPicker />);
+    fireEvent.change(screen.getByLabelText(/Procurar/), { target: { value: "zzz-no-such-thing-zzz" } });
+    expect(screen.getByText(/Nenhum recente corresponde/)).toBeTruthy();
+    // Wired to the real clone flow (existing "Clonar" tab), not a fabricated action.
+    fireEvent.click(screen.getByRole("button", { name: "Clonar…" }));
+    expect(screen.getByLabelText("URL de origem")).toBeTruthy();
+  });
+
+  it("still shows the plain 'no recents yet' message when there are no recents at all", () => {
+    render(<RepoPicker />);
+    expect(screen.getByText("Ainda sem repositórios recentes.")).toBeTruthy();
+    expect(screen.queryByText(/Nenhum recente corresponde/)).toBeNull();
+  });
+});

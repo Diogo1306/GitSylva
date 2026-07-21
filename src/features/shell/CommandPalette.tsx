@@ -301,7 +301,22 @@ export function CommandPalette() {
           ))}
           {groups.length === 0 && (
             <div style={{ padding: 24, textAlign: "center", color: "var(--muted)", fontSize: 13 }}>
-              {q.trim() ? `Sem resultados para "${q}"` : "Escreve para pesquisar…"}
+              {q.trim() ? (
+                <>
+                  <div>Sem resultados para "{q}"</div>
+                  <div style={{ marginTop: 6, fontSize: 12 }}>Tenta outro termo ou verifica a ortografia.</div>
+                  <button
+                    type="button"
+                    onClick={() => { setQ(""); setActive(0); }}
+                    className="gs-lift"
+                    style={{ marginTop: 10, padding: "6px 14px", borderRadius: 8, border: "1px solid var(--btnB)", background: "var(--btn)", color: "var(--btnT)", fontSize: 12.5, cursor: "pointer", fontFamily: "inherit" }}
+                  >
+                    Limpar pesquisa
+                  </button>
+                </>
+              ) : (
+                "Escreve para pesquisar…"
+              )}
             </div>
           )}
         </div>
