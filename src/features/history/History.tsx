@@ -1,8 +1,7 @@
-import { memo, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAppStore } from "../../state/appStore";
 import {
   useLog,
-  useCommitDetail,
   useRewriteActions,
   useBranchActions,
   useTagActions,
@@ -14,9 +13,6 @@ import { Modal } from "../../components/ui/Modal";
 import { Input } from "../../components/ui/Input";
 import { Button } from "../../components/ui/Button";
 import { ContextMenu, type MenuItem } from "../../components/ui/ContextMenu";
-import { SelectableRow } from "../../components/ui/SelectableRow";
-import { FormField } from "../../components/ui/FormField";
-import { Tabs } from "../../components/ui/Tabs";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
 import { PanelHandle } from "../../components/ui/PanelResize";
 import { usePanelWidth, usePanelHeight } from "../../lib/usePanelWidth";
@@ -24,42 +20,16 @@ import { toast } from "../../state/toastStore";
 import { useThemeStore } from "../../state/themeStore";
 import { graphRows } from "../../graph/layout";
 import { CommitGraphSvg } from "../../components/CommitGraphSvg";
-import { DiffView } from "../../components/DiffView";
-import { statusStyle, statusTitle } from "../../lib/status";
 import { useBreakpoint } from "../../lib/useBreakpoint";
 import { openRepo as openRepoInfo } from "../../lib/api";
-import { FileIcon } from "../../components/FileIcon";
 import { errMsg } from "../../lib/errors";
-import {
-  relativeTime,
-  fullDate,
-  initials,
-  avatarColor,
-  parseRefs,
-  chipStyle,
-} from "../../lib/format";
-import type { Commit } from "../../lib/types";
-import { matchesFilters, hasActiveFilters, EMPTY_HISTORY_FILTERS, type HistoryFilters, type MergeFilter } from "../../lib/historyFilters";
+import { matchesFilters, hasActiveFilters, EMPTY_HISTORY_FILTERS, type HistoryFilters } from "../../lib/historyFilters";
 import { useT } from "../../i18n";
+import { CommitRow } from "./CommitRow";
+import { DetailPanel } from "./DetailPanel";
+import { FilterBar } from "./FilterBar";
 
 const ROW_H = 52;
-const mono = "'JetBrains Mono', monospace";
-
-// Compact filter-bar controls (Task 11) share the same input skin, sized
-// individually so the bar wraps sanely at narrower widths.
-function filterInputStyle(width: number): CSSProperties {
-  return {
-    width,
-    background: "var(--input)",
-    border: "1px solid var(--btnB)",
-    borderRadius: 8,
-    padding: "7px 10px",
-    fontSize: 12.5,
-    color: "var(--text)",
-    fontFamily: "var(--font)",
-    boxSizing: "border-box",
-  };
-}
 
 // Above this many rows the list renders in a window (uniform row height →
 // simple math). Measured: 2000 commits fully rendered = 2000 divs + 11.6k SVG
@@ -68,256 +38,6 @@ function filterInputStyle(width: number): CSSProperties {
 // the entrance animation, capped at 120, still plays).
 const VIRTUAL_MIN = 300;
 const OVERSCAN = 10;
-
-function Avatar({ name, size = 22 }: { name: string; size?: number }) {
-  const { bg, color } = avatarColor(name);
-  return (
-    <div
-      style={{
-        width: size,
-        height: size,
-        borderRadius: "50%",
-        display: "grid",
-        placeItems: "center",
-        fontSize: size < 26 ? 9.5 : 12,
-        fontWeight: 700,
-        background: bg,
-        color,
-        flexShrink: 0,
-      }}
-    >
-      {initials(name)}
-    </div>
-  );
-}
-
-function Chips({ refs }: { refs: string }) {
-  const chips = parseRefs(refs);
-  if (chips.length === 0) return null;
-  return (
-    // The wrapper may shrink and clip: long ref names (origin/fix/…) used to
-    // paint straight over the avatar and hash columns.
-    <span style={{ display: "flex", gap: 6, minWidth: 0, overflow: "hidden", flexShrink: 1 }}>
-      {chips.map((ch, i) => {
-        const st = chipStyle(ch.kind);
-        return (
-          <span
-            key={i}
-            title={ch.label}
-            style={{
-              fontFamily: mono,
-              fontSize: 10.5,
-              padding: "2px 8px",
-              borderRadius: 999,
-              whiteSpace: "nowrap",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              // Per-chip cap so one long ref name can't starve the others —
-              // but the HEAD chip (where you ARE) never gives up its space.
-              maxWidth: 150,
-              flexShrink: ch.kind === "head" ? 0 : 1,
-              boxSizing: "border-box",
-              background: st.bg,
-              color: st.color,
-              border: `1px solid ${st.border}`,
-            }}
-          >
-            {ch.label}
-          </span>
-        );
-      })}
-    </span>
-  );
-}
-
-function DetailPanel({ repoPath, commit }: { repoPath: string; commit: Commit }) {
-  const t = useT();
-  // "Carregar diff completo" opt-in, reset when another commit is selected.
-  const [full, setFull] = useState(false);
-  const [prevHash, setPrevHash] = useState(commit.hash);
-  if (commit.hash !== prevHash) {
-    setPrevHash(commit.hash);
-    setFull(false);
-  }
-  const { data, isLoading, error: detailError } = useCommitDetail(repoPath, commit.hash, full);
-  // %B = subject + blank line + body; everything after the first line is the body.
-  const body = (data?.message ?? "").split("\n").slice(1).join("\n").trim();
-  const diffRef = useRef<HTMLDivElement>(null);
-
-  // Clicking a changed file focuses its section of the diff (spec §History).
-  // Rows are ~20.1px (11.5px × 1.75 line-height); +34px for the view toggle.
-  function scrollToFile(path: string) {
-    const el = diffRef.current;
-    const patch = data?.diff;
-    if (!el || !patch) return;
-    const lines = patch.replace(/\n$/, "").split("\n");
-    const idx = lines.findIndex((l) => l.startsWith("diff --git ") && l.includes(` b/${path}`));
-    if (idx < 0) return;
-    el.scrollTo({ top: Math.max(0, idx * 20.1 + 34 - 6), behavior: "smooth" });
-  }
-
-  return (
-    <div style={{ display: "flex", flexDirection: "column", minHeight: 0, height: "100%" }}>
-      <div style={{ padding: "18px 20px 14px", borderBottom: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 12 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <Avatar name={commit.author} size={34} />
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 13.5, fontWeight: 600 }}>{commit.author}</div>
-            <div style={{ fontSize: 12, color: "var(--muted)" }}>{fullDate(commit.date)}</div>
-          </div>
-          <div
-            style={{
-              fontFamily: mono,
-              fontSize: 12,
-              color: "var(--l0)",
-              background: "var(--l0bg)",
-              border: "1px solid var(--l0bd)",
-              padding: "3px 9px",
-              borderRadius: 7,
-            }}
-          >
-            {commit.hash.slice(0, 7)}
-          </div>
-        </div>
-        {/* Not selectable (user request): copying the message goes through the
-            commit's right-click menu instead. */}
-        <div style={{ fontSize: 14.5, lineHeight: 1.45, color: "var(--text)" }}>{commit.subject}</div>
-        {body && (
-          <div style={{ fontSize: 12.5, lineHeight: 1.55, color: "var(--text2)", whiteSpace: "pre-wrap", wordBreak: "break-word", maxHeight: 110, overflowY: "auto" }}>
-            {body}
-          </div>
-        )}
-        <div style={{ display: "flex", gap: 12, fontFamily: mono, fontSize: 12 }}>
-          <span style={{ color: "var(--daT)" }}>+{data?.additions ?? 0}</span>
-          <span style={{ color: "var(--ddT)" }}>−{data?.deletions ?? 0}</span>
-          <span style={{ color: "var(--muted)" }}>{t("history.detail.filesCount", { count: data?.files.length ?? 0 })}</span>
-        </div>
-      </div>
-
-      <div style={{ padding: "12px 20px 8px", fontSize: 10.5, fontWeight: 600, letterSpacing: "1.2px", color: "var(--muted)" }}>
-        {t("history.detail.changedFiles")}
-      </div>
-      <div style={{ padding: "0 12px", display: "flex", flexDirection: "column", gap: 1, maxHeight: "28%", overflowY: "auto" }}>
-        {(data?.files ?? []).map((f) => {
-          const st = statusStyle(f.status);
-          return (
-            <SelectableRow
-              key={f.path}
-              onSelect={() => scrollToFile(f.path)}
-              title={t("history.detail.viewFileDiff")}
-              style={{ gap: 9, padding: "6px 8px", borderRadius: 7 }}
-            >
-              <FileIcon path={f.path} />
-              <span
-                style={{
-                  flex: 1,
-                  fontFamily: mono,
-                  fontSize: 12,
-                  color: "var(--text2)",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                  direction: "rtl",
-                  textAlign: "left",
-                }}
-              >
-                {f.path}
-              </span>
-              <span
-                title={statusTitle(f.status)}
-                style={{ fontFamily: mono, fontSize: 10.5, fontWeight: 700, color: st.color, width: 12, textAlign: "center", flexShrink: 0 }}
-              >
-                {f.status}
-              </span>
-            </SelectableRow>
-          );
-        })}
-      </div>
-
-      <div style={{ padding: "14px 20px 8px", fontSize: 10.5, fontWeight: 600, letterSpacing: "1.2px", color: "var(--muted)" }}>DIFF</div>
-      <div ref={diffRef} style={{ flex: 1, overflow: "auto", margin: "0 12px 12px", border: "1px solid var(--border)", borderRadius: 10, background: "var(--panel2)", padding: "8px 0" }}>
-        {isLoading ? (
-          <div style={{ padding: 12, color: "var(--muted)", fontSize: 12 }}>{t("history.detail.loadingDiff")}</div>
-        ) : detailError ? (
-          <div style={{ padding: 12, color: "var(--ddT)", fontSize: 12 }}>{errMsg(detailError, t("history.detail.readCommitError"))}</div>
-        ) : data && data.diff.trim() ? (
-          <DiffView patch={data.diff} onLoadFull={() => setFull(true)} />
-        ) : (
-          <div style={{ padding: 12, color: "var(--muted)", fontSize: 12 }}>{t("history.detail.noTextChanges")}</div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// Memoized so selecting a commit only re-renders the two affected rows, not the
-// whole (potentially hundreds long) list.
-const CommitRow = memo(function CommitRow({
-  commit,
-  selected,
-  filtering,
-  rowH,
-  gutter,
-  hideSecondary,
-  onSelect,
-  onGoto,
-  onContext,
-}: {
-  commit: Commit;
-  selected: boolean;
-  filtering: boolean;
-  rowH: number;
-  /** Left space for the graph — grows with the number of parallel lanes. */
-  gutter: number;
-  /** Task 6 progressive disclosure: hide the decorative avatar before the
-   *  subject would ever need to truncate further to make room for it. */
-  hideSecondary: boolean;
-  onSelect: (hash: string) => void;
-  /** Double click: confirm-and-checkout this commit (branch-row pattern). */
-  onGoto: (hash: string) => void;
-  onContext: (hash: string, x: number, y: number) => void;
-}) {
-  const t = useT();
-  // Where HEAD is (the commit you're standing on) gets a left accent bar so
-  // it's findable at a glance even with the chips scrolled out of view.
-  const isHead = commit.refs.includes("HEAD");
-  return (
-    <SelectableRow
-      role="option"
-      selected={selected}
-      onSelect={() => onSelect(commit.hash)}
-      onDoubleClick={() => onGoto(commit.hash)}
-      onContextMenu={(e) => {
-        e.preventDefault();
-        onContext(commit.hash, e.clientX, e.clientY);
-      }}
-      title={t("history.row.title")}
-      style={{
-        height: rowH,
-        gap: 12,
-        padding: filtering ? "0 16px" : `0 16px 0 ${gutter}px`,
-        borderRadius: 0,
-        boxSizing: "border-box",
-        boxShadow: isHead ? "inset 3px 0 0 var(--l0)" : undefined,
-        borderBottom: "1px solid var(--bsoft)",
-        // Skip painting rows scrolled out of view; the box keeps its height so
-        // the graph overlay stays aligned.
-        contentVisibility: "auto",
-        containIntrinsicSize: `${rowH}px`,
-      }}
-    >
-      <div style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 8 }}>
-        <span style={{ fontSize: 13.5, color: "var(--text)", fontWeight: selected ? 600 : 400, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-          {commit.subject}
-        </span>
-        <Chips refs={commit.refs} />
-      </div>
-      {!hideSecondary && <Avatar name={commit.author} />}
-      <div style={{ width: 66, fontFamily: mono, fontSize: 12, color: "var(--text2)", flexShrink: 0 }}>{commit.hash.slice(0, 7)}</div>
-      <div className="gs-resp-time" style={{ width: 96, fontSize: 12, color: "var(--muted)", textAlign: "right", flexShrink: 0 }}>{relativeTime(commit.date)}</div>
-    </SelectableRow>
-  );
-});
 
 export function History() {
   const t = useT();
@@ -539,180 +259,17 @@ export function History() {
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: below ? "column" : "row", minWidth: 0, minHeight: 0, animation: "fadeUp 0.25s ease both" }}>
       <div style={{ flex: 1, minWidth: 0, minHeight: 0, display: "flex", flexDirection: "column", borderRight: below ? "none" : "1px solid var(--border)" }}>
-        <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 10 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <FormField label={t("history.filter.label")} hideLabel>
-                <input
-                  value={filters.text}
-                  onChange={(e) => setFilters((f) => ({ ...f, text: e.target.value }))}
-                  placeholder={t("history.filter.placeholder")}
-                  style={{
-                    width: "100%",
-                    background: "var(--input)",
-                    border: "1px solid var(--btnB)",
-                    borderRadius: 8,
-                    padding: "8px 12px",
-                    fontSize: 13,
-                    color: "var(--text)",
-                    fontFamily: "var(--font)",
-                    boxSizing: "border-box",
-                  }}
-                />
-              </FormField>
-            </div>
-            <div style={{ fontSize: 12, color: "var(--muted)", fontFamily: mono, whiteSpace: "nowrap" }}>
-              {resolving ? t("history.filter.applyingInline") : t("history.commitsCount", { count: filtered.length })}
-            </div>
-            <button
-              type="button"
-              onClick={() => setFiltersOpen((v) => !v)}
-              aria-pressed={filtersOpen}
-              aria-expanded={filtersOpen}
-              title={filtersOpen ? t("history.filter.hideAdvanced") : t("history.filter.showAdvanced")}
-              className="gs-lift"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 6,
-                minHeight: 32,
-                padding: "5px 11px",
-                borderRadius: 7,
-                background: filtersOpen ? "var(--sel)" : "var(--btn)",
-                border: "1px solid var(--btnB)",
-                fontSize: 12,
-                color: "var(--btnT)",
-                cursor: "pointer",
-                whiteSpace: "nowrap",
-                fontFamily: "inherit",
-                boxSizing: "border-box",
-              }}
-            >
-              {t("history.filter.filters")} {hasActiveFilters({ ...filters, text: "" }) ? "•" : ""}
-            </button>
-            <button
-              type="button"
-              onClick={() => setDetailOpen(!detailOpen)}
-              aria-pressed={detailOpen}
-              title={detailOpen ? t("history.detail.hidePanel") : t("history.detail.showPanel")}
-              className="gs-lift"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 6,
-                minHeight: 32,
-                padding: "5px 11px",
-                borderRadius: 7,
-                background: detailOpen ? "var(--sel)" : "var(--btn)",
-                border: "1px solid var(--btnB)",
-                fontSize: 12,
-                color: "var(--btnT)",
-                cursor: "pointer",
-                whiteSpace: "nowrap",
-                fontFamily: "inherit",
-                boxSizing: "border-box",
-              }}
-            >
-              Diff {detailOpen ? "✓" : ""}
-            </button>
-          </div>
-
-          {filtersOpen && (
-            <div style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-end", gap: 10 }}>
-              <FormField label={t("history.filter.author")} hideLabel>
-                <input
-                  value={filters.author}
-                  onChange={(e) => setFilters((f) => ({ ...f, author: e.target.value }))}
-                  placeholder={t("history.filter.author")}
-                  style={filterInputStyle(140)}
-                />
-              </FormField>
-
-              <FormField label="Branch" hideLabel>
-                <select
-                  value={filters.branch}
-                  onChange={(e) => setFilters((f) => ({ ...f, branch: e.target.value }))}
-                  style={filterInputStyle(180)}
-                >
-                  <option value="">{t("history.filter.allBranches")}</option>
-                  {(branches.data ?? []).some((b) => !b.is_remote) && (
-                    <optgroup label={t("history.filter.local")}>
-                      {(branches.data ?? [])
-                        .filter((b) => !b.is_remote)
-                        .map((b) => (
-                          <option key={b.name} value={b.name}>
-                            {b.name}
-                          </option>
-                        ))}
-                    </optgroup>
-                  )}
-                  {(branches.data ?? []).some((b) => b.is_remote) && (
-                    <optgroup label={t("history.filter.remote")}>
-                      {(branches.data ?? [])
-                        .filter((b) => b.is_remote)
-                        .map((b) => (
-                          <option key={b.name} value={b.name}>
-                            {b.name}
-                          </option>
-                        ))}
-                    </optgroup>
-                  )}
-                </select>
-              </FormField>
-
-              <FormField label={t("history.filter.dateFrom")} hideLabel>
-                <input
-                  type="date"
-                  value={filters.dateFrom}
-                  max={filters.dateTo || undefined}
-                  onChange={(e) => setFilters((f) => ({ ...f, dateFrom: e.target.value }))}
-                  style={filterInputStyle(140)}
-                />
-              </FormField>
-              <FormField label={t("history.filter.dateTo")} hideLabel>
-                <input
-                  type="date"
-                  value={filters.dateTo}
-                  min={filters.dateFrom || undefined}
-                  onChange={(e) => setFilters((f) => ({ ...f, dateTo: e.target.value }))}
-                  style={filterInputStyle(140)}
-                />
-              </FormField>
-
-              <Tabs
-                ariaLabel={t("history.filter.commitTypeAria")}
-                activeId={filters.merge}
-                onChange={(id) => setFilters((f) => ({ ...f, merge: id as MergeFilter }))}
-                items={[
-                  { id: "all", label: t("history.filter.commitAll") },
-                  { id: "normal", label: t("history.filter.commitNormal") },
-                  { id: "merges", label: "Merges" },
-                ]}
-              />
-
-              <FormField label={t("history.filter.path")} hideLabel>
-                <input
-                  value={filters.path}
-                  onChange={(e) => setFilters((f) => ({ ...f, path: e.target.value }))}
-                  placeholder={t("history.filter.pathPlaceholder")}
-                  style={filterInputStyle(160)}
-                />
-              </FormField>
-
-              <Button
-                variant="ghost"
-                size="sm"
-                title={t("history.filter.resetAllTitle")}
-                disabled={!hasActiveFilters(filters)}
-                onClick={() => setFilters(EMPTY_HISTORY_FILTERS)}
-              >
-                {t("history.filter.reset")}
-              </Button>
-            </div>
-          )}
-        </div>
+        <FilterBar
+          filters={filters}
+          setFilters={setFilters}
+          filtersOpen={filtersOpen}
+          setFiltersOpen={setFiltersOpen}
+          detailOpen={detailOpen}
+          setDetailOpen={setDetailOpen}
+          branches={branches.data}
+          resolving={resolving}
+          filteredCount={filtered.length}
+        />
 
         <div
           ref={setScrollEl}
