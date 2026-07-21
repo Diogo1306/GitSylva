@@ -16,6 +16,7 @@ import { graphRows } from "../../graph/layout";
 import { CommitGraphSvg } from "../../components/CommitGraphSvg";
 import { DiffView } from "../../components/DiffView";
 import { statusStyle, statusTitle } from "../../lib/status";
+import { useBreakpoint } from "../../lib/useBreakpoint";
 import { openRepo as openRepoInfo } from "../../lib/api";
 import { FileIcon } from "../../components/FileIcon";
 import { errMsg } from "../../lib/errors";
@@ -228,6 +229,7 @@ const CommitRow = memo(function CommitRow({
   filtering,
   rowH,
   gutter,
+  hideSecondary,
   onSelect,
   onGoto,
   onContext,
@@ -238,6 +240,9 @@ const CommitRow = memo(function CommitRow({
   rowH: number;
   /** Left space for the graph — grows with the number of parallel lanes. */
   gutter: number;
+  /** Task 6 progressive disclosure: hide the decorative avatar before the
+   *  subject would ever need to truncate further to make room for it. */
+  hideSecondary: boolean;
   onSelect: (hash: string) => void;
   /** Double click: confirm-and-checkout this commit (branch-row pattern). */
   onGoto: (hash: string) => void;
@@ -277,7 +282,7 @@ const CommitRow = memo(function CommitRow({
         </span>
         <Chips refs={commit.refs} />
       </div>
-      <Avatar name={commit.author} />
+      {!hideSecondary && <Avatar name={commit.author} />}
       <div style={{ width: 66, fontFamily: mono, fontSize: 12, color: "var(--text2)", flexShrink: 0 }}>{commit.hash.slice(0, 7)}</div>
       <div className="gs-resp-time" style={{ width: 96, fontSize: 12, color: "var(--muted)", textAlign: "right", flexShrink: 0 }}>{relativeTime(commit.date)}</div>
     </SelectableRow>
@@ -347,7 +352,13 @@ export function History() {
   // R5.9: the detail/diff panel can sit beside the list (default) or below it
   // (SourceTree style); the handle sits ABOVE the bottom panel, so drag down
   // shrinks and keeps shrinking into a collapse.
-  const below = useThemeStore((s) => s.historyLayout) === "baixo";
+  const storedBelow = useThemeStore((s) => s.historyLayout) === "baixo";
+  // Task 6: at the window minimum there isn't room for the detail panel
+  // beside the list, so width forces "below" too — a responsive OVERRIDE
+  // layered on top of the stored preference, never a write to it (the user's
+  // explicit choice survives resizing back up).
+  const bp = useBreakpoint();
+  const below = storedBelow || bp.historyStacked;
   const detailH = usePanelHeight("gitsylva-h-history-detail", 340, 160, 720, "top", collapseDetail);
 
   // A focused commit (palette pick or a branch click in the sidebar) deeper
@@ -501,7 +512,9 @@ export function History() {
             style={{
               display: "flex",
               alignItems: "center",
+              justifyContent: "center",
               gap: 6,
+              minHeight: 32,
               padding: "5px 11px",
               borderRadius: 7,
               background: detailOpen ? "var(--sel)" : "var(--btn)",
@@ -511,6 +524,7 @@ export function History() {
               cursor: "pointer",
               whiteSpace: "nowrap",
               fontFamily: "inherit",
+              boxSizing: "border-box",
             }}
           >
             Diff {detailOpen ? "✓" : ""}
@@ -544,6 +558,7 @@ export function History() {
                   filtering={filtering}
                   rowH={rowH}
                   gutter={gutter}
+                  hideSecondary={bp.hideSecondary}
                   onSelect={selectHash}
                   onGoto={onGoto}
                   onContext={onContext}

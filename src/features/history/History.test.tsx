@@ -22,7 +22,11 @@ const { mockCommits } = vi.hoisted(() => ({
 
 vi.mock("../../lib/api", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../../lib/api")>();
-  return { ...actual, getLog: vi.fn().mockResolvedValue(mockCommits) };
+  return {
+    ...actual,
+    getLog: vi.fn().mockResolvedValue(mockCommits),
+    commitDetail: vi.fn().mockResolvedValue({ message: "Terceiro commit", additions: 1, deletions: 0, files: [], diff: "" }),
+  };
 });
 
 // jsdom has no ResizeObserver; History observes the scroll container to size
@@ -106,5 +110,72 @@ describe("History commit rows: keyboard + semantics", () => {
     await screen.findByRole("option", { name: /Terceiro commit/ });
     const input = screen.getByLabelText(/Filtrar commits/i);
     expect((input as HTMLInputElement).style.outline).not.toBe("none");
+  });
+});
+
+// Task 6: at the window minimum, the commit detail panel moves below the
+// list (SourceTree style) even when the user's stored preference is "lado"
+// (side) — a responsive OVERRIDE layered on top of historyLayout, never a
+// write to it.
+describe("History: responsive commit-detail layout (Task 6)", () => {
+  afterEach(() => {
+    Object.defineProperty(window, "innerWidth", { writable: true, configurable: true, value: 1024 });
+    Object.defineProperty(window, "innerHeight", { writable: true, configurable: true, value: 768 });
+  });
+
+  it("stacks the detail panel below the list at the window minimum width, without writing to the historyLayout store", async () => {
+    localStorage.setItem("gitsylva-history-detail", "on");
+    Object.defineProperty(window, "innerWidth", { writable: true, configurable: true, value: 900 });
+    Object.defineProperty(window, "innerHeight", { writable: true, configurable: true, value: 560 });
+    expect(useThemeStore.getState().historyLayout).toBe("lado");
+
+    const { container } = renderHistory();
+    await screen.findByRole("option", { name: /Terceiro commit/ });
+
+    const root = container.firstElementChild as HTMLElement;
+    expect(root.style.flexDirection).toBe("column");
+    // The override must layer OVER the stored preference, never write to it.
+    expect(useThemeStore.getState().historyLayout).toBe("lado");
+  });
+
+  it("keeps the side-by-side layout (the stored default) at a comfortable width", async () => {
+    localStorage.setItem("gitsylva-history-detail", "on");
+    Object.defineProperty(window, "innerWidth", { writable: true, configurable: true, value: 1440 });
+    Object.defineProperty(window, "innerHeight", { writable: true, configurable: true, value: 900 });
+
+    const { container } = renderHistory();
+    await screen.findByRole("option", { name: /Terceiro commit/ });
+
+    const root = container.firstElementChild as HTMLElement;
+    expect(root.style.flexDirection).toBe("row");
+  });
+
+  it("hides the row author avatar at the window minimum width (progressive disclosure)", async () => {
+    Object.defineProperty(window, "innerWidth", { writable: true, configurable: true, value: 900 });
+    Object.defineProperty(window, "innerHeight", { writable: true, configurable: true, value: 560 });
+    renderHistory();
+    await screen.findByRole("option", { name: /Terceiro commit/ });
+    expect(screen.queryByText("AN")).toBeNull();
+  });
+
+  it("shows the row author avatar at a comfortable width", async () => {
+    Object.defineProperty(window, "innerWidth", { writable: true, configurable: true, value: 1440 });
+    Object.defineProperty(window, "innerHeight", { writable: true, configurable: true, value: 900 });
+    renderHistory();
+    await screen.findByRole("option", { name: /Terceiro commit/ });
+    expect(screen.getByText("AN")).toBeTruthy();
+  });
+
+  it("still respects an explicit stored 'baixo' preference at a wide width", async () => {
+    localStorage.setItem("gitsylva-history-detail", "on");
+    useThemeStore.getState().savePrefs({ historyLayout: "baixo" });
+    Object.defineProperty(window, "innerWidth", { writable: true, configurable: true, value: 1440 });
+    Object.defineProperty(window, "innerHeight", { writable: true, configurable: true, value: 900 });
+
+    const { container } = renderHistory();
+    await screen.findByRole("option", { name: /Terceiro commit/ });
+
+    const root = container.firstElementChild as HTMLElement;
+    expect(root.style.flexDirection).toBe("column");
   });
 });
