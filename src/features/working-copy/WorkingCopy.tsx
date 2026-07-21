@@ -7,10 +7,12 @@ import { BlameView } from "../../components/BlameView";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
 import { ContextMenu, type MenuItem } from "../../components/ui/ContextMenu";
 import { PanelHandle } from "../../components/ui/PanelResize";
-import { usePanelWidth } from "../../lib/usePanelWidth";
+import { usePanelWidth, usePanelHeight } from "../../lib/usePanelWidth";
+import { groupFilesByFolder } from "../../lib/fileGroups";
 import { statusStyle, statusTitle, isConflict } from "../../lib/status";
 import { FileIcon } from "../../components/FileIcon";
 import { errMsg } from "../../lib/errors";
+import { useBreakpoint } from "../../lib/useBreakpoint";
 import { headMessage, openPath, revealPath } from "../../lib/api";
 import { spawnLeaf } from "../../lib/leaf";
 import { toast } from "../../state/toastStore";
@@ -35,6 +37,7 @@ function FileRow({
   selected,
   conflicted,
   stagger = 0,
+  inFolder = false,
   onToggle,
   onSelect,
   onContext,
@@ -46,6 +49,8 @@ function FileRow({
   conflicted?: boolean;
   /** Row index for the entrance stagger (animation spec §File stage/unstage). */
   stagger?: number;
+  /** Nested under a folder header: indent and drop the dir subtitle. */
+  inFolder?: boolean;
   onToggle: () => void;
   onSelect: () => void;
   onContext?: (x: number, y: number) => void;
@@ -67,7 +72,7 @@ function FileRow({
         display: "flex",
         alignItems: "center",
         gap: 9,
-        padding: "7px 8px",
+        padding: inFolder ? "6px 8px 6px 30px" : "7px 8px",
         borderRadius: 8,
         cursor: "pointer",
         // Only set when selected — an inline "transparent" would beat the
@@ -94,7 +99,7 @@ function FileRow({
       <FileIcon path={file.path} />
       <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
         <span style={{ fontSize: 13, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name}</span>
-        {dir && (
+        {dir && !inFolder && (
           <span style={{ fontFamily: mono, fontSize: 10.5, color: "var(--muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{dir}</span>
         )}
       </div>
@@ -114,6 +119,40 @@ function SectionHead({ children }: { children: React.ReactNode }) {
   );
 }
 
+// Header row for a folded directory (R5.4): its checkbox stages/unstages the
+// whole folder in one click; the files keep their own rows below it.
+function FolderRow({ dir, count, checked, title, onToggle }: { dir: string; count: number; checked: boolean; title: string; onToggle: () => void }) {
+  return (
+    <div
+      onClick={onToggle}
+      title={title}
+      className="gs-row"
+      style={{ display: "flex", alignItems: "center", gap: 9, padding: "7px 8px", borderRadius: 8, cursor: "pointer" }}
+    >
+      <div
+        style={
+          checked
+            ? { width: 17, height: 17, borderRadius: 5, background: "var(--accent)", flexShrink: 0, display: "grid", placeItems: "center", color: "var(--accentT)", fontSize: 11, fontWeight: 800 }
+            : { width: 17, height: 17, borderRadius: 5, border: "1.5px solid var(--btnB)", boxSizing: "border-box", flexShrink: 0 }
+        }
+      >
+        {checked ? "✓" : ""}
+      </div>
+      <span aria-hidden style={{ width: 16, height: 16, borderRadius: 4, background: "rgba(201,168,58,0.16)", color: "#C9A83A", display: "grid", placeItems: "center", flexShrink: 0 }}>
+        <svg width="72%" height="72%" viewBox="0 0 16 16">
+          <path d="M2 5 a1.6 1.6 0 0 1 1.6-1.6 h3 l1.6 1.8 h4.8 A1.6 1.6 0 0 1 14.6 6.8 v4.6 a1.6 1.6 0 0 1-1.6 1.6 H3.6 A1.6 1.6 0 0 1 2 11.4 z" fill="currentColor" />
+        </svg>
+      </span>
+      <span style={{ flex: 1, fontFamily: mono, fontSize: 12, color: "var(--text2)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", direction: "rtl", textAlign: "left" }}>
+        {dir}/
+      </span>
+      <span style={{ background: "var(--badge)", color: "var(--badgeT)", borderRadius: 999, fontSize: 10.5, fontWeight: 600, padding: "0 7px", flexShrink: 0 }}>
+        {count}
+      </span>
+    </div>
+  );
+}
+
 export function WorkingCopy() {
   const repo = useAppStore((s) => s.repo)!;
   const { data, isLoading, error } = useStatus(repo.path);
@@ -130,18 +169,15 @@ export function WorkingCopy() {
   const [fileMenu, setFileMenu] = useState<{ x: number; y: number; file: FileChange } | null>(null);
   const [stacked, setStacked] = useState(false);
   const [blameOn, setBlameOn] = useState(false);
-  // Below ~980px the working copy stacks automatically (handoff §8); the
-  // manual toggle still works on wide windows.
-  const [narrow, setNarrow] = useState(() => window.matchMedia("(max-width: 980px)").matches);
-  useEffect(() => {
-    const mq = window.matchMedia("(max-width: 980px)");
-    const onChange = () => setNarrow(mq.matches);
-    mq.addEventListener("change", onChange);
-    return () => mq.removeEventListener("change", onChange);
-  }, []);
-  const isStacked = stacked || narrow;
+  // Below ~980px the working copy stacks automatically (handoff §8; Task 6:
+  // consolidated onto the shared breakpoint hook, same threshold, no more
+  // local matchMedia listener); the manual toggle still works on wide windows.
+  const bp = useBreakpoint();
+  const isStacked = stacked || bp.workingCopyStacked;
   // Design: files panel resizable 320–540, persisted.
   const filesW = usePanelWidth("gitsylva-w-working", 400, 320, 540, "right");
+  // R5.4: the unstaged pane's height is user-adjustable (drag the split).
+  const unstagedH = usePanelHeight("gitsylva-h-unstaged", 240, 96, 640);
 
   // Exit animation for rows leaving a list (R3 §9): AFTER the git operation
   // succeeds, the real row is hidden and a non-interactive ghost plays a short
@@ -313,6 +349,90 @@ export function WorkingCopy() {
     );
   }
 
+  // One renderer for both lists (R5.4): directories with >4 changed entries
+  // fold under a folder header whose checkbox stages/unstages them all; the
+  // files keep individual rows (indented) so single picks still work. Ghosts
+  // (rows animating out) are injected at their original index BEFORE grouping
+  // so they leave from inside their folder.
+  type Entry = { f: FileChange; ghost?: Ghost };
+  function stageEntry(f: FileChange, listKey: "u" | "s") {
+    // Already animating out of this list — a second trigger would queue a
+    // duplicate operation and a duplicate ghost.
+    if (hiddenPaths.has(f.path)) return;
+    if (listKey === "u") {
+      const idx = unstaged.indexOf(f);
+      actions.stage.mutate(f.path, {
+        onSuccess: () => exitRow(f, "u", f.worktree_status, idx),
+        onError: (e: unknown) => toast(errMsg(e, `não foi possível preparar ${f.path}`), "error"),
+      });
+    } else {
+      const idx = staged.indexOf(f);
+      actions.unstage.mutate(f.path, {
+        onSuccess: () => exitRow(f, "s", f.index_status, idx),
+        onError: (e: unknown) => toast(errMsg(e, `não foi possível retirar ${f.path}`), "error"),
+      });
+    }
+  }
+  function fileList(listKey: "u" | "s") {
+    const src = listKey === "u" ? unstaged : staged;
+    const entries: Entry[] = src.filter((f) => !hiddenPaths.has(f.path)).map((f) => ({ f }));
+    for (const g of ghosts.filter((x) => x.list === listKey))
+      entries.splice(Math.min(g.idx, entries.length), 0, { f: g.file, ghost: g });
+    let rowIdx = 0;
+    const rowEl = (e: Entry, inFolder: boolean) => {
+      const conflicted = listKey === "u" && isConflict(e.f.index_status, e.f.worktree_status);
+      const letter = e.ghost ? e.ghost.letter : listKey === "u" ? (conflicted ? "U" : e.f.worktree_status) : e.f.index_status;
+      const el = (
+        <FileRow
+          key={listKey + e.f.path}
+          file={e.f}
+          letter={letter}
+          checked={listKey === "s"}
+          selected={!e.ghost && effSel?.path === e.f.path && effSel.staged === (listKey === "s")}
+          conflicted={conflicted}
+          stagger={rowIdx++}
+          inFolder={inFolder}
+          onToggle={() => {
+            if (!e.ghost) stageEntry(e.f, listKey);
+          }}
+          onSelect={() => {
+            if (!e.ghost) select(e.f.path, listKey === "s");
+          }}
+          onContext={e.ghost ? undefined : (x, y) => setFileMenu({ x, y, file: e.f })}
+        />
+      );
+      return e.ghost ? (
+        <div key={`ghost${e.ghost.id}`} style={{ animation: "fileOut 200ms var(--ease-out) both", pointerEvents: "none" }}>
+          {el}
+        </div>
+      ) : (
+        el
+      );
+    };
+    return groupFilesByFolder(entries, (e) => e.f.path).map((g) => {
+      if (g.kind === "file") return rowEl(g.item, false);
+      const real = g.items.filter((e) => !e.ghost && !(listKey === "u" && isConflict(e.f.index_status, e.f.worktree_status)));
+      return (
+        <div key={`dir-${listKey}-${g.dir}`} style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+          <FolderRow
+            dir={g.dir}
+            count={g.items.filter((e) => !e.ghost).length}
+            checked={listKey === "s"}
+            title={
+              listKey === "u"
+                ? `Preparar os ${real.length} ficheiros de ${g.dir}/`
+                : `Retirar os ${real.length} ficheiros de ${g.dir}/`
+            }
+            onToggle={() => {
+              for (const e of real) stageEntry(e.f, listKey);
+            }}
+          />
+          {g.items.map((e) => rowEl(e, true))}
+        </div>
+      );
+    });
+  }
+
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, minHeight: 0, animation: "fadeUp 0.25s ease both" }}>
       <div style={{ flex: 1, display: "flex", flexDirection: isStacked ? "column" : "row", minWidth: 0, minHeight: 0 }}>
@@ -320,7 +440,9 @@ export function WorkingCopy() {
       <div
         style={{
           width: isStacked ? "auto" : filesW.width,
-          flexShrink: 0,
+          // Stacked: split the height with the diff so the list scrolls inside
+          // its half instead of growing the page.
+          flex: isStacked ? "1 1 0%" : "0 0 auto",
           borderRight: isStacked ? "none" : "1px solid var(--border)",
           borderTop: isStacked ? "1px solid var(--border)" : "none",
           order: isStacked ? 2 : 1,
@@ -332,7 +454,16 @@ export function WorkingCopy() {
         }}
       >
         {!isStacked && <PanelHandle edge="right" handleProps={filesW.handleProps} />}
-        <div style={{ padding: "12px 16px 8px", display: "flex", alignItems: "center" }}>
+        {/* Task 6: both lists live inside ONE bounded, scrollable region
+            (flex: 1, minHeight: 0 lets it shrink below its content size at
+            small window heights) so the commit box below — a flexShrink: 0
+            sibling, outside this wrapper — always keeps the room it needs
+            instead of being pushed off-screen with no way to reach it. */}
+        <div style={{ flex: "1 1 0%", minHeight: 0, display: "flex", flexDirection: "column", overflowY: "auto" }}>
+        {/* R5.4: each list scrolls inside its own pane too, the split between
+            the two is draggable. */}
+        <div style={{ height: unstagedH.height, minHeight: 96, flexShrink: 0, display: "flex", flexDirection: "column" }}>
+        <div style={{ padding: "12px 16px 8px", display: "flex", alignItems: "center", flexShrink: 0 }}>
           <SectionHead>NÃO PREPARADAS · {unstaged.length}</SectionHead>
           <div
             onClick={() =>
@@ -360,87 +491,32 @@ export function WorkingCopy() {
             Descartar
           </div>
         </div>
-        <div style={{ padding: "0 10px", display: "flex", flexDirection: "column", gap: 1 }}>
-          {(() => {
-            const items = unstaged
-              .filter((f) => !hiddenPaths.has(f.path))
-              .map((f, rowIdx) => (
-                <FileRow
-                  key={"u" + f.path}
-                  file={f}
-                  letter={isConflict(f.index_status, f.worktree_status) ? "U" : f.worktree_status}
-                  checked={false}
-                  selected={effSel?.path === f.path && !effSel.staged}
-                  conflicted={isConflict(f.index_status, f.worktree_status)}
-                  stagger={rowIdx}
-                  onToggle={() => {
-                    // Already animating out of this list — a second click would
-                    // queue a duplicate stage and a duplicate ghost.
-                    if (hiddenPaths.has(f.path)) return;
-                    const idx = unstaged.indexOf(f);
-                    actions.stage.mutate(f.path, {
-                      onSuccess: () => exitRow(f, "u", f.worktree_status, idx),
-                      onError: (e: unknown) => toast(errMsg(e, `não foi possível preparar ${f.path}`), "error"),
-                    });
-                  }}
-                  onSelect={() => select(f.path, false)}
-                  onContext={(x, y) => setFileMenu({ x, y, file: f })}
-                />
-              ));
-            for (const g of ghosts.filter((x) => x.list === "u")) {
-              items.splice(
-                Math.min(g.idx, items.length),
-                0,
-                <div key={`ghost${g.id}`} style={{ animation: "fileOut 200ms var(--ease-out) both", pointerEvents: "none" }}>
-                  <FileRow file={g.file} letter={g.letter} checked={false} selected={false} onToggle={() => {}} onSelect={() => {}} />
-                </div>,
-              );
-            }
-            return items;
-          })()}
+        <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "0 10px 8px", display: "flex", flexDirection: "column", gap: 1 }}>
+          {fileList("u")}
+        </div>
         </div>
 
-        <div style={{ padding: "16px 16px 8px", display: "flex", alignItems: "center" }}>
+        {/* Draggable split between the two lists (R5.4). */}
+        <div
+          {...unstagedH.handleProps}
+          className="gs-resize"
+          title="Arrastar para ajustar o tamanho das listas"
+          style={{ height: 9, flexShrink: 0, cursor: "ns-resize", display: "flex", alignItems: "center", padding: "0 10px", touchAction: "none", boxSizing: "border-box" }}
+        >
+          <div style={{ height: 1, width: "100%", background: "var(--border)" }} />
+        </div>
+
+        <div style={{ flex: 1, minHeight: 96, display: "flex", flexDirection: "column" }}>
+        <div style={{ padding: "6px 16px 8px", display: "flex", alignItems: "center", flexShrink: 0 }}>
           <SectionHead>PREPARADAS · {staged.length}</SectionHead>
         </div>
-        <div style={{ padding: "0 10px", display: "flex", flexDirection: "column", gap: 1, flex: 1, overflowY: "auto" }}>
-          {(() => {
-            const items = staged
-              .filter((f) => !hiddenPaths.has(f.path))
-              .map((f, rowIdx) => (
-                <FileRow
-                  key={"s" + f.path}
-                  file={f}
-                  letter={f.index_status}
-                  checked
-                  selected={effSel?.path === f.path && effSel.staged}
-                  stagger={rowIdx}
-                  onToggle={() => {
-                    if (hiddenPaths.has(f.path)) return;
-                    const idx = staged.indexOf(f);
-                    actions.unstage.mutate(f.path, {
-                      onSuccess: () => exitRow(f, "s", f.index_status, idx),
-                      onError: (e: unknown) => toast(errMsg(e, `não foi possível retirar ${f.path}`), "error"),
-                    });
-                  }}
-                  onSelect={() => select(f.path, true)}
-                  onContext={(x, y) => setFileMenu({ x, y, file: f })}
-                />
-              ));
-            for (const g of ghosts.filter((x) => x.list === "s")) {
-              items.splice(
-                Math.min(g.idx, items.length),
-                0,
-                <div key={`ghost${g.id}`} style={{ animation: "fileOut 200ms var(--ease-out) both", pointerEvents: "none" }}>
-                  <FileRow file={g.file} letter={g.letter} checked selected={false} onToggle={() => {}} onSelect={() => {}} />
-                </div>,
-              );
-            }
-            return items;
-          })()}
+        <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "0 10px 10px", display: "flex", flexDirection: "column", gap: 1 }}>
+          {fileList("s")}
+        </div>
+        </div>
         </div>
 
-        <div style={{ padding: 14, borderTop: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 10, background: "var(--panel)" }}>
+        <div style={{ padding: 14, borderTop: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 10, background: "var(--panel)", flexShrink: 0 }}>
           <textarea
             value={msg}
             onChange={(e) => setMsg(e.target.value)}
@@ -512,13 +588,18 @@ export function WorkingCopy() {
           )}
           <div style={{ flex: 1 }} />
           {effSel && selStatus !== "?" && (
-            <div onClick={() => setBlameOn((v) => !v)} className="gs-lift" style={{ display: "flex", alignItems: "center", gap: 6, padding: "5px 11px", borderRadius: 7, background: blameOn ? "var(--sel)" : "var(--btn)", border: "1px solid var(--btnB)", fontSize: 12, color: "var(--btnT)", cursor: "pointer", whiteSpace: "nowrap" }}>
+            <div onClick={() => setBlameOn((v) => !v)} className="gs-lift" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, minHeight: 32, padding: "5px 11px", borderRadius: 7, background: blameOn ? "var(--sel)" : "var(--btn)", border: "1px solid var(--btnB)", fontSize: 12, color: "var(--btnT)", cursor: "pointer", whiteSpace: "nowrap", boxSizing: "border-box" }}>
               Blame
             </div>
           )}
-          {!blameOn && <span style={{ fontSize: 12, color: "var(--muted)" }}>{effSel?.staged ? "diff preparado" : "diff da cópia de trabalho"}</span>}
+          {/* Task 6 progressive disclosure: this label is redundant with the
+              file path + status badge already shown — hide it before the
+              Blame/split toggles would ever need to clip or wrap. */}
+          {!blameOn && !bp.hideSecondary && (
+            <span style={{ fontSize: 12, color: "var(--muted)" }}>{effSel?.staged ? "diff preparado" : "diff da cópia de trabalho"}</span>
+          )}
           {!blameOn && (
-            <div onClick={() => setStacked((v) => !v)} className="gs-lift" style={{ display: "flex", alignItems: "center", gap: 6, padding: "5px 11px", borderRadius: 7, background: "var(--btn)", border: "1px solid var(--btnB)", fontSize: 12, color: "var(--btnT)", cursor: "pointer", whiteSpace: "nowrap" }}>
+            <div onClick={() => setStacked((v) => !v)} className="gs-lift" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, minHeight: 32, padding: "5px 11px", borderRadius: 7, background: "var(--btn)", border: "1px solid var(--btnB)", fontSize: 12, color: "var(--btnT)", cursor: "pointer", whiteSpace: "nowrap", boxSizing: "border-box" }}>
               {isStacked ? "Lado a lado" : "Empilhado"}
             </div>
           )}

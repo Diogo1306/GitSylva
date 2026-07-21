@@ -14,7 +14,7 @@ export function Commits() {
           <div style={{ fontSize: 13.5, fontWeight: 500 }}>Confirmar antes de descartar</div>
           <Hint>Pede confirmação ao descartar alterações não preparadas.</Hint>
         </div>
-        <Toggle on={confirmDiscard} />
+        <Toggle on={confirmDiscard} aria-label="Confirmar antes de descartar" />
       </div>
     </div>
   );

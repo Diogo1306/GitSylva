@@ -15,7 +15,13 @@ import type { TreeStyleKey } from "../theme/themes";
 // hovering never rebuilds the SVG (memo on rows/rowH/style).
 
 const LANE_W = 18;
-const laneX = (l: number) => 10 + l * LANE_W;
+// Deep parallel histories clamp at lane 12 — beyond that the far lines share
+// the last column instead of running under the commit text.
+const laneX = (l: number) => 10 + Math.min(l, 12) * LANE_W;
+// Only --l0/--l1/--l2 exist as theme vars; higher lanes cycle the two branch
+// colors (never the trunk's) — before this, lane ≥3 strokes referenced an
+// undefined var and the lines simply didn't render.
+const laneColor = (l: number) => (l === 0 ? "var(--l0)" : `var(--l${((l - 1) % 2) + 1})`);
 
 // Entrance animation budget, PER ROW: the first screenfuls grow in; rows
 // beyond this render static. The old all-or-nothing cap (skip when
@@ -63,20 +69,21 @@ function buildGraph(
         stroke:
           (styleKey === "tropical" || styleKey === "sakura") && lane === 0
             ? "var(--trunk)"
-            : `var(--l${lane})`,
+            : laneColor(lane),
+        // Slimmed ~25% (R5.27 — user wants lighter commit lines).
         strokeWidth:
           w ||
           (lane === 0
             ? styleKey === "tropical"
-              ? 4.2
+              ? 3.2
               : styleKey === "sakura"
-                ? 3.8
-                : 3.4
+                ? 2.9
+                : 2.6
             : styleKey === "tropical"
-              ? 2.8
+              ? 2.2
               : styleKey === "sakura"
-                ? 2.4
-                : 2.2),
+                ? 1.9
+                : 1.7),
         strokeLinecap: "round" as const,
         opacity: 0.9,
         // The dash-reveal only exists while animating; static paths skip it.
@@ -144,8 +151,8 @@ function buildGraph(
         cy: y,
         r: c.merge ? 3.3 : 4.5,
         style: {
-          fill: c.merge ? `var(--l${c.lane})` : "var(--win)",
-          stroke: `var(--l${c.lane})`,
+          fill: c.merge ? laneColor(c.lane) : "var(--win)",
+          stroke: laneColor(c.lane),
           strokeWidth: 2,
           transformBox: "fill-box" as const,
           transformOrigin: "center",
@@ -179,7 +186,7 @@ function buildGraph(
           key: `stem-${hash}`,
           d: `M${x + side * 3.5},${y - 1} Q${x + side * 6},${y - 4} ${x + side * 8.5},${y - 5.5}`,
           style: {
-            stroke: styleKey === "sakura" ? "var(--trunk)" : `var(--l${c.lane})`,
+            stroke: styleKey === "sakura" ? "var(--trunk)" : laneColor(c.lane),
             strokeWidth: 1.1,
             fill: "none",
             opacity: 0.65,

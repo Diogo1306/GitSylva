@@ -159,7 +159,7 @@ export function Appearance() {
           <div style={{ fontSize: 13.5, fontWeight: 500 }}>Animações decorativas</div>
           <Hint>Folhas a cair, crescimento da árvore e flash na troca de tema</Hint>
         </div>
-        <Toggle on={t.anims} />
+        <Toggle on={t.anims} aria-label="Animações decorativas" />
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -196,6 +196,18 @@ export function Appearance() {
           ))}
         </div>
         <Hint>Barra lateral: estilo VS Code · escala melhor com muitos repositórios.</Hint>
+      </div>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <FieldLabel>Painel de detalhe do histórico</FieldLabel>
+        <div style={{ display: "inline-flex", gap: 4, padding: 4, borderRadius: 10, background: "var(--panel2)", border: "1px solid var(--border)", alignSelf: "flex-start" }}>
+          {(["lado", "baixo"] as const).map((k) => (
+            <div key={k} onClick={() => t.savePrefs({ historyLayout: k })} style={{ padding: "6px 16px", borderRadius: 7, fontSize: 13, fontWeight: 600, cursor: "pointer", background: t.historyLayout === k ? "var(--win)" : "transparent", color: t.historyLayout === k ? "var(--text)" : "var(--muted)" }}>
+              {k === "lado" ? "Ao lado" : "Em baixo"}
+            </div>
+          ))}
+        </div>
+        <Hint>Em baixo = estilo SourceTree: lista em cima, diff em toda a largura. Esconde/mostra com o botão "Diff" na barra do histórico.</Hint>
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>

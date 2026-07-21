@@ -84,6 +84,7 @@ pub fn run() {
       git::rewrite::reset_to_cmd,
       git::rewrite::cherry_pick_cmd,
       git::rewrite::rebase_cmd,
+      git::rewrite::revert_commit_cmd,
       git::blame::blame_cmd,
       git::conflict::conflict_state_cmd,
       git::conflict::resolve_use_cmd,

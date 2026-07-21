@@ -549,3 +549,24 @@ Pedidos do utilizador nesta ronda, todos entregues e verificados ao vivo no exe 
 **Release 0.1.0 + auto-update:** versões alinhadas em 0.1.0; `tauri-plugin-updater` + `tauri-plugin-process` (relaunch); keypair minisign em `%USERPROFILE%\.tauri\gitsylva.key` (privada FORA do git); `createUpdaterArtifacts` + endpoint `github.com/Diogo1306/GitSylva/releases/latest/download/latest.json`; `UpdatePrompt` no arranque (check 5s depois do arranque, nunca bloqueia; diálogo → download → relaunch). ⚠️ O repo é PRIVADO: o auto-update e os downloads públicos só funcionam quando o dono tornar o repo público (decisão do utilizador, não foi alterada).
 
 Validação: tsc 0, eslint 0, vitest 76/76 (+4 fileIcons), cargo check ok; CDP no exe real: hint "Ctrl+K", 3 zonas de arrasto (40/38px), tiles de tipo + letras de estado no detalhe do commit, cartão de notificação a right-gap 16 / bottom-gap 66.
+
+**R5.1 (usabilidade das branches):** 1 clique numa branch (local ou remota) foca o commit do tip no Histórico (novo campo `tip` no BranchInfo via `%(objectname)`; o limite do log cresce +400 até 2000 quando o alvo está mais fundo que a janela — derive-on-render, o lint proíbe setState em efeito); 2 cliques fazem o checkout (com os guards de sempre); a branch ativa ganhou ponto preenchido com halo; a scrollbar horizontal no fundo da sidebar desapareceu (`overflowX: hidden` — restam ~3px de overflow clipado, inofensivo). Verificado ao vivo: clique em fix/engine-translation focou o tip sem mudar de branch.
+
+**R5.2 (feedback ao vivo):** minimizar voltou a ser o nativo do Windows (a animação mac-style do handoff foi removida — winMinimizeAnimated e o keyframe apagados); a coluna de ficheiros da Cópia de trabalho passou a UM contentor de scroll (as duas secções + cabeçalhos) com a caixa de commit fixa em baixo — antes uma lista longa de não-preparados empurrava tudo para fora do ecrã (verificado ao vivo: textarea bottom 711/800); em modo empilhado a coluna divide a altura com o diff (flex 1 1 0%); a ActionBar inferior foi REMOVIDA a pedido ("a barra por baixo de Definições") — Pull/Push subiram para a Titlebar com os contadores ahead/behind, o resto já vivia na palette/sidebar/atalhos; notificações desceram para bottom 16; chips de refs ganharam maxWidth 150 por chip (um nome comprido já não esfomeia os outros). NOTA: o utilizador testava a 0.1.0 INSTALADA — os bugs do screenshot (chips sobrepostos, barra, scrollbar) já estavam corrigidos no develop.
+
+**R5.3 (ícone por tema):** make-icon.js → make-icon.cjs ("type":"module" no package.json impedia require) e parametrizado (argv: alvo, bg, folha, tamanho); 4 ícones 256px em src/theme/appicons/ importados com ?inline (CSP sem 'self' em connect-src impedia fetch); useApplyTheme faz setIcon(bytes) na mudança de tema (feature "image-png" no crate tauri + permissão core:window:allow-set-icon). Fora do Tauri é no-op silencioso.
+
+## 11. Auditoria ao grafo de commits (2026-07-15, pedido do utilizador: "ramificações erradas")
+
+Quatro defeitos reais encontrados e corrigidos:
+
+| # | Defeito | Causa | Correção |
+|---|---|---|---|
+| 1 | Branches não integradas NUNCA apareciam na árvore | `get_log` corria `git log` sem refs = só a história do HEAD | `--branches --remotes --tags HEAD` (sem `--all` de propósito — puxaria o refs/stash) |
+| 2 | Lanes entrelaçadas/tortas entre branches paralelas | ordem por data (default) intercala commits de linhas paralelas | `--topo-order` |
+| 3 | Linhas de branch invisíveis a partir da 4ª lane | `var(--l3)` não existe (só há --l0/1/2) → stroke inválido | `laneColor()`: lanes ≥1 ciclam --l1/--l2; --l0 reservada ao tronco |
+| 4 | Nós de outras branches EM CIMA de linhas desenhadas | num fork, o layout libertava a lane do filho na própria row, mas o renderer desenha a linha até à row do pai — uma tip nova reclamava a lane a meio | a lane fica reservada até à row do fork (algoritmo clássico); o nó do pai assenta na lane mais baixa em espera |
+
+Extras: gutter do texto adaptativo (96px + 18px por lane acima da 4ª, cap 258px) e clamp visual na lane 12. Testes novos: 2 de layout (fork reserva a lane; irmãos mantêm linhas distintas) + 1 Rust (`log_includes_unmerged_branches`). vitest 82/82, cargo 52/52.
+
+**R5.6–R5.9 (mesma sessão):** menus de contexto ricos no commit (criar branch daqui — backend `create_branch` com base opcional; tag aqui — `create_tag` com alvo; reverter — novo comando `revert_commit`; cherry-pick/reset/rebase/copiar hash+mensagem) e na branch (mudar com CONFIRMAÇÃO, merge na atual, rebase, renomear, copiar, apagar); Definições→Sobre com versão + "Procurar atualizações" (check/instala on-demand); badges ↑↓ por branch na sidebar (`%(upstream:track)`); HEAD com barra de acento e chip que nunca clipa; History com painel de detalhe AO LADO ou EM BAIXO (estilo SourceTree, redimensionável e colapsável — `historyLayout` no themeStore) e escolha abas/rail no onboarding. Tudo verificado ao vivo via CDP. vitest 82, cargo 52.

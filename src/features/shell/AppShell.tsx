@@ -176,6 +176,7 @@ export function AppShell() {
           </div>
         </div>
       </div>
+      {/* R5.10: back by user request — Pull/Push/Commit live down here again. */}
       <ActionBar />
       <CommandPalette />
       <Modals />

@@ -1,27 +1,28 @@
-import { TreeLogo } from "./TreeLogo";
+import { useThemeStore } from "../state/themeStore";
+import type { ThemeKey } from "../theme/themes";
+import wmEscuro from "../theme/marks/wordmark-escuro.png";
+import wmClaro from "../theme/marks/wordmark-claro.png";
+import wmGitclassic from "../theme/marks/wordmark-gitclassic.png";
+import wmNipon from "../theme/marks/wordmark-nipon.png";
 
-// The git[S-tree]ylva lockup (Space Grotesk 600, S cropped and widened 1.22×),
-// shared by the titlebar, the welcome screen and the onboarding column — it
-// was previously hand-assembled in each place with diverging magic numbers.
+// The OFFICIAL git[S]ylva wordmark from the design kit (transparent exports,
+// R5.21), one per theme so letters and the S always sit on-palette.
+const WORDMARK_BY_THEME: Record<ThemeKey, string> = {
+  escuro: wmEscuro,
+  claro: wmClaro,
+  gitclassic: wmGitclassic,
+  nipon: wmNipon,
+};
+
 export function Wordmark({ size = 17 }: { size?: number }) {
-  const tree = Math.round(size * 0.85);
-  const lift = Math.round(size * 0.12);
+  const theme = useThemeStore((s) => s.theme);
   return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "baseline",
-        fontFamily: "'Space Grotesk', sans-serif",
-        fontWeight: 600,
-        fontSize: size,
-        letterSpacing: "0.3px",
-      }}
-    >
-      <span>git</span>
-      <span style={{ display: "inline-block", margin: "0 1px", transform: `translateY(${lift}px)` }}>
-        <TreeLogo size={tree} crop xScale={1.22} />
-      </span>
-      <span>ylva</span>
-    </div>
+    <img
+      src={WORDMARK_BY_THEME[theme] ?? wmEscuro}
+      alt="GitSylva"
+      // The lockup is ~2.7:1 with the S overshooting the letters; 2.1× the
+      // old font size keeps the letters at roughly their previous height.
+      style={{ display: "block", height: Math.round(size * 2.1) }}
+    />
   );
 }

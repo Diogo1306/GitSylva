@@ -2,10 +2,9 @@ import { createElement, memo, type ReactElement } from "react";
 import { useThemeStore } from "../state/themeStore";
 import type { TreeStyleKey } from "../theme/themes";
 
-// The gitSylva mark: an "S" drawn as a git branch. A tapered bezier trunk with
-// roots at the base and a crown of nodes and leaves at the top. Ported from the
-// design's procedural generator so it stays faithful and morphs by tree style
-// (leaves become commit nodes in "grafo", cherry blossoms in "sakura").
+// The gitSylva mark: the OFFICIAL S silhouette from the design kit, drawn
+// procedurally so it stays theme-aware and morphs by tree style (leaves
+// become commit nodes in "grafo", cherry blossoms in "sakura").
 
 type Pt = [number, number];
 type Seg = [Pt, Pt, Pt, Pt];
@@ -127,77 +126,37 @@ function leaf(styl: TreeStyleKey, x: number, y: number, rot: number, s: number, 
   );
 }
 
-function tuft(styl: TreeStyleKey, x: number, y: number, rot: number, s: number, delay: number, animated: boolean): ReactElement {
-  if (styl === "grafo") {
-    return createElement(
-      "g",
-      { key: `tf${x}-${y}-gr` },
-      node(x, y, 3.4, delay, false, animated),
-      node(x + 7 * s, y - 5 * s, 2.2, delay + 0.12, true, animated),
-    );
-  }
-  if (styl === "sakura") {
-    return createElement(
-      "g",
-      { key: `tf${x}-${y}-sk` },
-      bloom(x, y, s * 0.95, delay, animated),
-      bloom(x + 6 * s, y - 4.5 * s, s * 0.58, delay + 0.12, animated),
-    );
-  }
-  const fan: [number, number, number][] =
-    styl === "tropical"
-      ? [[-112, 0.8, 0.18], [-70, 0.92, 0], [-26, 1, 0.08], [16, 0.85, 0.14]]
-      : [[-44, 0.8, 0.08], [0, 1, 0], [42, 0.78, 0.14]];
-  const d = styl === "tropical" ? "M0,0 Q8,-5 17,-2 Q8,1.5 0,0 Z" : "M0,0 Q5,-4.5 10.5,-1 Q5.5,3.5 0,0 Z";
-  return createElement(
-    "g",
-    { key: `tf${x}-${y}-${styl}`, transform: `translate(${x}, ${y}) rotate(${rot}) scale(${s})` },
-    fan.map(([dr, ds, dd], k) =>
-      createElement(
-        "g",
-        { key: k, transform: `rotate(${dr}) scale(${ds})` },
-        createElement("path", {
-          d,
-          style: {
-            fill: "var(--leaf)",
-            opacity: 0.95,
-            transformBox: "fill-box",
-            transformOrigin: "left center",
-            animation: animated ? `leafPop 0.45s cubic-bezier(0.2, 0.9, 0.3, 1) ${delay + dd}s both` : "none",
-          },
-        }),
-      ),
-    ),
-  );
-}
 
+// The OFFICIAL logo silhouette (design kit): the S spine, its three branches,
+// two hollow + two filled nodes and three foliage anchors — nothing else.
+// Only the TREATMENT is alive: tapered strokes, draw-in animation and foliage
+// that morphs with the tree style (R5.25 — "o S tem de ser igual ao logo").
 function treeSKids(styl: TreeStyleKey, animated: boolean, kb: string): ReactElement[] {
   const tc = styl === "normal" || styl === "grafo" ? "var(--l0)" : "var(--trunk, var(--l0))";
   const T = (segs: Seg[], w0: number, w1: number, d: number, k: string) =>
     taper(segs, w0, w1, tc, animated, d, kb + k + styl);
   return [
-    T([[[12, 47.5], [8.5, 51], [5.5, 53.5], [2, 56.5]]], 6, 1, 0.05, "r1"),
-    T([[[12, 47.5], [14.5, 51.5], [17, 54], [20, 57]]], 6, 1, 0.08, "r2"),
     T(
       [
         [[34, 12], [31, 4], [14, 4], [13, 14]],
         [[13, 14], [12, 24], [33, 32], [33, 44]],
         [[33, 44], [34, 56], [13, 58], [12, 48]],
       ],
-      2.6,
-      9,
+      6,
+      7.6,
       0.05,
       "t",
     ),
-    T([[[13.5, 13.5], [10, 10.5], [7.5, 7.5], [5, 4.5]]], 3, 1.2, 0.18, "c1"),
-    T([[[24, 4.8], [21.5, 3.2], [19.5, 2.2], [17, 1]]], 2.6, 1.1, 0.24, "c2"),
-    T([[[30, 6.5], [32, 4.5], [33.5, 3], [35.5, 1.5]]], 2.4, 1, 0.3, "c3"),
-    node(34, 12, 3.8, 0.42, false, animated),
-    tuft(styl, 17, 1, -105, 0.9, 0.5, animated),
-    tuft(styl, 35.5, 1.5, -55, 0.62, 0.6, animated),
-    node(5, 4.5, 2.8, 0.7, true, animated),
-    leaf(styl, 9, 9, -55, 0.55, 0.78, animated),
-    leaf(styl, 12.5, 20, 170, 0.5, 0.85, animated),
+    T([[[26, 32], [31, 34], [35, 37], [38, 41]]], 4.2, 2.6, 0.4, "b1"),
+    T([[[13.5, 13.5], [10, 10.5], [7.5, 7.5], [5, 4.5]]], 3.6, 2.2, 0.5, "b2"),
+    T([[[28, 51], [31.5, 53.5], [34, 55.5], [36.5, 58]]], 3.6, 2.2, 0.6, "b3"),
+    node(34, 12, 4, 0.72, false, animated),
+    node(12, 48, 4, 0.8, false, animated),
+    node(38, 41, 3.2, 0.88, true, animated),
+    node(5, 4.5, 3, 0.96, true, animated),
+    leaf(styl, 36, 57, -25, 0.85, 1.05, animated),
+    leaf(styl, 9, 9, -60, 0.7, 1.15, animated),
+    leaf(styl, 30, 6, -110, 0.6, 1.25, animated),
   ];
 }
 
@@ -230,42 +189,45 @@ export const TreeLogo = memo(function TreeLogo({ size, animated = false, crop = 
   );
 });
 
-// The onboarding tree: the logo mark grows in stages (0 = login sapling,
-// 1 = setup, 2 = planted) by adding branches, tufts, nodes and leaves.
+// The onboarding tree: the OFFICIAL logo mark grows in stages (0 = login
+// sapling, 1 = setup, 2 = planted) by revealing the logo's own parts — the
+// silhouette always converges on the exact mark (R5.25).
 function onboardKids(stage: number, styl: TreeStyleKey): ReactElement[] {
   const tc = styl === "normal" || styl === "grafo" ? "var(--l0)" : "var(--trunk, var(--l0))";
   const T = (segs: Seg[], w0: number, w1: number, d: number, k: string) =>
     taper(segs, w0, w1, tc, true, d, k + styl);
-  const kids: ReactElement[] = [
-    createElement("g", { key: "base", transform: "translate(19, 48)" }, treeSKids(styl, true, "ob")),
-  ];
-  if (stage >= 1) {
-    kids.push(
-      createElement(
-        "g",
-        { key: "ext" },
-        T([[[53, 60], [56, 50], [52, 40], [47, 32]]], 3, 1.3, 0.1, "e1"),
-        T([[[51, 44], [46, 40], [41, 37], [35, 34]]], 2.2, 1, 0.3, "e2"),
-        tuft(styl, 35, 34, -150, 0.8, 0.5, true),
-        node(47, 32, 3.4, 0.6, false, true),
-        leaf(styl, 54, 51, 15, 0.6, 0.7, true),
-      ),
-    );
+  if (stage === 0) {
+    // Sapling: the bottom hook of the S sprouting from the ground.
+    return [
+      T([[[33, 44], [34, 56], [13, 58], [12, 48]]], 6.6, 7.4, 0.1, "s0"),
+      leaf(styl, 36, 57, -25, 0.85, 0.6, true),
+    ];
   }
+  const kids: ReactElement[] = [
+    T(
+      [
+        [[34, 12], [31, 4], [14, 4], [13, 14]],
+        [[13, 14], [12, 24], [33, 32], [33, 44]],
+        [[33, 44], [34, 56], [13, 58], [12, 48]],
+      ],
+      6,
+      7.6,
+      0.05,
+      "t",
+    ),
+    T([[[28, 51], [31.5, 53.5], [34, 55.5], [36.5, 58]]], 3.6, 2.2, 0.5, "b3"),
+    node(34, 12, 4, 0.7, false, true),
+    leaf(styl, 36, 57, -25, 0.85, 0.9, true),
+    leaf(styl, 9, 9, -60, 0.7, 1.0, true),
+  ];
   if (stage >= 2) {
     kids.push(
-      createElement(
-        "g",
-        { key: "cr" },
-        T([[[49, 42], [55, 39], [61, 36], [66, 32]]], 2, 0.9, 0.05, "f1"),
-        T([[[47, 31], [49, 27], [51, 25], [53, 22]]], 1.8, 0.8, 0.3, "f2"),
-        tuft(styl, 66, 32, -35, 0.85, 0.3, true),
-        tuft(styl, 53, 22, -80, 0.95, 0.5, true),
-        tuft(styl, 47, 30, -120, 0.8, 0.4, true),
-        node(66, 32, 2.6, 0.55, true, true),
-        leaf(styl, 58, 37.5, -60, 0.6, 0.6, true),
-        leaf(styl, 43, 34, 150, 0.55, 0.68, true),
-      ),
+      T([[[26, 32], [31, 34], [35, 37], [38, 41]]], 4.2, 2.6, 0.4, "b1"),
+      T([[[13.5, 13.5], [10, 10.5], [7.5, 7.5], [5, 4.5]]], 3.6, 2.2, 0.55, "b2"),
+      node(12, 48, 4, 0.75, false, true),
+      node(38, 41, 3.2, 0.85, true, true),
+      node(5, 4.5, 3, 0.95, true, true),
+      leaf(styl, 30, 6, -110, 0.6, 1.1, true),
     );
   }
   return kids;
@@ -276,7 +238,7 @@ export function OnboardTree({ stage }: { stage: number }) {
   return createElement(
     "svg",
     {
-      viewBox: "0 0 84 112",
+      viewBox: "0 0 46 62",
       width: "100%",
       height: "100%",
       style: { display: "block", overflow: "visible" },

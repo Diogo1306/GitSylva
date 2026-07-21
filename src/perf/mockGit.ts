@@ -17,8 +17,11 @@ const N_FILES = 500;
 const N_BRANCHES = 200;
 
 function hash(i: number): string {
-  return (i + 1).toString(16).padStart(7, "a").repeat(6).slice(0, 40);
+  return (i + 1).toString(16).padStart(40, "0");
 }
+
+// Exported for testing
+export { N_COMMITS, hash };
 
 const authors = ["Ana Souza", "Marco Duarte", "Lia Ferraz"];
 
@@ -78,6 +81,9 @@ const handlers: Record<string, (a: Args) => unknown> = {
       is_current: i === 0,
       is_remote: i > 140,
       upstream: i === 0 ? "origin/main" : null,
+      tip: hash(i % 50),
+      ahead: i === 0 ? 1 : 0,
+      behind: i === 3 ? 2 : 0,
     })),
   list_stashes: () => [{ index: 0, message: "WIP perf", relative_date: "há 2 dias" }],
   stash_files: () => ["src/a.ts", "src/b.ts"],

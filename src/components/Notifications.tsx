@@ -3,9 +3,9 @@ import { useToastStore, type ToastKind } from "../state/toastStore";
 import { useThemeStore } from "../state/themeStore";
 
 // One notification corner for everything (user request R5): notification
-// cards AND quick toasts share the same stack at the bottom right, above the
-// action bar, with the same card look and the same in/out motion. Toasts are
-// click-to-dismiss; notifications keep ✕ and hover-pauses-the-timer.
+// cards AND quick toasts share the same stack at the bottom right, with the
+// same card look and the same in/out motion. Toasts are click-to-dismiss;
+// notifications keep ✕ and hover-pauses-the-timer.
 
 const DOT: Record<NotifKind, string> = {
   success: "var(--leaf)",

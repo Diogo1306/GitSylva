@@ -8,6 +8,27 @@ pub struct BranchInfo {
     pub is_current: bool,
     pub is_remote: bool,
     pub upstream: Option<String>,
+    /// Full hash of the branch tip — the sidebar focuses it in the history.
+    pub tip: String,
+    /// Commits ahead/behind the upstream (0/0 when there is no upstream).
+    pub ahead: u32,
+    pub behind: u32,
+}
+
+/// Parse "%(upstream:track)" output — "[ahead 2, behind 1]", "[ahead 2]",
+/// "[behind 3]", "[gone]" or "" — into (ahead, behind).
+fn parse_track(track: &str) -> (u32, u32) {
+    let num_after = |key: &str| -> u32 {
+        track
+            .split(key)
+            .nth(1)
+            .and_then(|rest| {
+                let digits: String = rest.trim_start().chars().take_while(|c| c.is_ascii_digit()).collect();
+                digits.parse().ok()
+            })
+            .unwrap_or(0)
+    };
+    (num_after("ahead "), num_after("behind "))
 }
 
 #[tauri::command(rename = "list_branches")]
@@ -21,8 +42,8 @@ pub async fn checkout_branch_cmd(path: String, name: String) -> Result<(), GitEr
 }
 
 #[tauri::command(rename = "create_branch")]
-pub async fn create_branch_cmd(path: String, name: String, checkout: bool) -> Result<(), GitError> {
-    crate::git::run_mutating("create_branch", path.clone(), move || create_branch(path, name, checkout)).await
+pub async fn create_branch_cmd(path: String, name: String, checkout: bool, from: Option<String>) -> Result<(), GitError> {
+    crate::git::run_mutating("create_branch", path.clone(), move || create_branch(path, name, checkout, from)).await
 }
 
 #[tauri::command(rename = "merge_branch")]
@@ -48,7 +69,7 @@ pub fn list_branches(path: String) -> Result<Vec<BranchInfo>, GitError> {
         &[
             "for-each-ref",
             "--sort=-committerdate",
-            "--format=%(refname)%1f%(refname:short)%1f%(HEAD)%1f%(upstream:short)",
+            "--format=%(refname)%1f%(refname:short)%1f%(HEAD)%1f%(upstream:short)%1f%(objectname)%1f%(upstream:track)",
             "refs/heads",
             "refs/remotes",
         ],
@@ -72,11 +93,16 @@ pub fn list_branches(path: String) -> Result<Vec<BranchInfo>, GitError> {
             .copied()
             .filter(|s| !s.is_empty())
             .map(|s| s.to_string());
+        let tip = f.get(4).copied().unwrap_or("").to_string();
+        let (ahead, behind) = parse_track(f.get(5).copied().unwrap_or(""));
         branches.push(BranchInfo {
             name,
             is_current,
             is_remote,
             upstream,
+            tip,
+            ahead,
+            behind,
         });
     }
     Ok(branches)
@@ -103,14 +129,16 @@ fn validate_branch_name(path: &str, name: &str) -> Result<(), GitError> {
     })
 }
 
-/// Create a new branch from HEAD, optionally checking it out.
-pub fn create_branch(path: String, name: String, checkout: bool) -> Result<(), GitError> {
+/// Create a new branch from `from` (HEAD when omitted), optionally checking
+/// it out — the history's "criar branch daqui" passes a commit hash.
+pub fn create_branch(path: String, name: String, checkout: bool, from: Option<String>) -> Result<(), GitError> {
     validate_branch_name(&path, &name)?;
-    if checkout {
-        run_git(&path, &["checkout", "-b", &name]).map(|_| ())
-    } else {
-        run_git(&path, &["branch", &name]).map(|_| ())
+    let name = name.trim();
+    let mut args: Vec<&str> = if checkout { vec!["checkout", "-b", name] } else { vec!["branch", name] };
+    if let Some(f) = from.as_deref() {
+        args.push(f);
     }
+    run_git(&path, &args).map(|_| ())
 }
 
 /// Merge a branch into the current one. On conflict, git leaves the tree in a
@@ -153,12 +181,14 @@ mod tests {
     #[test]
     fn create_list_and_checkout() {
         let p = repo("checkout");
-        create_branch(p.clone(), "feature/x".into(), false).unwrap();
+        create_branch(p.clone(), "feature/x".into(), false, None).unwrap();
         let branches = list_branches(p.clone()).unwrap();
         let names: Vec<&str> = branches.iter().map(|b| b.name.as_str()).collect();
         assert!(names.contains(&"main"));
         assert!(names.contains(&"feature/x"));
         assert!(branches.iter().find(|b| b.name == "main").unwrap().is_current);
+        // Every branch carries its tip hash (full 40-hex object name).
+        assert!(branches.iter().all(|b| b.tip.len() == 40 && b.tip.chars().all(|c| c.is_ascii_hexdigit())));
 
         checkout_branch(p.clone(), "feature/x".into()).unwrap();
         let branches = list_branches(p).unwrap();
@@ -168,15 +198,37 @@ mod tests {
     #[test]
     fn create_with_checkout() {
         let p = repo("create");
-        create_branch(p.clone(), "dev".into(), true).unwrap();
+        create_branch(p.clone(), "dev".into(), true, None).unwrap();
         let branches = list_branches(p).unwrap();
         assert!(branches.iter().find(|b| b.name == "dev").unwrap().is_current);
     }
 
     #[test]
+    fn parse_track_variants() {
+        assert_eq!(parse_track(""), (0, 0));
+        assert_eq!(parse_track("[gone]"), (0, 0));
+        assert_eq!(parse_track("[ahead 2]"), (2, 0));
+        assert_eq!(parse_track("[behind 13]"), (0, 13));
+        assert_eq!(parse_track("[ahead 2, behind 1]"), (2, 1));
+    }
+
+    #[test]
+    fn create_from_commit_points_at_it() {
+        let p = repo("from");
+        let first = run_git(&p, &["rev-parse", "HEAD"]).unwrap().trim().to_string();
+        fs::write(format!("{p}/b.txt"), "2").unwrap();
+        run_git(&p, &["add", "-A"]).unwrap();
+        run_git(&p, &["commit", "-m", "segundo"]).unwrap();
+        // Branch created FROM the first commit, not from HEAD.
+        create_branch(p.clone(), "daqui".into(), false, Some(first.clone())).unwrap();
+        let tip = run_git(&p, &["rev-parse", "daqui"]).unwrap().trim().to_string();
+        assert_eq!(tip, first);
+    }
+
+    #[test]
     fn rename_moves_branch() {
         let p = repo("rename");
-        create_branch(p.clone(), "old-name".into(), false).unwrap();
+        create_branch(p.clone(), "old-name".into(), false, None).unwrap();
         rename_branch(p.clone(), "old-name".into(), "new-name".into()).unwrap();
         let names: Vec<String> = list_branches(p).unwrap().into_iter().map(|b| b.name).collect();
         assert!(names.contains(&"new-name".to_string()));
@@ -187,7 +239,7 @@ mod tests {
     fn merge_and_delete() {
         let p = repo("merge");
         // Commit on a feature branch, then merge it into main.
-        create_branch(p.clone(), "feature".into(), true).unwrap();
+        create_branch(p.clone(), "feature".into(), true, None).unwrap();
         fs::write(format!("{p}/b.txt"), "hi").unwrap();
         run_git(&p, &["add", "-A"]).unwrap();
         run_git(&p, &["commit", "-m", "feature work"]).unwrap();

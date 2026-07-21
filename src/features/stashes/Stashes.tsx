@@ -4,6 +4,8 @@ import { useStashes, useStashFiles, useStashActions } from "../../state/queries"
 import { toast } from "../../state/toastStore";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
 import { errMsg } from "../../lib/errors";
+import { comboHint } from "../../lib/platform";
+import { useShortcutsStore } from "../../state/shortcutsStore";
 
 const mono = "'JetBrains Mono', monospace";
 
@@ -45,7 +47,7 @@ export function Stashes() {
         <div style={{ color: "var(--ddT)", fontSize: 13 }}>{errMsg(error, "não foi possível ler os stashes")}</div>
       ) : stashes.length === 0 ? (
         <div style={{ maxWidth: 620, border: "1px dashed var(--btnB)", borderRadius: 12, padding: "28px 20px", textAlign: "center", color: "var(--muted)", fontSize: 13.5 }}>
-          Sem stashes. Use "Guardar stash" ou o botão Stash na barra inferior para guardar alterações em curso.
+          Sem stashes. Use "Guardar stash" acima (ou {comboHint(useShortcutsStore.getState().bindings.stash)}) para guardar alterações em curso.
         </div>
       ) : (
         stashes.map((s) => (
