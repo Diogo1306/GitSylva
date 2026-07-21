@@ -16,6 +16,7 @@ import { useBreakpoint } from "../../lib/useBreakpoint";
 import { headMessage, openPath, revealPath } from "../../lib/api";
 import { spawnLeaf } from "../../lib/leaf";
 import { toast } from "../../state/toastStore";
+import { useT } from "../../i18n";
 import type { FileChange } from "../../lib/types";
 
 const mono = "'JetBrains Mono', monospace";
@@ -55,6 +56,7 @@ function FileRow({
   onSelect: () => void;
   onContext?: (x: number, y: number) => void;
 }) {
+  const t = useT();
   const st = statusStyle(letter);
   const { name, dir } = splitPath(file.path);
   // Frozen at mount: if the delay tracked the live index, staging a row above
@@ -87,7 +89,7 @@ function FileRow({
           e.stopPropagation();
           if (!conflicted) onToggle();
         }}
-        title={conflicted ? "Em conflito — resolve-o primeiro (painel acima)" : checked ? "Retirar da preparação" : "Preparar"}
+        title={conflicted ? t("workingCopy.file.conflictedTitle") : checked ? t("workingCopy.file.unstageTitle") : t("workingCopy.file.stageTitle")}
         style={
           checked
             ? { width: 17, height: 17, borderRadius: 5, background: "var(--accent)", flexShrink: 0, display: "grid", placeItems: "center", color: "var(--accentT)", fontSize: 11, fontWeight: 800, cursor: "pointer" }
@@ -154,6 +156,7 @@ function FolderRow({ dir, count, checked, title, onToggle }: { dir: string; coun
 }
 
 export function WorkingCopy() {
+  const t = useT();
   const repo = useAppStore((s) => s.repo)!;
   const { data, isLoading, error } = useStatus(repo.path);
   const actions = useStageActions(repo.path);
@@ -232,9 +235,9 @@ export function WorkingCopy() {
     (p: string) =>
       hunk.mutate(
         { patch: p, cached: true, reverse: stagedSel },
-        { onError: (e: unknown) => toast(errMsg(e, "não foi possível aplicar o hunk"), "error") },
+        { onError: (e: unknown) => toast(errMsg(e, t("workingCopy.hunkError")), "error") },
       ),
-    [hunk, stagedSel],
+    [hunk, stagedSel, t],
   );
 
   // ⌘Enter (rebindable) fires this event from the global shortcut handler.
@@ -249,7 +252,7 @@ export function WorkingCopy() {
         { message: msg, amend },
         {
           onSuccess: () => { spawnLeaf(); setMsg(""); setAmend(false); },
-          onError: (e: unknown) => setCommitErr((e as { message?: string })?.message ?? "não foi possível fazer commit"),
+          onError: (e: unknown) => setCommitErr((e as { message?: string })?.message ?? t("workingCopy.commitError")),
         },
       );
     };
@@ -257,8 +260,8 @@ export function WorkingCopy() {
     return () => window.removeEventListener("gitsylva:commit", onCommitShortcut);
   });
 
-  if (isLoading) return <div style={{ padding: 16, color: "var(--muted)" }}>A carregar alterações…</div>;
-  if (error) return <div style={{ padding: 16, color: "var(--ddT)" }}>{errMsg(error, "não foi possível ler o estado do repositório")}</div>;
+  if (isLoading) return <div style={{ padding: 16, color: "var(--muted)" }}>{t("workingCopy.loadingChanges")}</div>;
+  if (error) return <div style={{ padding: 16, color: "var(--ddT)" }}>{errMsg(error, t("workingCopy.statusError"))}</div>;
 
   const files = data ?? [];
   // Conflicted files show once (in the unstaged list, letter "U") — staging them
@@ -278,7 +281,7 @@ export function WorkingCopy() {
       { message: msg, amend },
       {
         onSuccess: () => { spawnLeaf(); setMsg(""); setAmend(false); },
-        onError: (e: unknown) => setCommitErr((e as { message?: string })?.message ?? "não foi possível fazer commit"),
+        onError: (e: unknown) => setCommitErr((e as { message?: string })?.message ?? t("workingCopy.commitError")),
       },
     );
   }
@@ -286,7 +289,7 @@ export function WorkingCopy() {
   function discardAll() {
     // A failed discard must never look like it worked.
     actions.discardAll.mutate(undefined, {
-      onError: (e: unknown) => toast(errMsg(e, "não foi possível descartar as alterações"), "error"),
+      onError: (e: unknown) => toast(errMsg(e, t("workingCopy.discardAllError")), "error"),
     });
     setConfirmDiscardAll(false);
   }
@@ -316,14 +319,14 @@ export function WorkingCopy() {
   function fileMenuItems(f: FileChange): MenuItem[] {
     const untracked = f.worktree_status === "?";
     const items: MenuItem[] = [
-      { label: "Abrir", onClick: () => void openPath(repo.path, f.path).catch((e: unknown) => toast(errMsg(e, "não foi possível abrir"), "error")) },
-      { label: "Mostrar no explorador", onClick: () => void revealPath(repo.path, f.path).catch((e: unknown) => toast(errMsg(e, "não foi possível abrir o explorador"), "error")) },
-      { label: "Copiar caminho", onClick: () => void navigator.clipboard?.writeText(f.path).then(() => toast("Caminho copiado")) },
+      { label: t("common.open"), onClick: () => void openPath(repo.path, f.path).catch((e: unknown) => toast(errMsg(e, t("workingCopy.file.openError")), "error")) },
+      { label: t("workingCopy.file.reveal"), onClick: () => void revealPath(repo.path, f.path).catch((e: unknown) => toast(errMsg(e, t("workingCopy.file.revealError")), "error")) },
+      { label: t("workingCopy.file.copyPath"), onClick: () => void navigator.clipboard?.writeText(f.path).then(() => toast(t("workingCopy.file.pathCopied"))) },
     ];
     if (f.worktree_status !== "." && !isConflict(f.index_status, f.worktree_status)) {
       items.push({ label: "", onClick: () => {}, divider: true });
       items.push({
-        label: untracked ? "Apagar do disco…" : "Descartar alterações…",
+        label: untracked ? t("workingCopy.file.deleteFromDisk") : t("workingCopy.file.discardChanges"),
         danger: true,
         onClick: () => {
           if (useThemeStore.getState().confirmDiscard) setConfirmDiscardFile(f);
@@ -342,9 +345,9 @@ export function WorkingCopy() {
       {
         onSuccess: () => {
           exitRow(f, "u", f.worktree_status, Math.max(0, idx));
-          toast(f.worktree_status === "?" ? `${f.path} apagado` : `Alterações de ${f.path} descartadas`);
+          toast(f.worktree_status === "?" ? t("workingCopy.file.deleted", { path: f.path }) : t("workingCopy.file.discarded", { path: f.path }));
         },
-        onError: (e: unknown) => toast(errMsg(e, "não foi possível descartar"), "error"),
+        onError: (e: unknown) => toast(errMsg(e, t("workingCopy.discardError")), "error"),
       },
     );
   }
@@ -363,13 +366,13 @@ export function WorkingCopy() {
       const idx = unstaged.indexOf(f);
       actions.stage.mutate(f.path, {
         onSuccess: () => exitRow(f, "u", f.worktree_status, idx),
-        onError: (e: unknown) => toast(errMsg(e, `não foi possível preparar ${f.path}`), "error"),
+        onError: (e: unknown) => toast(errMsg(e, t("workingCopy.stageError", { path: f.path })), "error"),
       });
     } else {
       const idx = staged.indexOf(f);
       actions.unstage.mutate(f.path, {
         onSuccess: () => exitRow(f, "s", f.index_status, idx),
-        onError: (e: unknown) => toast(errMsg(e, `não foi possível retirar ${f.path}`), "error"),
+        onError: (e: unknown) => toast(errMsg(e, t("workingCopy.unstageError", { path: f.path })), "error"),
       });
     }
   }
@@ -420,8 +423,8 @@ export function WorkingCopy() {
             checked={listKey === "s"}
             title={
               listKey === "u"
-                ? `Preparar os ${real.length} ficheiros de ${g.dir}/`
-                : `Retirar os ${real.length} ficheiros de ${g.dir}/`
+                ? t("workingCopy.folder.stageTitle", { count: real.length, dir: g.dir })
+                : t("workingCopy.folder.unstageTitle", { count: real.length, dir: g.dir })
             }
             onToggle={() => {
               for (const e of real) stageEntry(e.f, listKey);
@@ -464,20 +467,20 @@ export function WorkingCopy() {
             the two is draggable. */}
         <div style={{ height: unstagedH.height, minHeight: 96, flexShrink: 0, display: "flex", flexDirection: "column" }}>
         <div style={{ padding: "12px 16px 8px", display: "flex", alignItems: "center", flexShrink: 0 }}>
-          <SectionHead>NÃO PREPARADAS · {unstaged.length}</SectionHead>
+          <SectionHead>{t("workingCopy.unstagedSection")} · {unstaged.length}</SectionHead>
           <div
             onClick={() =>
               // Double-click must not queue the same operation twice, and a
               // failure has to surface (it was silent before).
               !actions.stageAll.isPending &&
               actions.stageAll.mutate(undefined, {
-                onError: (e: unknown) => toast(errMsg(e, "não foi possível preparar tudo"), "error"),
+                onError: (e: unknown) => toast(errMsg(e, t("workingCopy.stageAllError")), "error"),
               })
             }
             className="gs-row"
             style={{ fontSize: 12, color: "var(--l0)", cursor: actions.stageAll.isPending ? "default" : "pointer", opacity: actions.stageAll.isPending ? 0.6 : 1, padding: "3px 8px", borderRadius: 6, fontWeight: 600 }}
           >
-            {actions.stageAll.isPending ? "A preparar…" : "Preparar tudo"}
+            {actions.stageAll.isPending ? t("workingCopy.staging") : t("workingCopy.stageAll")}
           </div>
           <div
             onClick={() => {
@@ -488,7 +491,7 @@ export function WorkingCopy() {
             className="gs-row"
             style={{ fontSize: 12, color: "var(--ddT)", cursor: unstaged.length ? "pointer" : "default", opacity: unstaged.length ? 1 : 0.5, padding: "3px 8px", borderRadius: 6, fontWeight: 600 }}
           >
-            Descartar
+            {t("workingCopy.discard")}
           </div>
         </div>
         <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "0 10px 8px", display: "flex", flexDirection: "column", gap: 1 }}>
@@ -500,7 +503,7 @@ export function WorkingCopy() {
         <div
           {...unstagedH.handleProps}
           className="gs-resize"
-          title="Arrastar para ajustar o tamanho das listas"
+          title={t("workingCopy.dragLists")}
           style={{ height: 9, flexShrink: 0, cursor: "ns-resize", display: "flex", alignItems: "center", padding: "0 10px", touchAction: "none", boxSizing: "border-box" }}
         >
           <div style={{ height: 1, width: "100%", background: "var(--border)" }} />
@@ -508,7 +511,7 @@ export function WorkingCopy() {
 
         <div style={{ flex: 1, minHeight: 96, display: "flex", flexDirection: "column" }}>
         <div style={{ padding: "6px 16px 8px", display: "flex", alignItems: "center", flexShrink: 0 }}>
-          <SectionHead>PREPARADAS · {staged.length}</SectionHead>
+          <SectionHead>{t("workingCopy.stagedSection")} · {staged.length}</SectionHead>
         </div>
         <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "0 10px 10px", display: "flex", flexDirection: "column", gap: 1 }}>
           {fileList("s")}
@@ -520,7 +523,7 @@ export function WorkingCopy() {
           <textarea
             value={msg}
             onChange={(e) => setMsg(e.target.value)}
-            placeholder="Mensagem do commit…"
+            placeholder={t("workingCopy.commitPlaceholder")}
             style={{
               height: 64,
               resize: "none",
@@ -540,11 +543,11 @@ export function WorkingCopy() {
             <span style={{ width: 15, height: 15, borderRadius: 4, border: "1.5px solid var(--btnB)", boxSizing: "border-box", display: "grid", placeItems: "center", background: amend ? "var(--accent)" : "transparent", color: "var(--accentT)", fontSize: 10, fontWeight: 800 }}>
               {amend ? "✓" : ""}
             </span>
-            <span>Emendar último commit (amend)</span>
+            <span>{t("workingCopy.amendLabel")}</span>
           </div>
           {amendPushed && (
             <div style={{ fontSize: 11.5, color: "var(--stMT)", lineHeight: 1.4 }}>
-              O último commit já está no remoto — emendá-lo reescreve história publicada e vai exigir force push.
+              {t("workingCopy.amendPushedWarning")}
             </div>
           )}
           <div
@@ -566,8 +569,8 @@ export function WorkingCopy() {
               opacity: commit.isPending ? 0.7 : 1,
             }}
           >
-            {commit.isPending ? "A fazer commit…" : amend ? "Emendar commit" : `Commit em ${branch}`}
-            <span style={{ fontFamily: mono, fontWeight: 500, opacity: 0.75 }}>· {staged.length} arq.</span>
+            {commit.isPending ? t("workingCopy.committing") : amend ? t("workingCopy.amendCommit") : t("workingCopy.commitTo", { branch })}
+            <span style={{ fontFamily: mono, fontWeight: 500, opacity: 0.75 }}>· {t("workingCopy.filesShort", { count: staged.length })}</span>
           </div>
         </div>
       </div>
@@ -584,7 +587,7 @@ export function WorkingCopy() {
               </span>
             </>
           ) : (
-            <span style={{ fontSize: 13, color: "var(--muted)" }}>Selecione um ficheiro para ver o diff</span>
+            <span style={{ fontSize: 13, color: "var(--muted)" }}>{t("workingCopy.selectFilePrompt")}</span>
           )}
           <div style={{ flex: 1 }} />
           {effSel && selStatus !== "?" && (
@@ -596,35 +599,35 @@ export function WorkingCopy() {
               file path + status badge already shown — hide it before the
               Blame/split toggles would ever need to clip or wrap. */}
           {!blameOn && !bp.hideSecondary && (
-            <span style={{ fontSize: 12, color: "var(--muted)" }}>{effSel?.staged ? "diff preparado" : "diff da cópia de trabalho"}</span>
+            <span style={{ fontSize: 12, color: "var(--muted)" }}>{effSel?.staged ? t("workingCopy.stagedDiff") : t("workingCopy.worktreeDiff")}</span>
           )}
           {!blameOn && (
             <div onClick={() => setStacked((v) => !v)} className="gs-lift" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, minHeight: 32, padding: "5px 11px", borderRadius: 7, background: "var(--btn)", border: "1px solid var(--btnB)", fontSize: 12, color: "var(--btnT)", cursor: "pointer", whiteSpace: "nowrap", boxSizing: "border-box" }}>
-              {isStacked ? "Lado a lado" : "Empilhado"}
+              {isStacked ? t("workingCopy.sideBySide") : t("workingCopy.stacked")}
             </div>
           )}
         </div>
         <div style={{ flex: 1, overflow: "auto", padding: "10px 0", background: "var(--panel2)" }}>
           {!effSel ? null : blameOn ? (
             blameQ.isLoading ? (
-              <div style={{ padding: 20, color: "var(--muted)" }}>A carregar blame…</div>
+              <div style={{ padding: 20, color: "var(--muted)" }}>{t("workingCopy.loadingBlame")}</div>
             ) : blameQ.data && blameQ.data.length ? (
               <BlameView lines={blameQ.data} />
             ) : (
-              <div style={{ padding: 20, color: "var(--muted)" }}>Sem blame (ficheiro novo?).</div>
+              <div style={{ padding: 20, color: "var(--muted)" }}>{t("workingCopy.noBlame")}</div>
             )
           ) : diff.isLoading ? (
-            <div style={{ padding: 20, color: "var(--muted)" }}>A carregar diff…</div>
+            <div style={{ padding: 20, color: "var(--muted)" }}>{t("workingCopy.loadingDiff")}</div>
           ) : diff.data && diff.data.trim() ? (
             <DiffView
               patch={diff.data}
               fontSize={12.5}
-              stageLabel={effSel.staged ? "Retirar" : "Preparar"}
+              stageLabel={effSel.staged ? t("workingCopy.unstage") : t("workingCopy.stage")}
               onStageHunk={selStatus === "?" ? undefined : onStageHunk}
               onLoadFull={() => setFullDiff(true)}
             />
           ) : (
-            <div style={{ padding: 20, color: "var(--muted)" }}>Sem alterações textuais.</div>
+            <div style={{ padding: 20, color: "var(--muted)" }}>{t("workingCopy.noTextChanges")}</div>
           )}
         </div>
       </div>
@@ -632,9 +635,9 @@ export function WorkingCopy() {
 
       {confirmDiscardAll && (
         <ConfirmDialog
-          message={`Descartar ${unstaged.length} alteração(ões) não preparada(s)?${
-            untrackedCount > 0 ? ` ${untrackedCount} ficheiro(s) não rastreado(s) serão apagados do disco.` : ""
-          } As alterações preparadas mantêm-se. Esta ação não pode ser desfeita.`}
+          message={`${t("workingCopy.discardAllConfirm", { count: unstaged.length })}${
+            untrackedCount > 0 ? ` ${t("workingCopy.discardAllUntracked", { count: untrackedCount })}` : ""
+          } ${t("workingCopy.discardAllTail")}`}
           onCancel={() => setConfirmDiscardAll(false)}
           onConfirm={discardAll}
         />
@@ -644,8 +647,8 @@ export function WorkingCopy() {
         <ConfirmDialog
           message={
             confirmDiscardFile.worktree_status === "?"
-              ? `Apagar ${confirmDiscardFile.path} do disco? Não pode ser desfeito.`
-              : `Descartar as alterações não preparadas de ${confirmDiscardFile.path}? As preparadas mantêm-se.`
+              ? t("workingCopy.deleteFileConfirm", { path: confirmDiscardFile.path })
+              : t("workingCopy.discardFileConfirm", { path: confirmDiscardFile.path })
           }
           onCancel={() => setConfirmDiscardFile(null)}
           onConfirm={() => discardFileNow(confirmDiscardFile)}
