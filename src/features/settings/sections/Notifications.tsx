@@ -5,7 +5,7 @@ import { useThemeStore } from "../../../state/themeStore";
 import { Toggle } from "../../../components/ui/misc";
 import { Button } from "../../../components/ui/Button";
 
-// Which async git results raise a top-right notification. The toggles gate the
+// Which async git results raise a bottom-right notification. The toggles gate the
 // emission in notificationStore; the preview fires the real systems.
 export function Notifications() {
   const t = useThemeStore();
