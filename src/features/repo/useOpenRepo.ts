@@ -3,6 +3,7 @@ import { openRepo } from "../../lib/api";
 import type { RepoInfo } from "../../lib/types";
 import { useAppStore } from "../../state/appStore";
 import { useRecentsStore } from "../../state/recentsStore";
+import { t } from "../../i18n";
 
 // Opens a repository, sets it as current, and records it in recents. Shared by
 // the welcome screen, the titlebar "+", and the repo picker (open / init / clone).
@@ -30,7 +31,7 @@ export function useOpenRepo() {
       adopt(await producer());
       return true;
     } catch (e: unknown) {
-      setError((e as { message?: string })?.message ?? "não foi possível abrir o repositório");
+      setError((e as { message?: string })?.message ?? t("repo.openError"));
       return false;
     } finally {
       setBusy(false);

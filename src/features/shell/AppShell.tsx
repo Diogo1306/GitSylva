@@ -18,6 +18,7 @@ import { notify } from "../../state/notificationStore";
 import { fetchFailureNotice } from "../../lib/errors";
 import { useShortcutsStore, actionForEvent } from "../../state/shortcutsStore";
 import { useSyncActions } from "../../state/queries";
+import { useT, t as tGlobal } from "../../i18n";
 
 // Each screen is a separate chunk; only the active one is fetched and parsed.
 const WorkingCopy = lazy(() => import("../working-copy/WorkingCopy").then((m) => ({ default: m.WorkingCopy })));
@@ -48,6 +49,7 @@ export function AppShell() {
   const rail = useThemeStore((s) => s.repoLayout) === "rail";
   const bindings = useShortcutsStore((s) => s.bindings);
   const sync = useSyncActions(repoPath ?? "");
+  const t = useT();
   const fetchMutate = sync.fetch.mutate;
   // Ref (not isPending): the keydown closure below only re-binds when the
   // bindings change, so a state read would be stale.
@@ -94,7 +96,7 @@ export function AppShell() {
           fetchMutate(undefined, {
             onSuccess: () => {
               spawnLeaf();
-              notify("Fetch concluído", "origin", "success", "fetch");
+              notify(tGlobal("shell.fetch.doneTitle"), "origin", "success", "fetch");
             },
             onError: (err: unknown) => {
               const n = fetchFailureNotice(err);
@@ -128,7 +130,7 @@ export function AppShell() {
           useAppStore.getState().updateRepo(r.path, info);
         } catch {
           useAppStore.getState().closeRepo(r.path);
-          toast(`O repositório ${r.path} já não existe no disco — separador fechado`, "error");
+          toast(tGlobal("shell.repoGone", { path: r.path }), "error");
         }
       }
     })();
@@ -166,11 +168,11 @@ export function AppShell() {
               from every screen, not just the working copy. */}
           <ConflictBanner />
           <div style={{ flex: 1, display: "flex", minWidth: 0, overflow: "hidden" }}>
-            <Suspense fallback={<div style={{ flex: 1, display: "grid", placeItems: "center", color: "var(--muted)", fontSize: 13 }}>A carregar…</div>}>
+            <Suspense fallback={<div style={{ flex: 1, display: "grid", placeItems: "center", color: "var(--muted)", fontSize: 13 }}>{t("common.loading")}</div>}>
               {/* A crash inside a screen must not take down the titlebar,
                   sidebar and navigation — the shell-level boundary catches it
                   and offers a way back to History. */}
-              <ErrorBoundary homeLabel="Ir para o Histórico" onHome={() => useAppStore.getState().setView("history")}>
+              <ErrorBoundary homeLabel={t("shell.goToHistory")} onHome={() => useAppStore.getState().setView("history")}>
                 {/* Keyed by repo so per-screen state (commit message, amend flag,
                     selected file/commit) never leaks across repositories. */}
                 <Screen key={repoPath ?? "none"} />

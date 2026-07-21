@@ -1,6 +1,8 @@
+import { t } from "../i18n";
+
 // Extracts a readable message from anything a Tauri invoke / react-query error
 // can be. `String(error)` on an invoke error object renders "[object Object]".
-export function errMsg(e: unknown, fallback = "ocorreu um erro"): string {
+export function errMsg(e: unknown, fallback = t("error.generic")): string {
   if (typeof e === "string" && e.trim()) return e;
   if (e instanceof Error && e.message.trim()) return e.message;
   const m = (e as { message?: unknown } | null)?.message;
@@ -64,11 +66,11 @@ export function classifySyncError(message: string): SyncErrorKind {
 // notification), so it gets a lighter-touch version of the same distinct
 // auth/network messaging the Pull/Push modals show inline.
 export function fetchFailureNotice(e: unknown): { title: string; sub: string } {
-  const msg = errMsg(e, "não foi possível fazer fetch");
+  const msg = errMsg(e, t("error.fetchFailedFallback"));
   const kind = classifySyncError(msg);
   // Every branch keeps the raw git message so diagnostic detail is never
   // hidden (same principle as SyncFailurePanel); auth prepends guidance.
-  if (kind === "auth") return { title: "Autenticação necessária", sub: `Configura as credenciais Git para origin (credential manager ou uma chave SSH).\n${msg}` };
-  if (kind === "network") return { title: "Sem ligação ao remoto", sub: msg };
-  return { title: "Fetch falhou", sub: msg };
+  if (kind === "auth") return { title: t("error.authTitle"), sub: `${t("error.authFetchHint")}\n${msg}` };
+  if (kind === "network") return { title: t("error.networkTitle"), sub: msg };
+  return { title: t("error.fetchFailedTitle"), sub: msg };
 }

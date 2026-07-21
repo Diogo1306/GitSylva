@@ -18,6 +18,7 @@ import { activateOnKeyDown } from "../../components/ui/keys";
 import { groupBranches, type BranchGroup } from "../../lib/branchFolders";
 import { fold } from "../../lib/fold";
 import { useBreakpoint } from "../../lib/useBreakpoint";
+import { useT } from "../../i18n";
 import type { BranchInfo } from "../../lib/types";
 import type { View } from "../../state/appStore";
 
@@ -58,6 +59,7 @@ function onBranchListKeyDown(e: KeyboardEvent<HTMLDivElement>) {
 }
 
 export function Sidebar() {
+  const t = useT();
   const view = useAppStore((s) => s.view);
   const setView = useAppStore((s) => s.setView);
   const setModal = useAppStore((s) => s.setModal);
@@ -154,7 +156,7 @@ export function Sidebar() {
           e.preventDefault();
           setMenu({ x: e.clientX, y: e.clientY, name: shortName, remote: { full: id, short: shortName, tip } });
         }}
-        title={`1 clique: ver no histórico · 2 cliques: checkout local de ${remote}/${shortName} · botão direito para opções`}
+        title={t("shell.branch.remoteRowTitle", { ref: `${remote}/${shortName}` })}
         style={{
           gap: 9,
           padding: `5px 10px 5px ${padLeft}px`,
@@ -203,8 +205,8 @@ export function Sidebar() {
         }}
         title={
           b.is_current
-            ? "Branch atual · 1 clique: ver no histórico"
-            : `1 clique: ver no histórico · 2 cliques: mudar para ${b.name} · botão direito para opções`
+            ? t("shell.branch.currentRowTitle")
+            : t("shell.branch.rowTitle", { name: b.name })
         }
         // Explicit label (not name-from-content): without it, the nested
         // delete button's own "Apagar X" label bleeds into this row's
@@ -247,7 +249,7 @@ export function Sidebar() {
               if (e.key === "Enter" && renameVal.trim()) {
                 rename.mutate(
                   { old: b.name, name: renameVal.trim() },
-                  { onSuccess: () => { toast(`Renomeada para ${renameVal.trim()}`); setRenaming(null); }, onError: (err: unknown) => toast((err as { message?: string })?.message ?? "não foi possível renomear", "error") },
+                  { onSuccess: () => { toast(t("shell.toast.renamedTo", { name: renameVal.trim() })); setRenaming(null); }, onError: (err: unknown) => toast((err as { message?: string })?.message ?? t("shell.error.rename"), "error") },
                 );
               }
             }}
@@ -260,12 +262,12 @@ export function Sidebar() {
         {/* Ahead/behind the upstream (R5.8): work to push shows ↑n, work to
             pull shows ↓n — visible per branch, not only for the current one. */}
         {renaming !== b.name && b.ahead > 0 && (
-          <span title={`${b.ahead} commit(s) por enviar (push)`} style={{ fontFamily: mono, fontSize: 10, fontWeight: 700, background: "var(--accent)", color: "var(--accentT)", borderRadius: 999, padding: "0 6px", flexShrink: 0 }}>
+          <span title={t("shell.branch.aheadTitle", { count: b.ahead })} style={{ fontFamily: mono, fontSize: 10, fontWeight: 700, background: "var(--accent)", color: "var(--accentT)", borderRadius: 999, padding: "0 6px", flexShrink: 0 }}>
             ↑{b.ahead}
           </span>
         )}
         {renaming !== b.name && b.behind > 0 && (
-          <span title={`${b.behind} commit(s) por integrar (pull)`} style={{ fontFamily: mono, fontSize: 10, fontWeight: 700, background: "var(--badge)", color: "var(--badgeT)", borderRadius: 999, padding: "0 6px", flexShrink: 0 }}>
+          <span title={t("shell.branch.behindTitle", { count: b.behind })} style={{ fontFamily: mono, fontSize: 10, fontWeight: 700, background: "var(--badge)", color: "var(--badgeT)", borderRadius: 999, padding: "0 6px", flexShrink: 0 }}>
             ↓{b.behind}
           </span>
         )}
@@ -284,8 +286,8 @@ export function Sidebar() {
               e.stopPropagation();
               activateOnKeyDown(e);
             }}
-            title={`Apagar ${b.name}`}
-            aria-label={`Apagar ${b.name}`}
+            title={t("shell.branch.deleteAria", { name: b.name })}
+            aria-label={t("shell.branch.deleteAria", { name: b.name })}
             style={{ color: "var(--muted)", fontSize: 10, padding: "1px 4px", borderRadius: 5, flexShrink: 0, background: "transparent", border: "none", cursor: "pointer", fontFamily: "inherit" }}
           >
             ✕
@@ -301,11 +303,11 @@ export function Sidebar() {
     remove.mutate(
       { name, force },
       {
-        onSuccess: () => toast(`Branch ${name} apagada`),
+        onSuccess: () => toast(t("shell.toast.branchDeleted", { name })),
         onError: (e: unknown) => {
           const msg = (e as { message?: string })?.message ?? "";
           if (!force && msg.includes("not fully merged")) setConfirmDelete({ name, force: true });
-          else toast(msg || "não foi possível apagar", "error");
+          else toast(msg || t("shell.error.delete"), "error");
         },
       },
     );
@@ -383,8 +385,8 @@ export function Sidebar() {
           type="button"
           onClick={() => setCollapsedOverride(false)}
           onKeyDown={activateOnKeyDown}
-          title="Expandir barra lateral"
-          aria-label="Expandir barra lateral"
+          title={t("shell.sidebar.expand")}
+          aria-label={t("shell.sidebar.expand")}
           aria-expanded={false}
           className="gs-lift"
           style={{
@@ -433,8 +435,8 @@ export function Sidebar() {
           type="button"
           onClick={() => setCollapsedOverride(true)}
           onKeyDown={activateOnKeyDown}
-          title="Colapsar barra lateral"
-          aria-label="Colapsar barra lateral"
+          title={t("shell.sidebar.collapse")}
+          aria-label={t("shell.sidebar.collapse")}
           aria-expanded={true}
           className="gs-lift"
           style={{
@@ -456,21 +458,21 @@ export function Sidebar() {
         </button>
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-        <SectionLabel>ESPAÇO DE TRABALHO</SectionLabel>
+        <SectionLabel>{t("shell.sidebar.workspace")}</SectionLabel>
         {navRow(
           "working",
-          "Cópia de trabalho",
+          t("shell.nav.workingCopy"),
           <span style={{ width: 7, height: 7, borderRadius: 2, background: "var(--l2)", flexShrink: 0 }} />,
           wcCount,
         )}
         {navRow(
           "history",
-          "Histórico",
+          t("shell.nav.history"),
           <span style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--l0)", flexShrink: 0 }} />,
         )}
         {navRow(
           "stashes",
-          "Stashes",
+          t("shell.nav.stashes"),
           <span style={{ width: 7, height: 7, borderRadius: 2, background: "var(--l1)", transform: "rotate(45deg)", flexShrink: 0 }} />,
           stashCount,
         )}
@@ -483,8 +485,8 @@ export function Sidebar() {
             type="button"
             onClick={() => setModal("branch")}
             onKeyDown={activateOnKeyDown}
-            title="Nova branch"
-            aria-label="Nova branch"
+            title={t("shell.branch.title")}
+            aria-label={t("shell.branch.title")}
             className="gs-row"
             style={{ width: 32, height: 32, borderRadius: 8, display: "grid", placeItems: "center", color: "var(--muted)", fontSize: 14, background: "transparent", border: "none", padding: 0, cursor: "pointer", fontFamily: "inherit" }}
           >
@@ -492,12 +494,12 @@ export function Sidebar() {
           </button>
         </div>
         <div style={{ padding: "0 10px 8px" }}>
-          <FormField label="Procurar branches" hideLabel>
+          <FormField label={t("shell.branch.searchLabel")} hideLabel>
             <Input
               type="search"
               value={branchQuery}
               onChange={(e) => setBranchQuery(e.target.value)}
-              placeholder="Procurar branches…"
+              placeholder={t("shell.branch.searchPlaceholder")}
               mono
               style={{ width: "100%", fontSize: 12.5, padding: "6px 10px" }}
             />
@@ -509,7 +511,7 @@ export function Sidebar() {
             what matters. */}
         {!filtering && recentBranches.length > 0 && (
           <div style={{ display: "flex", flexDirection: "column", gap: 1, marginBottom: 6 }}>
-            <SectionLabel>RECENTES</SectionLabel>
+            <SectionLabel>{t("shell.sidebar.recents")}</SectionLabel>
             {recentBranches.map((b) => branchRow(b, b.name, false))}
           </div>
         )}
@@ -529,7 +531,7 @@ export function Sidebar() {
                 onClick={() => { if (filtering) return; setOpenFolders((s) => ({ ...s, [g.name]: !folderOpen(g) })); }}
                 onKeyDown={activateOnKeyDown}
                 className={`gs-row ${BRANCH_ROW_CLASS}`}
-                title={`${folderOpen(g) ? "Colapsar" : "Expandir"} ${g.name}`}
+                title={t("shell.folder.toggleTitle", { action: folderOpen(g) ? t("shell.collapse") : t("shell.expand"), name: g.name })}
                 aria-expanded={folderOpen(g)}
                 style={{ display: "flex", alignItems: "center", gap: 9, padding: "6px 10px", borderRadius: 8, fontSize: 13, fontFamily: mono, color: "var(--text2)", cursor: "pointer", background: "transparent", border: "none", width: "100%", textAlign: "left" }}
               >
@@ -547,12 +549,12 @@ export function Sidebar() {
                   return (
                     <>
                       {up > 0 && (
-                        <span title={`${up} commit(s) por enviar nas branches desta pasta`} style={{ fontFamily: mono, fontSize: 10, fontWeight: 700, background: "var(--accent)", color: "var(--accentT)", borderRadius: 999, padding: "0 6px", flexShrink: 0 }}>
+                        <span title={t("shell.folder.aheadTitle", { count: up })} style={{ fontFamily: mono, fontSize: 10, fontWeight: 700, background: "var(--accent)", color: "var(--accentT)", borderRadius: 999, padding: "0 6px", flexShrink: 0 }}>
                           ↑{up}
                         </span>
                       )}
                       {down > 0 && (
-                        <span title={`${down} commit(s) por integrar nas branches desta pasta`} style={{ fontFamily: mono, fontSize: 10, fontWeight: 700, background: "var(--badge)", color: "var(--badgeT)", borderRadius: 999, padding: "0 6px", flexShrink: 0 }}>
+                        <span title={t("shell.folder.behindTitle", { count: down })} style={{ fontFamily: mono, fontSize: 10, fontWeight: 700, background: "var(--badge)", color: "var(--badgeT)", borderRadius: 999, padding: "0 6px", flexShrink: 0 }}>
                           ↓{down}
                         </span>
                       )}
@@ -569,7 +571,7 @@ export function Sidebar() {
           ),
         )}
         {filtering && localGroups.length === 0 && (
-          <div style={{ padding: "6px 10px", fontSize: 12, color: "var(--muted)", fontFamily: mono }}>Sem branches correspondentes</div>
+          <div style={{ padding: "6px 10px", fontSize: 12, color: "var(--muted)", fontFamily: mono }}>{t("shell.branch.noMatches")}</div>
         )}
         {!filtering && localBranches.length === 0 && (
           <div style={{ padding: "6px 10px", fontSize: 12, color: "var(--muted)", fontFamily: mono }}>{repo.current_branch}</div>
@@ -577,11 +579,11 @@ export function Sidebar() {
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-        <SectionLabel>REMOTOS</SectionLabel>
+        <SectionLabel>{t("shell.sidebar.remotes")}</SectionLabel>
         {remotes.length === 0 ? (
-          <div style={{ padding: "6px 10px", fontSize: 12, color: "var(--muted)" }}>Sem remotos configurados</div>
+          <div style={{ padding: "6px 10px", fontSize: 12, color: "var(--muted)" }}>{t("shell.remote.none")}</div>
         ) : visibleRemotes.length === 0 ? (
-          <div style={{ padding: "6px 10px", fontSize: 12, color: "var(--muted)" }}>Sem remotos correspondentes</div>
+          <div style={{ padding: "6px 10px", fontSize: 12, color: "var(--muted)" }}>{t("shell.remote.noMatches")}</div>
         ) : (
           visibleRemotes.map((remote) => {
             const isOpen = remoteOpen(remote);
@@ -602,8 +604,8 @@ export function Sidebar() {
                     onClick={() => { if (filtering) return; setOpenRemotes((s) => ({ ...s, [remote]: !isOpen })); }}
                     onKeyDown={activateOnKeyDown}
                     className="gs-row"
-                    title={`${isOpen ? "Colapsar" : "Expandir"} ${remote}`}
-                    aria-label={`${isOpen ? "Colapsar" : "Expandir"} ${remote}`}
+                    title={t("shell.folder.toggleTitle", { action: isOpen ? t("shell.collapse") : t("shell.expand"), name: remote })}
+                    aria-label={t("shell.folder.toggleTitle", { action: isOpen ? t("shell.collapse") : t("shell.expand"), name: remote })}
                     aria-expanded={isOpen}
                     style={{ display: "flex", alignItems: "center", gap: 9, flex: 1, minWidth: 0, minHeight: 32, padding: "6px 4px 6px 10px", borderRadius: 8, fontSize: 13, fontFamily: mono, color: "var(--text2)", background: "transparent", border: "none", textAlign: "left", cursor: "pointer", boxSizing: "border-box" }}
                   >
@@ -623,7 +625,7 @@ export function Sidebar() {
                     }}
                     className="gs-row"
                     title={`${remote} · fetch/pull/push`}
-                    aria-label={`Opções de ${remote}`}
+                    aria-label={t("shell.remote.optionsAria", { remote })}
                     style={{ width: 28, height: 28, borderRadius: 8, display: "grid", placeItems: "center", color: "var(--muted)", fontSize: 12, background: "transparent", border: "none", padding: 0, cursor: "pointer", fontFamily: "inherit", flexShrink: 0, marginRight: 2 }}
                   >
                     ⋯
@@ -647,7 +649,7 @@ export function Sidebar() {
                           onClick={() => { if (filtering) return; setOpenFolders((s) => ({ ...s, [`${remote}:${g.name}`]: !(s[`${remote}:${g.name}`] ?? false) })); }}
                           onKeyDown={activateOnKeyDown}
                           className="gs-row"
-                          title={`${filtering || (openFolders[`${remote}:${g.name}`] ?? false) ? "Colapsar" : "Expandir"} ${g.name}`}
+                          title={t("shell.folder.toggleTitle", { action: filtering || (openFolders[`${remote}:${g.name}`] ?? false) ? t("shell.collapse") : t("shell.expand"), name: g.name })}
                           aria-expanded={filtering || (openFolders[`${remote}:${g.name}`] ?? false)}
                           style={{ display: "flex", alignItems: "center", gap: 9, padding: "5px 10px 5px 20px", borderRadius: 8, fontSize: 12.5, fontFamily: mono, color: "var(--muted)", cursor: "pointer", background: "transparent", border: "none", width: "100%", textAlign: "left" }}
                         >
@@ -676,27 +678,27 @@ export function Sidebar() {
               type="button"
               onClick={() => setModal("tag")}
               onKeyDown={activateOnKeyDown}
-              title="Nova tag"
-              aria-label="Nova tag"
+              title={t("shell.tag.title")}
+              aria-label={t("shell.tag.title")}
               className="gs-row"
               style={{ width: 32, height: 32, borderRadius: 8, display: "grid", placeItems: "center", color: "var(--muted)", fontSize: 14, background: "transparent", border: "none", padding: 0, cursor: "pointer", fontFamily: "inherit" }}
             >
               +
             </button>
           </div>
-          {tags.map((t) => (
+          {tags.map((tag) => (
             <div
-              key={t.name}
-              title={`${t.subject || t.name} · botão direito para opções`}
+              key={tag.name}
+              title={t("shell.tag.rowTitle", { subject: tag.subject || tag.name })}
               onContextMenu={(e) => {
                 e.preventDefault();
-                setTagMenu({ x: e.clientX, y: e.clientY, name: t.name });
+                setTagMenu({ x: e.clientX, y: e.clientY, name: tag.name });
               }}
               className="gs-row"
               style={{ display: "flex", alignItems: "center", gap: 9, padding: "6px 10px", borderRadius: 8, fontSize: 13, fontFamily: mono, color: "var(--text2)" }}
             >
               <span style={{ width: 6, height: 6, background: "var(--muted)", transform: "rotate(45deg)", flexShrink: 0 }} />
-              <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name}</span>
+              <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{tag.name}</span>
             </div>
           ))}
         </div>
@@ -711,14 +713,14 @@ export function Sidebar() {
             // checkout → integrar → derivar → utilitários.
             const r = menu.remote;
             const items: MenuItem[] = [
-              { label: `Checkout local de ${r.short}…`, onClick: () => setConfirmSwitch(r.short) },
-              { label: `Merge de ${r.full} na branch atual…`, onClick: () => setConfirmMerge(r.full) },
-              { label: `Rebase da atual sobre ${r.full}…`, onClick: () => setConfirmRebase(r.full) },
+              { label: t("shell.branch.checkoutLocal", { name: r.short }), onClick: () => setConfirmSwitch(r.short) },
+              { label: t("shell.branch.mergeInto", { name: r.full }), onClick: () => setConfirmMerge(r.full) },
+              { label: t("shell.branch.rebaseOnto", { name: r.full }), onClick: () => setConfirmRebase(r.full) },
               { label: "", onClick: () => {}, divider: true },
-              { label: "Ver no histórico", onClick: () => focusBranch(r.full, r.tip) },
-              { label: "Criar branch a partir daqui…", onClick: () => { setCreateName(""); setCreateFrom({ label: r.full, tip: r.tip }); } },
+              { label: t("shell.branch.viewInHistory"), onClick: () => focusBranch(r.full, r.tip) },
+              { label: t("shell.branch.createFromHere"), onClick: () => { setCreateName(""); setCreateFrom({ label: r.full, tip: r.tip }); } },
               { label: "", onClick: () => {}, divider: true },
-              { label: "Copiar nome", onClick: () => void navigator.clipboard?.writeText(r.full).then(() => toast("Nome copiado")) },
+              { label: t("shell.copyName"), onClick: () => void navigator.clipboard?.writeText(r.full).then(() => toast(t("shell.toast.nameCopied"))) },
             ];
             return <ContextMenu x={menu.x} y={menu.y} items={items} onClose={() => setMenu(null)} />;
           }
@@ -727,18 +729,18 @@ export function Sidebar() {
           const isCurrent = local?.is_current;
           const items: MenuItem[] = [];
           if (!isCurrent) {
-            items.push({ label: `Mudar para ${name}…`, onClick: () => setConfirmSwitch(name) });
-            items.push({ label: `Merge de ${name} na branch atual…`, onClick: () => setConfirmMerge(name) });
-            items.push({ label: `Rebase da atual sobre ${name}…`, onClick: () => setConfirmRebase(name) });
+            items.push({ label: t("shell.branch.switchTo", { name }), onClick: () => setConfirmSwitch(name) });
+            items.push({ label: t("shell.branch.mergeInto", { name }), onClick: () => setConfirmMerge(name) });
+            items.push({ label: t("shell.branch.rebaseOnto", { name }), onClick: () => setConfirmRebase(name) });
             items.push({ label: "", onClick: () => {}, divider: true });
           }
-          items.push({ label: "Ver no histórico", onClick: () => focusBranch(name, local?.tip ?? "") });
-          items.push({ label: "Criar branch a partir daqui…", onClick: () => { setCreateName(""); setCreateFrom({ label: name, tip: local?.tip ?? "" }); } });
+          items.push({ label: t("shell.branch.viewInHistory"), onClick: () => focusBranch(name, local?.tip ?? "") });
+          items.push({ label: t("shell.branch.createFromHere"), onClick: () => { setCreateName(""); setCreateFrom({ label: name, tip: local?.tip ?? "" }); } });
           items.push({ label: "", onClick: () => {}, divider: true });
-          items.push({ label: `Renomear ${name}…`, onClick: () => { setRenaming(name); setRenameVal(name); } });
-          items.push({ label: "Copiar nome", onClick: () => void navigator.clipboard?.writeText(name).then(() => toast("Nome copiado")) });
+          items.push({ label: t("shell.branch.renameLabel", { name }), onClick: () => { setRenaming(name); setRenameVal(name); } });
+          items.push({ label: t("shell.copyName"), onClick: () => void navigator.clipboard?.writeText(name).then(() => toast(t("shell.toast.nameCopied"))) });
           if (!isCurrent) {
-            items.push({ label: `Apagar ${name}…`, danger: true, onClick: () => setConfirmDelete({ name, force: false }) });
+            items.push({ label: t("shell.branch.deleteLabel", { name }), danger: true, onClick: () => setConfirmDelete({ name, force: false }) });
           }
           return <ContextMenu x={menu.x} y={menu.y} items={items} onClose={() => setMenu(null)} />;
         })()}
@@ -749,11 +751,11 @@ export function Sidebar() {
           y={remoteMenu.y}
           items={[
             {
-              label: `Fetch de ${remoteMenu.remote}`,
+              label: t("shell.remote.fetch", { remote: remoteMenu.remote }),
               onClick: () => {
                 if (sync.fetch.isPending) return;
                 sync.fetch.mutate(undefined, {
-                  onSuccess: () => notify("Fetch concluído", remoteMenu.remote, "success", "fetch"),
+                  onSuccess: () => notify(t("shell.fetch.doneTitle"), remoteMenu.remote, "success", "fetch"),
                   onError: (e: unknown) => {
                     const n = fetchFailureNotice(e);
                     notify(n.title, n.sub, "error", "fetch");
@@ -761,22 +763,22 @@ export function Sidebar() {
                 });
               },
             },
-            { label: `Pull de ${remoteMenu.remote}…`, onClick: () => setModal("pull") },
-            { label: `Push para ${remoteMenu.remote}…`, onClick: () => setModal("push") },
+            { label: t("shell.remote.pull", { remote: remoteMenu.remote }), onClick: () => setModal("pull") },
+            { label: t("shell.remote.push", { remote: remoteMenu.remote }), onClick: () => setModal("push") },
           ]}
           onClose={() => setRemoteMenu(null)}
         />
       )}
 
       {createFrom && (
-        <Modal title={`Criar branch a partir de ${createFrom.label}`} onClose={() => setCreateFrom(null)} width={400}>
+        <Modal title={t("shell.branch.createFromTitle", { name: createFrom.label })} onClose={() => setCreateFrom(null)} width={400}>
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             <Input
               autoFocus
               mono
               value={createName}
               onChange={(e) => setCreateName(e.target.value)}
-              placeholder="feature/a-minha-branch"
+              placeholder={t("shell.branch.newPlaceholder")}
             />
             <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
               {([false, true] as const).map((doCheckout) => (
@@ -791,13 +793,13 @@ export function Sidebar() {
                     create.mutate(
                       { name, checkout: doCheckout, from },
                       {
-                        onSuccess: () => toast(doCheckout ? `Em ${name}` : `Branch ${name} criada`),
-                        onError: (e: unknown) => toast((e as { message?: string })?.message ?? "não foi possível criar a branch", "error"),
+                        onSuccess: () => toast(doCheckout ? t("shell.toast.nowOn", { name }) : t("shell.toast.branchCreated", { name })),
+                        onError: (e: unknown) => toast((e as { message?: string })?.message ?? t("shell.error.createBranch"), "error"),
                       },
                     );
                   }}
                 >
-                  {doCheckout ? "Criar e mudar" : "Criar"}
+                  {doCheckout ? t("shell.branch.createAndSwitch") : t("common.create")}
                 </Button>
               ))}
             </div>
@@ -809,10 +811,10 @@ export function Sidebar() {
         <ConfirmDialog
           message={
             confirmDelete.force
-              ? `A branch ${confirmDelete.name} tem commits que ainda não estão integrados noutra branch. Apagar mesmo assim? Esses commits perdem-se.`
-              : `Apagar a branch ${confirmDelete.name}?`
+              ? t("shell.branch.deleteForceMsg", { name: confirmDelete.name })
+              : t("shell.branch.deleteMsg", { name: confirmDelete.name })
           }
-          confirmLabel={confirmDelete.force ? "Forçar eliminação" : "Apagar"}
+          confirmLabel={confirmDelete.force ? t("shell.branch.forceDelete") : t("common.delete")}
           onCancel={() => setConfirmDelete(null)}
           onConfirm={() => {
             const { name, force } = confirmDelete;
@@ -827,8 +829,8 @@ export function Sidebar() {
           x={tagMenu.x}
           y={tagMenu.y}
           items={[
-            { label: "Copiar nome", onClick: () => void navigator.clipboard?.writeText(tagMenu.name).then(() => toast("Nome copiado")) },
-            { label: "Apagar tag…", danger: true, onClick: () => setConfirmDeleteTag(tagMenu.name) },
+            { label: t("shell.copyName"), onClick: () => void navigator.clipboard?.writeText(tagMenu.name).then(() => toast(t("shell.toast.nameCopied"))) },
+            { label: t("shell.tag.deleteLabel"), danger: true, onClick: () => setConfirmDeleteTag(tagMenu.name) },
           ]}
           onClose={() => setTagMenu(null)}
         />
@@ -836,15 +838,15 @@ export function Sidebar() {
 
       {confirmDeleteTag && (
         <ConfirmDialog
-          message={`Apagar a tag ${confirmDeleteTag}? (Só localmente — tags já enviadas continuam no remoto.)`}
-          confirmLabel="Apagar tag"
+          message={t("shell.tag.deleteMsg", { name: confirmDeleteTag })}
+          confirmLabel={t("shell.tag.deleteConfirm")}
           onCancel={() => setConfirmDeleteTag(null)}
           onConfirm={() => {
             const name = confirmDeleteTag;
             setConfirmDeleteTag(null);
             tagActions.remove.mutate(name, {
-              onSuccess: () => toast(`Tag ${name} apagada`),
-              onError: (e: unknown) => toast((e as { message?: string })?.message ?? "não foi possível apagar a tag", "error"),
+              onSuccess: () => toast(t("shell.toast.tagDeleted", { name })),
+              onError: (e: unknown) => toast((e as { message?: string })?.message ?? t("shell.error.deleteTag"), "error"),
             });
           }}
         />
@@ -852,8 +854,8 @@ export function Sidebar() {
 
       {confirmSwitch && (
         <ConfirmDialog
-          message={`Mudar para a branch ${confirmSwitch}? A cópia de trabalho passa a refletir essa branch.`}
-          confirmLabel="Mudar"
+          message={t("shell.branch.switchMsg", { name: confirmSwitch })}
+          confirmLabel={t("shell.branch.switchConfirm")}
           onCancel={() => setConfirmSwitch(null)}
           onConfirm={() => {
             const name = confirmSwitch;
@@ -863,9 +865,9 @@ export function Sidebar() {
               onSuccess: () => {
                 // Task 10: track the checkout so it surfaces under "Recentes".
                 useRecentBranchesStore.getState().record(repo.path, name);
-                toast(`Em ${name}`);
+                toast(t("shell.toast.nowOn", { name }));
               },
-              onError: (e: unknown) => toast((e as { message?: string })?.message ?? "não foi possível mudar de branch", "error"),
+              onError: (e: unknown) => toast((e as { message?: string })?.message ?? t("shell.error.switchBranch"), "error"),
             });
           }}
         />
@@ -873,15 +875,15 @@ export function Sidebar() {
 
       {confirmMerge && (
         <ConfirmDialog
-          message={`Merge de ${confirmMerge} na branch atual (${repo.current_branch})? Em caso de conflito, a Cópia de trabalho mostra os ficheiros por resolver.`}
+          message={t("shell.branch.mergeMsg", { name: confirmMerge, current: repo.current_branch })}
           confirmLabel="Merge"
           onCancel={() => setConfirmMerge(null)}
           onConfirm={() => {
             const name = confirmMerge;
             setConfirmMerge(null);
             merge.mutate(name, {
-              onSuccess: () => toast(`Merge de ${name} concluído`),
-              onError: (e: unknown) => toast((e as { message?: string })?.message ?? "conflito no merge — vê a Cópia de trabalho", "error"),
+              onSuccess: () => toast(t("shell.toast.mergeDone", { name })),
+              onError: (e: unknown) => toast((e as { message?: string })?.message ?? t("shell.error.mergeConflictWC"), "error"),
             });
           }}
         />
@@ -889,15 +891,15 @@ export function Sidebar() {
 
       {confirmRebase && (
         <ConfirmDialog
-          message={`Rebase de ${repo.current_branch} sobre ${confirmRebase}? Os commits locais da branch atual são reescritos.`}
+          message={t("shell.branch.rebaseMsg", { current: repo.current_branch, onto: confirmRebase })}
           confirmLabel="Rebase"
           onCancel={() => setConfirmRebase(null)}
           onConfirm={() => {
             const onto = confirmRebase;
             setConfirmRebase(null);
             rebase.mutate(onto, {
-              onSuccess: () => toast("Rebase concluído"),
-              onError: (e: unknown) => toast((e as { message?: string })?.message ?? "conflito no rebase — vê a Cópia de trabalho", "error"),
+              onSuccess: () => toast(t("shell.toast.rebaseDone")),
+              onError: (e: unknown) => toast((e as { message?: string })?.message ?? t("shell.error.rebaseConflictWC"), "error"),
             });
           }}
         />

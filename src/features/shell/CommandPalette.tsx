@@ -9,6 +9,7 @@ import { spawnLeaf } from "../../lib/leaf";
 import { fold, foldChars } from "../../lib/fold";
 import { comboHint } from "../../lib/platform";
 import { useShortcutsStore } from "../../state/shortcutsStore";
+import { useT } from "../../i18n";
 import type { View } from "../../state/appStore";
 
 const mono = "'JetBrains Mono', monospace";
@@ -33,6 +34,7 @@ function markMatch(text: string, q: string) {
 }
 
 export function CommandPalette() {
+  const t = useT();
   const open = useAppStore((s) => s.paletteOpen);
   const setOpen = useAppStore((s) => s.setPaletteOpen);
   // Lingering render: when the store closes the palette, keep it mounted for
@@ -104,9 +106,9 @@ export function CommandPalette() {
           // Task 10: track the checkout so it surfaces under "Recentes"
           // in the sidebar, same as a checkout triggered from there.
           if (repo) useRecentBranchesStore.getState().record(repo.path, checkoutName);
-          toast(`Em ${checkoutName}`);
+          toast(t("shell.toast.nowOn", { name: checkoutName }));
         },
-        onError: (e: unknown) => toast((e as { message?: string })?.message ?? "não foi possível fazer checkout", "error"),
+        onError: (e: unknown) => toast((e as { message?: string })?.message ?? t("shell.error.checkout"), "error"),
       });
       setOpen(false);
     };
@@ -120,8 +122,8 @@ export function CommandPalette() {
         b.is_remote
           ? {
               label: b.name,
-              sub: "criar branch local",
-              badge: "remota",
+              sub: t("shell.palette.createLocalBranch"),
+              badge: t("shell.palette.remoteBadge"),
               dot: "var(--muted)",
               dotR: "2px",
               // Remote rows check out the short name — same DWIM `git
@@ -138,21 +140,21 @@ export function CommandPalette() {
             },
       );
     const navItems: [string, View][] = [
-      ["Histórico", "history"],
-      ["Cópia de trabalho", "working"],
-      ["Stashes", "stashes"],
-      ["Definições", "settings"],
+      [t("shell.nav.history"), "history"],
+      [t("shell.nav.workingCopy"), "working"],
+      [t("shell.nav.stashes"), "stashes"],
+      [t("shell.nav.settings"), "settings"],
     ];
     const nav: Item[] = navItems
       .filter(([n]) => match(n))
-      .map(([n, v]) => ({ label: n, sub: "ir para", dot: "var(--muted)", dotR: "50%", run: go(v) }));
+      .map(([n, v]) => ({ label: n, sub: t("shell.palette.goTo"), dot: "var(--muted)", dotR: "50%", run: go(v) }));
     // Task 14: short shortcuts help, reachable from the palette. Opens the
     // compact ShortcutsModal (reuses shortcutsStore's data) instead of
     // navigating — Definições → Atalhos stays the place to rebind them.
-    if (match("Atalhos")) {
+    if (match(t("shell.nav.shortcuts"))) {
       nav.push({
-        label: "Atalhos",
-        sub: "atalhos de teclado",
+        label: t("shell.nav.shortcuts"),
+        sub: t("shell.palette.shortcutsSub"),
         dot: "var(--muted)",
         dotR: "50%",
         run: () => { setModal("shortcuts"); setOpen(false); },
@@ -191,15 +193,15 @@ export function CommandPalette() {
 
     // Git actions: each opens the same modal/flow as the toolbar buttons.
     const actionDefs: [string, string, () => void][] = [
-      ["Fazer commit…", "cópia de trabalho", go("working")],
-      ["Pull…", "integrar do remoto", () => { setModal("pull"); setOpen(false); }],
-      ["Push…", "enviar para o remoto", () => { setModal("push"); setOpen(false); }],
-      ["Fetch", "atualizar do remoto", () => {
+      [t("shell.palette.action.commit"), t("shell.palette.action.commitSub"), go("working")],
+      ["Pull…", t("shell.palette.action.pullSub"), () => { setModal("pull"); setOpen(false); }],
+      ["Push…", t("shell.palette.action.pushSub"), () => { setModal("push"); setOpen(false); }],
+      ["Fetch", t("shell.palette.action.fetchSub"), () => {
         if (sync.fetch.isPending) { setOpen(false); return; }
         sync.fetch.mutate(undefined, {
           onSuccess: () => {
             spawnLeaf();
-            notify("Fetch concluído", "origin", "success", "fetch");
+            notify(t("shell.fetch.doneTitle"), "origin", "success", "fetch");
           },
           onError: (e: unknown) => {
             const n = fetchFailureNotice(e);
@@ -208,10 +210,10 @@ export function CommandPalette() {
         });
         setOpen(false);
       }],
-      ["Nova branch…", "criar branch", () => { setModal("branch"); setOpen(false); }],
-      ["Merge…", "integrar branch", () => { setModal("merge"); setOpen(false); }],
-      ["Guardar stash…", "guardar alterações", () => { setModal("stash"); setOpen(false); }],
-      ["Nova tag…", "criar tag", () => { setModal("tag"); setOpen(false); }],
+      [t("shell.palette.action.newBranch"), t("shell.palette.action.newBranchSub"), () => { setModal("branch"); setOpen(false); }],
+      ["Merge…", t("shell.palette.action.mergeSub"), () => { setModal("merge"); setOpen(false); }],
+      [t("shell.palette.action.stash"), t("shell.palette.action.stashSub"), () => { setModal("stash"); setOpen(false); }],
+      [t("shell.palette.action.newTag"), t("shell.palette.action.newTagSub"), () => { setModal("tag"); setOpen(false); }],
     ];
     const ac: Item[] = repo
       ? actionDefs
@@ -220,14 +222,14 @@ export function CommandPalette() {
       : [];
 
     const gs: Group[] = [];
-    if (rp.length) gs.push({ title: "REPOSITÓRIOS", items: rp });
-    if (br.length) gs.push({ title: "BRANCHES", items: br });
-    if (fl.length) gs.push({ title: "FICHEIROS", items: fl });
-    if (cm.length) gs.push({ title: "COMMITS", items: cm });
-    if (ac.length) gs.push({ title: "AÇÕES", items: ac });
-    if (nav.length) gs.push({ title: "IR PARA", items: nav });
+    if (rp.length) gs.push({ title: t("shell.palette.group.repos"), items: rp });
+    if (br.length) gs.push({ title: t("shell.palette.group.branches"), items: br });
+    if (fl.length) gs.push({ title: t("shell.palette.group.files"), items: fl });
+    if (cm.length) gs.push({ title: t("shell.palette.group.commits"), items: cm });
+    if (ac.length) gs.push({ title: t("shell.palette.group.actions"), items: ac });
+    if (nav.length) gs.push({ title: t("shell.palette.group.goto"), items: nav });
     return gs;
-  }, [render, q, commits, branches, files, repos, repo, switchRepo, checkout, sync, setView, setOpen, setFocusCommit, setSelectedFile, setModal]);
+  }, [t, render, q, commits, branches, files, repos, repo, switchRepo, checkout, sync, setView, setOpen, setFocusCommit, setSelectedFile, setModal]);
 
   if (!render) return null;
 
@@ -273,7 +275,7 @@ export function CommandPalette() {
             else if (e.key === "ArrowUp") { e.preventDefault(); setActive((a) => Math.max(0, a - 1)); }
             else if (e.key === "Enter") flat[activeIdx]?.run();
           }}
-          placeholder="Pesquisar commits, ficheiros, branches…"
+          placeholder={t("shell.palette.searchPlaceholder")}
           style={{
             width: "100%",
             boxSizing: "border-box",
@@ -319,28 +321,28 @@ export function CommandPalette() {
             <div style={{ padding: 24, textAlign: "center", color: "var(--muted)", fontSize: 13 }}>
               {q.trim() ? (
                 <>
-                  <div>Sem resultados para "{q}"</div>
-                  <div style={{ marginTop: 6, fontSize: 12 }}>Tenta outro termo ou verifica a ortografia.</div>
+                  <div>{t("shell.palette.noResults", { query: q })}</div>
+                  <div style={{ marginTop: 6, fontSize: 12 }}>{t("shell.palette.noResultsHint")}</div>
                   <button
                     type="button"
                     onClick={() => { setQ(""); setActive(0); }}
                     className="gs-lift"
                     style={{ marginTop: 10, padding: "6px 14px", borderRadius: 8, border: "1px solid var(--btnB)", background: "var(--btn)", color: "var(--btnT)", fontSize: 12.5, cursor: "pointer", fontFamily: "inherit" }}
                   >
-                    Limpar pesquisa
+                    {t("shell.palette.clearSearch")}
                   </button>
                 </>
               ) : (
-                "Escreve para pesquisar…"
+                t("shell.palette.typeToSearch")
               )}
             </div>
           )}
         </div>
         <div style={{ padding: "8px 14px", borderTop: "1px solid var(--border)", display: "flex", gap: 14, fontSize: 11, color: "var(--muted)" }}>
-          <span>↑↓ navegar</span>
-          <span>↵ abrir</span>
-          <span>esc fechar</span>
-          <span>{comboHint(useShortcutsStore.getState().bindings.palette)} em qualquer ecrã</span>
+          <span>{t("shell.palette.hintNavigate")}</span>
+          <span>{t("shell.palette.hintOpen")}</span>
+          <span>{t("shell.palette.hintClose")}</span>
+          <span>{comboHint(useShortcutsStore.getState().bindings.palette)} {t("shell.palette.onAnyScreen")}</span>
         </div>
       </div>
     </div>

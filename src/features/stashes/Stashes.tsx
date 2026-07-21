@@ -6,22 +6,25 @@ import { ConfirmDialog } from "../../components/ConfirmDialog";
 import { errMsg } from "../../lib/errors";
 import { comboHint } from "../../lib/platform";
 import { useShortcutsStore } from "../../state/shortcutsStore";
+import { useT } from "../../i18n";
 
 const mono = "'JetBrains Mono', monospace";
 
 // The design's card meta line: "{n} arquivos · a, b, …".
 function StashMeta({ path, index }: { path: string; index: number }) {
+  const t = useT();
   const { data } = useStashFiles(path, index);
   if (!data || data.length === 0) return null;
   return (
     <div style={{ fontFamily: mono, fontSize: 12, color: "var(--muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-      {data.length} ficheiro(s) · {data.slice(0, 3).join(", ")}
+      {t("stashes.filesCount", { count: data.length })} · {data.slice(0, 3).join(", ")}
       {data.length > 3 ? "…" : ""}
     </div>
   );
 }
 
 export function Stashes() {
+  const t = useT();
   const repo = useAppStore((s) => s.repo)!;
   const setModal = useAppStore((s) => s.setModal);
   const { data, isLoading, error } = useStashes(repo.path);
@@ -37,17 +40,17 @@ export function Stashes() {
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
         <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)", flex: 1 }}>Stashes</div>
         <div onClick={() => setModal("stash")} className="gs-lift" style={{ padding: "7px 14px", borderRadius: 8, background: "var(--btn)", border: "1px solid var(--btnB)", color: "var(--btnT)", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>
-          + Guardar stash
+          + {t("stashes.saveStash")}
         </div>
       </div>
 
       {isLoading ? (
-        <div style={{ color: "var(--muted)", fontSize: 13 }}>A carregar…</div>
+        <div style={{ color: "var(--muted)", fontSize: 13 }}>{t("common.loading")}</div>
       ) : error ? (
-        <div style={{ color: "var(--ddT)", fontSize: 13 }}>{errMsg(error, "não foi possível ler os stashes")}</div>
+        <div style={{ color: "var(--ddT)", fontSize: 13 }}>{errMsg(error, t("stashes.readError"))}</div>
       ) : stashes.length === 0 ? (
         <div style={{ maxWidth: 620, border: "1px dashed var(--btnB)", borderRadius: 12, padding: "28px 20px", textAlign: "center", color: "var(--muted)", fontSize: 13.5 }}>
-          Sem stashes. Use "Guardar stash" acima (ou {comboHint(useShortcutsStore.getState().bindings.stash)}) para guardar alterações em curso.
+          {t("stashes.empty", { combo: comboHint(useShortcutsStore.getState().bindings.stash) })}
         </div>
       ) : (
         stashes.map((s) => (
@@ -66,35 +69,35 @@ export function Stashes() {
                   // flight — one at a time (double-click included).
                   !busy &&
                   apply.mutate(s.index, {
-                    onSuccess: () => toast("Stash aplicado"),
-                    onError: (e: unknown) => toast((e as { message?: string })?.message ?? "não foi possível aplicar", "error"),
+                    onSuccess: () => toast(t("stashes.applied")),
+                    onError: (e: unknown) => toast((e as { message?: string })?.message ?? t("stashes.applyError"), "error"),
                   })
                 }
                 className="gs-press"
                 style={{ padding: "7px 14px", borderRadius: 8, background: "var(--accent)", color: "var(--accentT)", fontSize: 13, fontWeight: 700, cursor: busy ? "default" : "pointer", opacity: busy ? 0.6 : 1 }}
               >
-                {apply.isPending ? "A aplicar…" : "Aplicar"}
+                {apply.isPending ? t("stashes.applying") : t("stashes.apply")}
               </div>
               <div
                 onClick={() =>
                   !busy &&
                   pop.mutate(s.index, {
-                    onSuccess: () => toast("Stash aplicado e removido"),
-                    onError: (e: unknown) => toast((e as { message?: string })?.message ?? "não foi possível fazer pop", "error"),
+                    onSuccess: () => toast(t("stashes.poppedDone")),
+                    onError: (e: unknown) => toast((e as { message?: string })?.message ?? t("stashes.popError"), "error"),
                   })
                 }
-                title="git stash pop — aplica e, se não houver conflitos, remove o stash"
+                title={t("stashes.popTitle")}
                 className="gs-lift"
                 style={{ padding: "7px 14px", borderRadius: 8, background: "var(--btn)", border: "1px solid var(--btnB)", color: "var(--btnT)", fontSize: 13, cursor: busy ? "default" : "pointer", opacity: busy ? 0.6 : 1 }}
               >
-                {pop.isPending ? "A aplicar…" : "Aplicar e remover"}
+                {pop.isPending ? t("stashes.applying") : t("stashes.applyRemove")}
               </div>
               <div
                 onClick={() => setConfirmDrop(s.index)}
                 className="gs-lift"
                 style={{ padding: "7px 14px", borderRadius: 8, background: "var(--btn)", border: "1px solid var(--btnB)", color: "var(--ddT)", fontSize: 13, cursor: "pointer" }}
               >
-                Descartar
+                {t("stashes.discard")}
               </div>
             </div>
           </div>
@@ -103,14 +106,14 @@ export function Stashes() {
 
       {confirmDrop !== null && (
         <ConfirmDialog
-          message={`Descartar o stash stash@{${confirmDrop}}? O conteúdo guardado perde-se definitivamente.`}
+          message={t("stashes.dropConfirm", { index: confirmDrop })}
           onCancel={() => setConfirmDrop(null)}
           onConfirm={() => {
             const idx = confirmDrop;
             setConfirmDrop(null);
             drop.mutate(idx, {
-              onSuccess: () => toast("Stash descartado"),
-              onError: (e: unknown) => toast((e as { message?: string })?.message ?? "não foi possível descartar", "error"),
+              onSuccess: () => toast(t("stashes.dropped")),
+              onError: (e: unknown) => toast((e as { message?: string })?.message ?? t("stashes.dropError"), "error"),
             });
           }}
         />

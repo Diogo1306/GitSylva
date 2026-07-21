@@ -1,0 +1,271 @@
+import type { MessageValue } from "../../types";
+
+// App shell chrome: Titlebar, Sidebar, ActionBar, RepoRail, CommandPalette,
+// Modals, GroupEditModal, AppShell. Namespace: "shell.*".
+export const ptShell = {
+  // ── generic / shared shell vocabulary ──────────────────────────────────────
+  "shell.soonTooltip": "{label} · em breve",
+  "shell.openRepo": "Abrir repositório",
+  "shell.expand": "Expandir",
+  "shell.collapse": "Colapsar",
+  "shell.creating": "A criar…",
+  "shell.saving": "A guardar…",
+  "shell.copyName": "Copiar nome",
+  "shell.goToHistory": "Ir para o Histórico",
+  "shell.conflict.resolveHint": "Resolve os ficheiros marcados na Cópia de trabalho",
+  "shell.field.name": "Nome",
+  "shell.search.label": "Pesquisar",
+  "shell.search.aria": "Pesquisar ({hint})",
+
+  // ── navigation labels (palette + sidebar + titlebar) ───────────────────────
+  "shell.nav.history": "Histórico",
+  "shell.nav.workingCopy": "Cópia de trabalho",
+  "shell.nav.stashes": "Stashes",
+  "shell.nav.settings": "Definições",
+  "shell.nav.shortcuts": "Atalhos",
+
+  // ── shared toasts ──────────────────────────────────────────────────────────
+  "shell.toast.nowOn": "Em {name}",
+  "shell.toast.branchCreated": "Branch {name} criada",
+  "shell.toast.branchDeleted": "Branch {name} apagada",
+  "shell.toast.tagCreated": "Tag {name} criada",
+  "shell.toast.tagDeleted": "Tag {name} apagada",
+  "shell.toast.renamedTo": "Renomeada para {name}",
+  "shell.toast.nameCopied": "Nome copiado",
+  "shell.toast.mergeDone": "Merge de {name} concluído",
+  "shell.toast.rebaseDone": "Rebase concluído",
+
+  // ── shared error copy ──────────────────────────────────────────────────────
+  "shell.error.checkout": "não foi possível fazer checkout",
+  "shell.error.createBranch": "não foi possível criar a branch",
+  "shell.error.createTag": "não foi possível criar a tag",
+  "shell.error.save": "não foi possível guardar",
+  "shell.error.rename": "não foi possível renomear",
+  "shell.error.delete": "não foi possível apagar",
+  "shell.error.deleteTag": "não foi possível apagar a tag",
+  "shell.error.discard": "não foi possível descartar",
+  "shell.error.switchBranch": "não foi possível mudar de branch",
+  "shell.error.pull": "não foi possível fazer pull",
+  "shell.error.push": "não foi possível fazer push",
+  "shell.error.contactRemote": "não foi possível contactar o remoto",
+  "shell.error.mergeConflict": "conflito ou erro no merge",
+  "shell.error.mergeConflictWC": "conflito no merge — vê a Cópia de trabalho",
+  "shell.error.rebaseConflictWC": "conflito no rebase — vê a Cópia de trabalho",
+
+  // ── ActionBar ──────────────────────────────────────────────────────────────
+  "shell.actionBar.aria": "Ações",
+  "shell.actionBar.commitsToPush": "commits por enviar",
+  "shell.actionBar.commitsToPull": "commits por integrar",
+
+  // ── AppShell ───────────────────────────────────────────────────────────────
+  "shell.fetch.doneTitle": "Fetch concluído",
+  "shell.repoGone": "O repositório {path} já não existe no disco — separador fechado",
+
+  // ── Command palette ────────────────────────────────────────────────────────
+  "shell.palette.createLocalBranch": "criar branch local",
+  "shell.palette.remoteBadge": "remota",
+  "shell.palette.goTo": "ir para",
+  "shell.palette.shortcutsSub": "atalhos de teclado",
+  "shell.palette.action.commit": "Fazer commit…",
+  "shell.palette.action.commitSub": "cópia de trabalho",
+  "shell.palette.action.pullSub": "integrar do remoto",
+  "shell.palette.action.pushSub": "enviar para o remoto",
+  "shell.palette.action.fetchSub": "atualizar do remoto",
+  "shell.palette.action.newBranch": "Nova branch…",
+  "shell.palette.action.newBranchSub": "criar branch",
+  "shell.palette.action.mergeSub": "integrar branch",
+  "shell.palette.action.stash": "Guardar stash…",
+  "shell.palette.action.stashSub": "guardar alterações",
+  "shell.palette.action.newTag": "Nova tag…",
+  "shell.palette.action.newTagSub": "criar tag",
+  "shell.palette.group.repos": "REPOSITÓRIOS",
+  "shell.palette.group.branches": "BRANCHES",
+  "shell.palette.group.files": "FICHEIROS",
+  "shell.palette.group.commits": "COMMITS",
+  "shell.palette.group.actions": "AÇÕES",
+  "shell.palette.group.goto": "IR PARA",
+  "shell.palette.searchPlaceholder": "Pesquisar commits, ficheiros, branches…",
+  "shell.palette.noResults": 'Sem resultados para "{query}"',
+  "shell.palette.noResultsHint": "Tenta outro termo ou verifica a ortografia.",
+  "shell.palette.clearSearch": "Limpar pesquisa",
+  "shell.palette.typeToSearch": "Escreve para pesquisar…",
+  "shell.palette.hintNavigate": "↑↓ navegar",
+  "shell.palette.hintOpen": "↵ abrir",
+  "shell.palette.hintClose": "esc fechar",
+  "shell.palette.onAnyScreen": "em qualquer ecrã",
+
+  // ── Groups (GroupEditModal + rail + tab bar menus) ─────────────────────────
+  "shell.group.editTitle": "Editar grupo",
+  "shell.group.color": "Cor",
+  "shell.group.namePlaceholder": "Nome do grupo",
+  "shell.group.editNameColor": "Editar nome e cor…",
+  "shell.group.delete": "Apagar grupo",
+  "shell.group.newWithRepo": "Novo grupo com este repo",
+  "shell.group.moveTo": "Mover para “{name}”",
+  "shell.group.removeFrom": "Remover do grupo",
+  "shell.group.defaultName": "Grupo",
+  "shell.group.toggleTooltip": "{action} grupo · botão direito para opções",
+  "shell.group.closeAllTabs": "Fechar todas as abas do grupo ({count})",
+  "shell.group.deleteKeepTabs": "Apagar grupo (mantém as abas)",
+
+  // ── Branch modal + branch actions (Modals + Sidebar) ───────────────────────
+  "shell.branch.title": "Nova branch",
+  "shell.branch.nameLabel": "Nome da branch",
+  "shell.branch.from": "A partir de",
+  "shell.branch.checkoutNew": "Fazer checkout da nova branch",
+  "shell.branch.create": "Criar branch",
+  "shell.branch.searchLabel": "Procurar branches",
+  "shell.branch.searchPlaceholder": "Procurar branches…",
+  "shell.branch.remoteRowTitle": "1 clique: ver no histórico · 2 cliques: checkout local de {ref} · botão direito para opções",
+  "shell.branch.currentRowTitle": "Branch atual · 1 clique: ver no histórico",
+  "shell.branch.rowTitle": "1 clique: ver no histórico · 2 cliques: mudar para {name} · botão direito para opções",
+  "shell.branch.aheadTitle": { one: "{count} commit por enviar (push)", other: "{count} commits por enviar (push)" },
+  "shell.branch.behindTitle": { one: "{count} commit por integrar (pull)", other: "{count} commits por integrar (pull)" },
+  "shell.branch.deleteAria": "Apagar {name}",
+  "shell.branch.noMatches": "Sem branches correspondentes",
+  "shell.branch.checkoutLocal": "Checkout local de {name}…",
+  "shell.branch.mergeInto": "Merge de {name} na branch atual…",
+  "shell.branch.rebaseOnto": "Rebase da atual sobre {name}…",
+  "shell.branch.viewInHistory": "Ver no histórico",
+  "shell.branch.createFromHere": "Criar branch a partir daqui…",
+  "shell.branch.switchTo": "Mudar para {name}…",
+  "shell.branch.renameLabel": "Renomear {name}…",
+  "shell.branch.deleteLabel": "Apagar {name}…",
+  "shell.branch.createFromTitle": "Criar branch a partir de {name}",
+  "shell.branch.newPlaceholder": "feature/a-minha-branch",
+  "shell.branch.createAndSwitch": "Criar e mudar",
+  "shell.branch.deleteForceMsg": "A branch {name} tem commits que ainda não estão integrados noutra branch. Apagar mesmo assim? Esses commits perdem-se.",
+  "shell.branch.deleteMsg": "Apagar a branch {name}?",
+  "shell.branch.forceDelete": "Forçar eliminação",
+  "shell.branch.switchMsg": "Mudar para a branch {name}? A cópia de trabalho passa a refletir essa branch.",
+  "shell.branch.switchConfirm": "Mudar",
+  "shell.branch.mergeMsg": "Merge de {name} na branch atual ({current})? Em caso de conflito, a Cópia de trabalho mostra os ficheiros por resolver.",
+  "shell.branch.rebaseMsg": "Rebase de {current} sobre {onto}? Os commits locais da branch atual são reescritos.",
+
+  // ── Stash modal ────────────────────────────────────────────────────────────
+  "shell.stash.title": "Guardar stash",
+  "shell.stash.messageLabel": "Mensagem (opcional)",
+  "shell.stash.messagePlaceholder": "WIP em {branch}",
+  "shell.stash.includeStaged": "Incluir alterações preparadas",
+  "shell.stash.includeUntracked": "Incluir ficheiros não rastreados",
+  "shell.stash.saved": "Alterações guardadas no stash",
+
+  // ── Tag modal + tag actions ────────────────────────────────────────────────
+  "shell.tag.title": "Nova tag",
+  "shell.tag.messageLabel": "Mensagem (opcional · cria uma tag anotada)",
+  "shell.tag.on": "Em",
+  "shell.tag.create": "Criar tag",
+  "shell.tag.rowTitle": "{subject} · botão direito para opções",
+  "shell.tag.deleteLabel": "Apagar tag…",
+  "shell.tag.deleteMsg": "Apagar a tag {name}? (Só localmente — tags já enviadas continuam no remoto.)",
+  "shell.tag.deleteConfirm": "Apagar tag",
+
+  // ── Merge modal ────────────────────────────────────────────────────────────
+  "shell.merge.title": "Merge para {branch}",
+  "shell.merge.choose": "Escolhe a branch a integrar na atual.",
+  "shell.merge.noOthers": "Não há outras branches locais.",
+  "shell.merge.mergeArrow": "integrar →",
+  "shell.merge.doneTitle": "Merge concluído",
+  "shell.merge.conflictsTitle": "Conflitos no merge",
+
+  // ── Sync failure panels (auth / network / conflict) ────────────────────────
+  "shell.sync.auth.title": "Autenticação necessária",
+  "shell.sync.auth.body": "Configura as credenciais Git para origin (credential manager ou uma chave SSH com o ssh-agent a correr).",
+  "shell.sync.network.title": "Sem ligação ao remoto",
+  "shell.sync.network.body": "Verifica a internet ou o URL do remoto e tenta novamente.",
+  "shell.sync.conflict.title": "Conflito ao integrar",
+  "shell.sync.conflict.body": "Resolve os ficheiros marcados na Cópia de trabalho e depois continua.",
+
+  // ── Pull modal ─────────────────────────────────────────────────────────────
+  "shell.pull.title": "Pull de origin",
+  "shell.pull.checking": "A verificar origin…",
+  "shell.pull.checkFailed": "Não foi possível verificar o remoto — a lista pode estar desatualizada.",
+  "shell.pull.willIntegrate": {
+    one: "Pull vai integrar {count} commit de {upstream} em {branch}.",
+    other: "Pull vai integrar {count} commits de {upstream} em {branch}.",
+  },
+  "shell.pull.upToDate": "{branch} está atualizado com {upstream}.",
+  "shell.pull.listFailed": "Não foi possível obter a lista do remoto.",
+  "shell.pull.nothingToPull": "Nada para integrar. Estás em dia.",
+  "shell.pull.mode": "Modo",
+  "shell.pull.aboutMode": "Sobre o modo {name}",
+  "shell.pull.doneTitle": "Pull concluído",
+  "shell.pull.doneSub": { one: "{count} commit integrado em {branch}", other: "{count} commits integrados em {branch}" },
+  "shell.pull.conflictsTitle": "Conflitos no pull",
+  "shell.pull.pulling": "A integrar…",
+  "shell.pull.doPull": "Fazer pull",
+
+  // ── Push modal ─────────────────────────────────────────────────────────────
+  "shell.push.title": "Push para origin",
+  "shell.push.willSend": {
+    one: "Push vai enviar {count} commit de {branch} para {upstream}.",
+    other: "Push vai enviar {count} commits de {branch} para {upstream}.",
+  },
+  "shell.push.nothingToSend": "Nada para enviar — {branch} está atualizado com {upstream}.",
+  "shell.push.nothingEmpty": "Nada para enviar.",
+  "shell.push.doneTitle": "Push concluído",
+  "shell.push.doneSub": { one: "origin · {count} commit · {branch}", other: "origin · {count} commits · {branch}" },
+  "shell.push.pushing": "A enviar…",
+  "shell.push.doPush": "Fazer push",
+
+  // ── Shortcuts modal ────────────────────────────────────────────────────────
+  "shell.shortcuts.title": "Atalhos de teclado",
+  "shell.shortcuts.rebindHint": "Regrava estes atalhos em Definições → Atalhos.",
+
+  // ── RepoRail ───────────────────────────────────────────────────────────────
+  "shell.rail.projects": "PROJETOS",
+
+  // ── Sidebar ────────────────────────────────────────────────────────────────
+  "shell.sidebar.workspace": "ESPAÇO DE TRABALHO",
+  "shell.sidebar.recents": "RECENTES",
+  "shell.sidebar.remotes": "REMOTOS",
+  "shell.sidebar.expand": "Expandir barra lateral",
+  "shell.sidebar.collapse": "Colapsar barra lateral",
+
+  // ── Folders (sidebar branch/remote folders) ────────────────────────────────
+  "shell.folder.toggleTitle": "{action} {name}",
+  "shell.folder.aheadTitle": {
+    one: "{count} commit por enviar nas branches desta pasta",
+    other: "{count} commits por enviar nas branches desta pasta",
+  },
+  "shell.folder.behindTitle": {
+    one: "{count} commit por integrar nas branches desta pasta",
+    other: "{count} commits por integrar nas branches desta pasta",
+  },
+
+  // ── Remotes (sidebar) ──────────────────────────────────────────────────────
+  "shell.remote.none": "Sem remotos configurados",
+  "shell.remote.noMatches": "Sem remotos correspondentes",
+  "shell.remote.optionsAria": "Opções de {remote}",
+  "shell.remote.fetch": "Fetch de {remote}",
+  "shell.remote.pull": "Pull de {remote}…",
+  "shell.remote.push": "Push para {remote}…",
+
+  // ── Titlebar ───────────────────────────────────────────────────────────────
+  "shell.win.minimize": "Minimizar",
+  "shell.win.maximize": "Maximizar",
+  "shell.win.restore": "Restaurar",
+  "shell.tab.rightClickGroups": "{path} · botão direito para grupos",
+  "shell.tab.close": "Fechar {name}",
+  "shell.tabs.aria": "Repositórios abertos",
+  "shell.fetch.tooltip": "Fetch de origin",
+  "shell.fetch.fetching": "A obter…",
+  "shell.discard.button": "↩ Descartar",
+  "shell.discard.tooltip": "Descartar alterações não preparadas",
+  "shell.discard.nothing": "Sem alterações para descartar",
+  "shell.discard.done": "Alterações não preparadas descartadas",
+  "shell.discard.confirmCount": {
+    one: "Descartar {count} alteração não preparada?",
+    other: "Descartar {count} alterações não preparadas?",
+  },
+  "shell.discard.confirmUntracked": {
+    one: " {count} ficheiro não rastreado será apagado do disco.",
+    other: " {count} ficheiros não rastreados serão apagados do disco.",
+  },
+  "shell.discard.confirmTail": " As alterações preparadas mantêm-se. Esta ação não pode ser desfeita.",
+  "shell.terminal.soon": "Terminal integrado chega numa próxima fase",
+  "shell.terminal.open": "Abrir terminal",
+  "shell.close.busyMessage": "Uma operação Git está em curso. Fechar mesmo assim?",
+} satisfies Record<string, MessageValue>;
+
+export type ShellKey = keyof typeof ptShell;

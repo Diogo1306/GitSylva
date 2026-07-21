@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { useT } from "../../../i18n";
 
 export function SectionTitle({ children }: { children: ReactNode }) {
   return <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "1.4px", color: "var(--muted)" }}>{children}</div>;
@@ -13,11 +14,12 @@ export function Hint({ children }: { children: ReactNode }) {
 }
 
 export function StubSection({ id, title, children }: { id: string; title: string; children?: ReactNode }) {
+  const t = useT();
   return (
     <div id={id} style={{ display: "flex", flexDirection: "column", gap: 12, scrollMarginTop: 20 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
         <SectionTitle>{title}</SectionTitle>
-        <span className="gs-soon">Em breve</span>
+        <span className="gs-soon">{t("common.soon")}</span>
       </div>
       <div style={{ padding: 16, border: "1px dashed var(--btnB)", borderRadius: 12, color: "var(--muted)", fontSize: 13, lineHeight: 1.5 }}>{children}</div>
     </div>

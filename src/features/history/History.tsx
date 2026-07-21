@@ -40,6 +40,7 @@ import {
 } from "../../lib/format";
 import type { Commit } from "../../lib/types";
 import { matchesFilters, hasActiveFilters, EMPTY_HISTORY_FILTERS, type HistoryFilters, type MergeFilter } from "../../lib/historyFilters";
+import { useT } from "../../i18n";
 
 const ROW_H = 52;
 const mono = "'JetBrains Mono', monospace";
@@ -130,6 +131,7 @@ function Chips({ refs }: { refs: string }) {
 }
 
 function DetailPanel({ repoPath, commit }: { repoPath: string; commit: Commit }) {
+  const t = useT();
   // "Carregar diff completo" opt-in, reset when another commit is selected.
   const [full, setFull] = useState(false);
   const [prevHash, setPrevHash] = useState(commit.hash);
@@ -188,12 +190,12 @@ function DetailPanel({ repoPath, commit }: { repoPath: string; commit: Commit })
         <div style={{ display: "flex", gap: 12, fontFamily: mono, fontSize: 12 }}>
           <span style={{ color: "var(--daT)" }}>+{data?.additions ?? 0}</span>
           <span style={{ color: "var(--ddT)" }}>−{data?.deletions ?? 0}</span>
-          <span style={{ color: "var(--muted)" }}>{data?.files.length ?? 0} arquivos</span>
+          <span style={{ color: "var(--muted)" }}>{t("history.detail.filesCount", { count: data?.files.length ?? 0 })}</span>
         </div>
       </div>
 
       <div style={{ padding: "12px 20px 8px", fontSize: 10.5, fontWeight: 600, letterSpacing: "1.2px", color: "var(--muted)" }}>
-        ARQUIVOS ALTERADOS
+        {t("history.detail.changedFiles")}
       </div>
       <div style={{ padding: "0 12px", display: "flex", flexDirection: "column", gap: 1, maxHeight: "28%", overflowY: "auto" }}>
         {(data?.files ?? []).map((f) => {
@@ -202,7 +204,7 @@ function DetailPanel({ repoPath, commit }: { repoPath: string; commit: Commit })
             <SelectableRow
               key={f.path}
               onSelect={() => scrollToFile(f.path)}
-              title="Ver o diff deste ficheiro"
+              title={t("history.detail.viewFileDiff")}
               style={{ gap: 9, padding: "6px 8px", borderRadius: 7 }}
             >
               <FileIcon path={f.path} />
@@ -235,13 +237,13 @@ function DetailPanel({ repoPath, commit }: { repoPath: string; commit: Commit })
       <div style={{ padding: "14px 20px 8px", fontSize: 10.5, fontWeight: 600, letterSpacing: "1.2px", color: "var(--muted)" }}>DIFF</div>
       <div ref={diffRef} style={{ flex: 1, overflow: "auto", margin: "0 12px 12px", border: "1px solid var(--border)", borderRadius: 10, background: "var(--panel2)", padding: "8px 0" }}>
         {isLoading ? (
-          <div style={{ padding: 12, color: "var(--muted)", fontSize: 12 }}>A carregar diff…</div>
+          <div style={{ padding: 12, color: "var(--muted)", fontSize: 12 }}>{t("history.detail.loadingDiff")}</div>
         ) : detailError ? (
-          <div style={{ padding: 12, color: "var(--ddT)", fontSize: 12 }}>{errMsg(detailError, "não foi possível ler o commit")}</div>
+          <div style={{ padding: 12, color: "var(--ddT)", fontSize: 12 }}>{errMsg(detailError, t("history.detail.readCommitError"))}</div>
         ) : data && data.diff.trim() ? (
           <DiffView patch={data.diff} onLoadFull={() => setFull(true)} />
         ) : (
-          <div style={{ padding: 12, color: "var(--muted)", fontSize: 12 }}>Sem alterações textuais.</div>
+          <div style={{ padding: 12, color: "var(--muted)", fontSize: 12 }}>{t("history.detail.noTextChanges")}</div>
         )}
       </div>
     </div>
@@ -275,6 +277,7 @@ const CommitRow = memo(function CommitRow({
   onGoto: (hash: string) => void;
   onContext: (hash: string, x: number, y: number) => void;
 }) {
+  const t = useT();
   // Where HEAD is (the commit you're standing on) gets a left accent bar so
   // it's findable at a glance even with the chips scrolled out of view.
   const isHead = commit.refs.includes("HEAD");
@@ -288,7 +291,7 @@ const CommitRow = memo(function CommitRow({
         e.preventDefault();
         onContext(commit.hash, e.clientX, e.clientY);
       }}
-      title="1 clique: ver · 2 cliques: ir para este commit · botão direito: opções"
+      title={t("history.row.title")}
       style={{
         height: rowH,
         gap: 12,
@@ -317,6 +320,7 @@ const CommitRow = memo(function CommitRow({
 });
 
 export function History() {
+  const t = useT();
   const repo = useAppStore((s) => s.repo)!;
   const focusCommit = useAppStore((s) => s.focusCommit);
   const [limit, setLimit] = useState(200);
@@ -528,9 +532,9 @@ export function History() {
       scrollEl.scrollTo({ top: top + rowH - scrollEl.clientHeight });
   });
 
-  if (isLoading) return <div style={{ padding: 16, color: "var(--muted)" }}>A carregar histórico…</div>;
-  if (error) return <div style={{ padding: 16, color: "var(--ddT)" }}>{errMsg(error, "não foi possível ler o histórico")}</div>;
-  if (commits.length === 0) return <div style={{ padding: 16, color: "var(--muted)" }}>Sem commits ainda.</div>;
+  if (isLoading) return <div style={{ padding: 16, color: "var(--muted)" }}>{t("history.loading")}</div>;
+  if (error) return <div style={{ padding: 16, color: "var(--ddT)" }}>{errMsg(error, t("history.readError"))}</div>;
+  if (commits.length === 0) return <div style={{ padding: 16, color: "var(--muted)" }}>{t("history.noCommits")}</div>;
 
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: below ? "column" : "row", minWidth: 0, minHeight: 0, animation: "fadeUp 0.25s ease both" }}>
@@ -538,11 +542,11 @@ export function History() {
         <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 10 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <FormField label="Filtrar commits" hideLabel>
+              <FormField label={t("history.filter.label")} hideLabel>
                 <input
                   value={filters.text}
                   onChange={(e) => setFilters((f) => ({ ...f, text: e.target.value }))}
-                  placeholder="Filtrar histórico…"
+                  placeholder={t("history.filter.placeholder")}
                   style={{
                     width: "100%",
                     background: "var(--input)",
@@ -558,14 +562,14 @@ export function History() {
               </FormField>
             </div>
             <div style={{ fontSize: 12, color: "var(--muted)", fontFamily: mono, whiteSpace: "nowrap" }}>
-              {resolving ? "a aplicar filtro…" : `${filtered.length} commits`}
+              {resolving ? t("history.filter.applyingInline") : t("history.commitsCount", { count: filtered.length })}
             </div>
             <button
               type="button"
               onClick={() => setFiltersOpen((v) => !v)}
               aria-pressed={filtersOpen}
               aria-expanded={filtersOpen}
-              title={filtersOpen ? "Esconder filtros avançados" : "Mostrar filtros avançados (branch, autor, data, merges, caminho)"}
+              title={filtersOpen ? t("history.filter.hideAdvanced") : t("history.filter.showAdvanced")}
               className="gs-lift"
               style={{
                 display: "flex",
@@ -585,13 +589,13 @@ export function History() {
                 boxSizing: "border-box",
               }}
             >
-              Filtros {hasActiveFilters({ ...filters, text: "" }) ? "•" : ""}
+              {t("history.filter.filters")} {hasActiveFilters({ ...filters, text: "" }) ? "•" : ""}
             </button>
             <button
               type="button"
               onClick={() => setDetailOpen(!detailOpen)}
               aria-pressed={detailOpen}
-              title={detailOpen ? "Esconder o painel de detalhe/diff" : "Mostrar o painel de detalhe/diff"}
+              title={detailOpen ? t("history.detail.hidePanel") : t("history.detail.showPanel")}
               className="gs-lift"
               style={{
                 display: "flex",
@@ -617,11 +621,11 @@ export function History() {
 
           {filtersOpen && (
             <div style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-end", gap: 10 }}>
-              <FormField label="Autor" hideLabel>
+              <FormField label={t("history.filter.author")} hideLabel>
                 <input
                   value={filters.author}
                   onChange={(e) => setFilters((f) => ({ ...f, author: e.target.value }))}
-                  placeholder="Autor"
+                  placeholder={t("history.filter.author")}
                   style={filterInputStyle(140)}
                 />
               </FormField>
@@ -632,9 +636,9 @@ export function History() {
                   onChange={(e) => setFilters((f) => ({ ...f, branch: e.target.value }))}
                   style={filterInputStyle(180)}
                 >
-                  <option value="">Todas as branches</option>
+                  <option value="">{t("history.filter.allBranches")}</option>
                   {(branches.data ?? []).some((b) => !b.is_remote) && (
-                    <optgroup label="Locais">
+                    <optgroup label={t("history.filter.local")}>
                       {(branches.data ?? [])
                         .filter((b) => !b.is_remote)
                         .map((b) => (
@@ -645,7 +649,7 @@ export function History() {
                     </optgroup>
                   )}
                   {(branches.data ?? []).some((b) => b.is_remote) && (
-                    <optgroup label="Remotas">
+                    <optgroup label={t("history.filter.remote")}>
                       {(branches.data ?? [])
                         .filter((b) => b.is_remote)
                         .map((b) => (
@@ -658,7 +662,7 @@ export function History() {
                 </select>
               </FormField>
 
-              <FormField label="De (data inicial)" hideLabel>
+              <FormField label={t("history.filter.dateFrom")} hideLabel>
                 <input
                   type="date"
                   value={filters.dateFrom}
@@ -667,7 +671,7 @@ export function History() {
                   style={filterInputStyle(140)}
                 />
               </FormField>
-              <FormField label="Até (data final)" hideLabel>
+              <FormField label={t("history.filter.dateTo")} hideLabel>
                 <input
                   type="date"
                   value={filters.dateTo}
@@ -678,21 +682,21 @@ export function History() {
               </FormField>
 
               <Tabs
-                ariaLabel="Tipo de commit"
+                ariaLabel={t("history.filter.commitTypeAria")}
                 activeId={filters.merge}
                 onChange={(id) => setFilters((f) => ({ ...f, merge: id as MergeFilter }))}
                 items={[
-                  { id: "all", label: "Todos" },
-                  { id: "normal", label: "Normais" },
+                  { id: "all", label: t("history.filter.commitAll") },
+                  { id: "normal", label: t("history.filter.commitNormal") },
                   { id: "merges", label: "Merges" },
                 ]}
               />
 
-              <FormField label="Caminho ou tipo de ficheiro" hideLabel>
+              <FormField label={t("history.filter.path")} hideLabel>
                 <input
                   value={filters.path}
                   onChange={(e) => setFilters((f) => ({ ...f, path: e.target.value }))}
-                  placeholder="ex.: src/, *.rs"
+                  placeholder={t("history.filter.pathPlaceholder")}
                   style={filterInputStyle(160)}
                 />
               </FormField>
@@ -700,11 +704,11 @@ export function History() {
               <Button
                 variant="ghost"
                 size="sm"
-                title="Repor todos os filtros"
+                title={t("history.filter.resetAllTitle")}
                 disabled={!hasActiveFilters(filters)}
                 onClick={() => setFilters(EMPTY_HISTORY_FILTERS)}
               >
-                Repor filtros
+                {t("history.filter.reset")}
               </Button>
             </div>
           )}
@@ -718,22 +722,22 @@ export function History() {
           {filterError ? (
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12, padding: "56px 24px" }}>
               <div style={{ fontSize: 13.5, color: "var(--ddT)", textAlign: "center" }}>
-                Não foi possível aplicar o filtro de {filterError === "branch" ? "branch" : "caminho"}.
+                {filterError === "branch" ? t("history.filter.applyErrorBranch") : t("history.filter.applyErrorPath")}
               </div>
               <Button variant="ghost" onClick={() => setFilters(EMPTY_HISTORY_FILTERS)}>
-                Limpar filtros
+                {t("history.filter.clear")}
               </Button>
             </div>
           ) : resolving ? (
             // A branch/path filter is active but its backend-resolved hash
             // set hasn't arrived yet — showing the list now would mean that
             // dimension is silently unfiltered, so a loading row stands in.
-            <div style={{ padding: "48px 24px", textAlign: "center", color: "var(--muted)", fontSize: 13 }}>A aplicar filtro…</div>
+            <div style={{ padding: "48px 24px", textAlign: "center", color: "var(--muted)", fontSize: 13 }}>{t("history.filter.applying")}</div>
           ) : filtering && filtered.length === 0 ? (
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12, padding: "56px 24px" }}>
-              <div style={{ fontSize: 13.5, color: "var(--text2)", textAlign: "center" }}>Sem resultados para os filtros aplicados.</div>
+              <div style={{ fontSize: 13.5, color: "var(--text2)", textAlign: "center" }}>{t("history.filter.noResults")}</div>
               <Button variant="ghost" onClick={() => setFilters(EMPTY_HISTORY_FILTERS)}>
-                Limpar filtros
+                {t("history.filter.clear")}
               </Button>
             </div>
           ) : (
@@ -750,7 +754,7 @@ export function History() {
                 )}
                 <div
                   role="listbox"
-                  aria-label="Histórico de commits"
+                  aria-label={t("history.listAriaLabel")}
                   style={virtual ? { position: "absolute", top: startIdx * rowH, left: 0, right: 0 } : undefined}
                 >
                   {visibleCommits.map((c) => (
@@ -789,7 +793,7 @@ export function History() {
                     fontFamily: "inherit",
                   }}
                 >
-                  {isFetching ? "A carregar…" : "Carregar mais commits"}
+                  {isFetching ? t("common.loading") : t("history.loadMore")}
                 </button>
               )}
             </>
@@ -806,7 +810,7 @@ export function History() {
             <div
               {...detailH.handleProps}
               className="gs-resize"
-              title="Arrastar para ajustar o painel"
+              title={t("history.dragPanel")}
               style={{ height: 7, flexShrink: 0, cursor: "ns-resize", borderTop: "1px solid var(--border)", touchAction: "none" }}
             />
           )}
@@ -833,38 +837,38 @@ export function History() {
           const h = menu.hash;
           const short = h.slice(0, 7);
           const reset = (mode: "soft" | "mixed" | "hard") => () =>
-            rewrite.reset.mutate({ target: h, mode }, { onSuccess: () => toast(`Reset ${mode} para ${short}`), onError: (e: unknown) => toast((e as { message?: string })?.message ?? "erro no reset", "error") });
+            rewrite.reset.mutate({ target: h, mode }, { onSuccess: () => toast(t("history.menu.resetToast", { mode, short })), onError: (e: unknown) => toast((e as { message?: string })?.message ?? t("history.menu.resetError"), "error") });
           const subject = commits.find((c) => c.hash === h)?.subject ?? "";
           const items: MenuItem[] = [
-            { label: "Ir para este commit…", onClick: () => setConfirmGoto(h) },
-            { label: "Criar branch daqui…", onClick: () => { setBranchName(""); setBranchFrom(h); } },
-            { label: "Criar tag neste commit…", onClick: () => { setTagName(""); setTagAt(h); } },
+            { label: t("history.menu.gotoCommit"), onClick: () => setConfirmGoto(h) },
+            { label: t("history.menu.branchFromHere"), onClick: () => { setBranchName(""); setBranchFrom(h); } },
+            { label: t("history.menu.tagAtCommit"), onClick: () => { setTagName(""); setTagAt(h); } },
             { label: "", onClick: () => {}, divider: true },
-            { label: "Cherry-pick para a branch atual", onClick: () => rewrite.cherryPick.mutate(h, { onSuccess: () => toast("Cherry-pick aplicado"), onError: (e: unknown) => toast((e as { message?: string })?.message ?? "conflito no cherry-pick", "error") }) },
-            { label: "Reverter este commit…", onClick: () => setConfirmRevert(h) },
-            { label: "Rebase da atual sobre este commit…", onClick: () => setConfirmRebase(h) },
+            { label: t("history.menu.cherryPick"), onClick: () => rewrite.cherryPick.mutate(h, { onSuccess: () => toast(t("history.menu.cherryPickDone")), onError: (e: unknown) => toast((e as { message?: string })?.message ?? t("history.menu.cherryPickConflict"), "error") }) },
+            { label: t("history.menu.revertCommit"), onClick: () => setConfirmRevert(h) },
+            { label: t("history.menu.rebaseOnto"), onClick: () => setConfirmRebase(h) },
             { label: "", onClick: () => {}, divider: true },
-            { label: `Reset suave para ${short}`, onClick: reset("soft") },
-            { label: `Reset misto para ${short}`, onClick: reset("mixed") },
-            { label: `Reset forçado (hard) para ${short}…`, onClick: () => setConfirmHardReset(h), danger: true },
+            { label: t("history.menu.resetSoft", { short }), onClick: reset("soft") },
+            { label: t("history.menu.resetMixed", { short }), onClick: reset("mixed") },
+            { label: t("history.menu.resetHard", { short }), onClick: () => setConfirmHardReset(h), danger: true },
             { label: "", onClick: () => {}, divider: true },
-            { label: "Copiar hash", onClick: () => navigator.clipboard?.writeText(h).then(() => toast("Hash copiado")) },
-            { label: "Copiar mensagem", onClick: () => navigator.clipboard?.writeText(subject).then(() => toast("Mensagem copiada")) },
+            { label: t("history.menu.copyHash"), onClick: () => navigator.clipboard?.writeText(h).then(() => toast(t("history.menu.hashCopied"))) },
+            { label: t("history.menu.copyMessage"), onClick: () => navigator.clipboard?.writeText(subject).then(() => toast(t("history.menu.messageCopied"))) },
           ];
           return <ContextMenu x={menu.x} y={menu.y} items={items} onClose={() => setMenu(null)} />;
         })()}
 
       {confirmRebase && (
         <ConfirmDialog
-          message={`Rebase de ${repo.current_branch} sobre ${confirmRebase.slice(0, 7)}? Os commits locais da branch atual são reescritos.`}
+          message={t("history.rebaseConfirm", { branch: repo.current_branch, short: confirmRebase.slice(0, 7) })}
           confirmLabel="Rebase"
           onCancel={() => setConfirmRebase(null)}
           onConfirm={() => {
             const onto = confirmRebase;
             setConfirmRebase(null);
             rewrite.rebase.mutate(onto, {
-              onSuccess: () => toast("Rebase concluído"),
-              onError: (e: unknown) => toast((e as { message?: string })?.message ?? "conflito no rebase — vê a Cópia de trabalho", "error"),
+              onSuccess: () => toast(t("history.rebaseDone")),
+              onError: (e: unknown) => toast((e as { message?: string })?.message ?? t("history.rebaseConflict"), "error"),
             });
           }}
         />
@@ -872,15 +876,15 @@ export function History() {
 
       {confirmHardReset && (
         <ConfirmDialog
-          message={`Reset forçado (hard) para ${confirmHardReset.slice(0, 7)}? Descarta TODAS as alterações locais (preparadas e não preparadas) e os commits à frente deste. Esta ação não pode ser desfeita.`}
-          confirmLabel="Reset forçado"
+          message={t("history.hardResetConfirm", { short: confirmHardReset.slice(0, 7) })}
+          confirmLabel={t("history.hardResetConfirmLabel")}
           onCancel={() => setConfirmHardReset(null)}
           onConfirm={() => {
             const target = confirmHardReset;
             setConfirmHardReset(null);
             rewrite.reset.mutate(
               { target, mode: "hard" },
-              { onSuccess: () => toast(`Reset hard para ${target.slice(0, 7)}`), onError: (e: unknown) => toast((e as { message?: string })?.message ?? "erro no reset", "error") },
+              { onSuccess: () => toast(t("history.hardResetToast", { short: target.slice(0, 7) })), onError: (e: unknown) => toast((e as { message?: string })?.message ?? t("history.menu.resetError"), "error") },
             );
           }}
         />
@@ -888,8 +892,8 @@ export function History() {
 
       {confirmGoto && (
         <ConfirmDialog
-          message={`Ir para o commit ${confirmGoto.slice(0, 7)}? A cópia de trabalho passa a refletir esse ponto em modo solto (detached HEAD). Para continuar trabalho a partir daqui, usa o botão direito → "Criar branch daqui…".`}
-          confirmLabel="Ir para o commit"
+          message={t("history.gotoConfirm", { short: confirmGoto.slice(0, 7) })}
+          confirmLabel={t("history.gotoConfirmLabel")}
           onCancel={() => setConfirmGoto(null)}
           onConfirm={() => {
             const hash = confirmGoto;
@@ -897,12 +901,12 @@ export function History() {
             if (branchActions.checkout.isPending) return;
             branchActions.checkout.mutate(hash, {
               onSuccess: () => {
-                toast(`Em ${hash.slice(0, 7)} (HEAD solto)`);
+                toast(t("history.gotoDone", { short: hash.slice(0, 7) }));
                 // Refresh the repo info properly — a detached HEAD has no
                 // branch name for setCurrent to guess.
                 void openRepoInfo(repo.path).then((info) => useAppStore.getState().updateRepo(repo.path, info)).catch(() => {});
               },
-              onError: (e: unknown) => toast((e as { message?: string })?.message ?? "não foi possível ir para o commit", "error"),
+              onError: (e: unknown) => toast((e as { message?: string })?.message ?? t("history.gotoError"), "error"),
             });
           }}
         />
@@ -910,29 +914,29 @@ export function History() {
 
       {confirmRevert && (
         <ConfirmDialog
-          message={`Reverter ${confirmRevert.slice(0, 7)}? Cria um commit novo na branch atual que desfaz as alterações deste (o histórico não é reescrito).`}
-          confirmLabel="Reverter"
+          message={t("history.revertConfirm", { short: confirmRevert.slice(0, 7) })}
+          confirmLabel={t("history.revertConfirmLabel")}
           onCancel={() => setConfirmRevert(null)}
           onConfirm={() => {
             const h = confirmRevert;
             setConfirmRevert(null);
             rewrite.revert.mutate(h, {
-              onSuccess: () => toast(`Commit ${h.slice(0, 7)} revertido`),
-              onError: (e: unknown) => toast((e as { message?: string })?.message ?? "conflito no revert — vê a Cópia de trabalho", "error"),
+              onSuccess: () => toast(t("history.revertDone", { short: h.slice(0, 7) })),
+              onError: (e: unknown) => toast((e as { message?: string })?.message ?? t("history.revertConflict"), "error"),
             });
           }}
         />
       )}
 
       {branchFrom && (
-        <Modal title={`Criar branch a partir de ${branchFrom.slice(0, 7)}`} onClose={() => setBranchFrom(null)} width={400}>
+        <Modal title={t("history.branchModal.title", { short: branchFrom.slice(0, 7) })} onClose={() => setBranchFrom(null)} width={400}>
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             <Input
               autoFocus
               mono
               value={branchName}
               onChange={(e) => setBranchName(e.target.value)}
-              placeholder="feature/a-minha-branch"
+              placeholder={t("history.branchModal.placeholder")}
             />
             <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
               {([false, true] as const).map((doCheckout) => (
@@ -947,13 +951,13 @@ export function History() {
                     branchActions.create.mutate(
                       { name, checkout: doCheckout, from },
                       {
-                        onSuccess: () => toast(doCheckout ? `Em ${name}` : `Branch ${name} criada em ${from.slice(0, 7)}`),
-                        onError: (e: unknown) => toast((e as { message?: string })?.message ?? "não foi possível criar a branch", "error"),
+                        onSuccess: () => toast(doCheckout ? t("history.branchModal.checkedOut", { name }) : t("history.branchModal.created", { name, short: from.slice(0, 7) })),
+                        onError: (e: unknown) => toast((e as { message?: string })?.message ?? t("history.branchModal.createError"), "error"),
                       },
                     );
                   }}
                 >
-                  {doCheckout ? "Criar e mudar" : "Criar"}
+                  {doCheckout ? t("history.branchModal.createSwitch") : t("common.create")}
                 </Button>
               ))}
             </div>
@@ -962,7 +966,7 @@ export function History() {
       )}
 
       {tagAt && (
-        <Modal title={`Criar tag em ${tagAt.slice(0, 7)}`} onClose={() => setTagAt(null)} width={400}>
+        <Modal title={t("history.tagModal.title", { short: tagAt.slice(0, 7) })} onClose={() => setTagAt(null)} width={400}>
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             <Input autoFocus mono value={tagName} onChange={(e) => setTagName(e.target.value)} placeholder="v1.2.3" />
             <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
@@ -976,13 +980,13 @@ export function History() {
                   tagActions.create.mutate(
                     { name, message: "", target },
                     {
-                      onSuccess: () => toast(`Tag ${name} criada em ${target.slice(0, 7)}`),
-                      onError: (e: unknown) => toast((e as { message?: string })?.message ?? "não foi possível criar a tag", "error"),
+                      onSuccess: () => toast(t("history.tagModal.created", { name, short: target.slice(0, 7) })),
+                      onError: (e: unknown) => toast((e as { message?: string })?.message ?? t("history.tagModal.createError"), "error"),
                     },
                   );
                 }}
               >
-                Criar tag
+                {t("history.tagModal.create")}
               </Button>
             </div>
           </div>

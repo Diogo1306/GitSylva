@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { ModalCloseContext } from "./modalClose";
+import { useT } from "../../i18n";
 
 // Shared modal shell (handoff §10): scrim + dialog with entrance/exit
 // animation, Escape/scrim/✕ close, focus trap, autofocus on the first field
@@ -8,6 +9,7 @@ import { ModalCloseContext } from "./modalClose";
 const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 export function Modal({ title, onClose, width = 460, children }: { title: string; onClose: () => void; width?: number; children: ReactNode }) {
+  const t = useT();
   const [closing, setClosing] = useState(false);
   const boxRef = useRef<HTMLDivElement>(null);
   const restoreRef = useRef<HTMLElement | null>(null);
@@ -99,7 +101,7 @@ export function Modal({ title, onClose, width = 460, children }: { title: string
           <div style={{ fontSize: 16, fontWeight: 700, flex: 1 }}>{title}</div>
           <button
             onClick={requestClose}
-            aria-label="Fechar"
+            aria-label={t("common.close")}
             className="gs-row"
             style={{ width: 26, height: 26, borderRadius: 7, display: "grid", placeItems: "center", cursor: "pointer", color: "var(--muted)", fontSize: 14, background: "transparent", border: "none", fontFamily: "inherit" }}
           >

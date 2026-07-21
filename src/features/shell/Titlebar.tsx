@@ -18,6 +18,7 @@ import { GroupEditModal } from "./GroupEditModal";
 import { groupColor } from "../../lib/groupColors";
 import { isMac, comboHint } from "../../lib/platform";
 import { useShortcutsStore } from "../../state/shortcutsStore";
+import { useT } from "../../i18n";
 import type { RepoInfo } from "../../lib/types";
 
 const mono = "'JetBrains Mono', monospace";
@@ -25,6 +26,7 @@ const mono = "'JetBrains Mono', monospace";
 // macOS: traffic lights on the left. Minimize is the plain native one — the
 // handoff's mac-style shrink animation was cut on user request (R5.2).
 function TrafficLights() {
+  const t = useT();
   const light = (bg: string, glyph: string, onClick: () => void, title: string) => (
     <button
       type="button"
@@ -51,9 +53,9 @@ function TrafficLights() {
   );
   return (
     <div className="gs-lights" style={{ display: "flex", gap: 8, flexShrink: 0 }}>
-      {light("#FF5F57", "✕", () => void winClose(), "Fechar")}
-      {light("#FEBC2E", "–", () => void winMinimize(), "Minimizar")}
-      {light("#28C840", "+", () => void winToggleMaximize(), "Maximizar")}
+      {light("#FF5F57", "✕", () => void winClose(), t("common.close"))}
+      {light("#FEBC2E", "–", () => void winMinimize(), t("shell.win.minimize"))}
+      {light("#28C840", "+", () => void winToggleMaximize(), t("shell.win.maximize"))}
     </div>
   );
 }
@@ -62,6 +64,7 @@ function TrafficLights() {
 // (#E81123) per the interaction spec. Exported: the no-repo picker shell and
 // other bare screens need the same controls.
 export function WinControls() {
+  const t = useT();
   const [maxed, setMaxed] = useState(false);
   useEffect(() => {
     void winIsMaximized().then(setMaxed);
@@ -81,15 +84,15 @@ export function WinControls() {
   );
   return (
     <div style={{ display: "flex", flexShrink: 0, marginLeft: 2 }}>
-      {btn("—", () => void winMinimize(), "Minimizar")}
+      {btn("—", () => void winMinimize(), t("shell.win.minimize"))}
       {btn(
         maxed ? "❐" : "▢",
         () => {
           void winToggleMaximize().then(() => winIsMaximized().then(setMaxed));
         },
-        maxed ? "Restaurar" : "Maximizar",
+        maxed ? t("shell.win.restore") : t("shell.win.maximize"),
       )}
-      {btn("✕", () => void winClose(), "Fechar", true)}
+      {btn("✕", () => void winClose(), t("common.close"), true)}
     </div>
   );
 }
@@ -111,13 +114,14 @@ function Tool({
   // mouse users don't get two overlapping tooltips.
   bareLabel?: boolean;
 } & React.HTMLAttributes<HTMLButtonElement>) {
+  const t = useT();
   return (
     <button
       type="button"
       onClick={stub ? undefined : onClick}
       onKeyDown={(e) => !stub && activateOnKeyDown(e)}
       disabled={stub}
-      title={stub ? `${title} · em breve` : bareLabel ? undefined : title}
+      title={stub ? t("shell.soonTooltip", { label: title }) : bareLabel ? undefined : title}
       aria-label={title}
       className={stub ? "gs-stub" : "gs-lift"}
       style={{
@@ -143,6 +147,7 @@ function Tool({
 }
 
 export function Titlebar({ rail = false }: { rail?: boolean }) {
+  const t = useT();
   const repo = useAppStore((s) => s.repo)!;
   const repos = useAppStore((s) => s.repos);
   const switchRepo = useAppStore((s) => s.switchRepo);
@@ -265,7 +270,7 @@ export function Titlebar({ rail = false }: { rail?: boolean }) {
             e.preventDefault();
             setTabMenu({ x: e.clientX, y: e.clientY, kind: "repo", id: r.path });
           }}
-          title={`${r.path} · botão direito para grupos`}
+          title={t("shell.tab.rightClickGroups", { path: r.path })}
           style={{
             display: "flex",
             alignItems: "center",
@@ -290,8 +295,8 @@ export function Titlebar({ rail = false }: { rail?: boolean }) {
         <button
           type="button"
           onClick={() => requestCloseRepo(r.path)}
-          title="Fechar"
-          aria-label={`Fechar ${name}`}
+          title={t("common.close")}
+          aria-label={t("shell.tab.close", { name })}
           className="gs-row"
           style={{ width: 16, height: 16, borderRadius: 5, display: "grid", placeItems: "center", color: "var(--muted)", fontSize: 10, flexShrink: 0, background: "transparent", border: "none", padding: 0, cursor: "pointer", fontFamily: "inherit" }}
         >
@@ -309,7 +314,7 @@ export function Titlebar({ rail = false }: { rail?: boolean }) {
     sync.fetch.mutate(undefined, {
       onSuccess: () => {
         spawnLeaf();
-        notify("Fetch concluído", `origin · ${name}`, "success", "fetch");
+        notify(t("shell.fetch.doneTitle"), `origin · ${name}`, "success", "fetch");
       },
       onError: (e: unknown) => {
         qc.invalidateQueries({ queryKey: queryKeys.status(repo.path) });
@@ -322,7 +327,7 @@ export function Titlebar({ rail = false }: { rail?: boolean }) {
 
   function onDiscardClick() {
     if (unstaged === 0) {
-      toast("Sem alterações para descartar");
+      toast(t("shell.discard.nothing"));
       return;
     }
     if (useThemeStore.getState().confirmDiscard) setConfirmDiscard(true);
@@ -334,9 +339,9 @@ export function Titlebar({ rail = false }: { rail?: boolean }) {
     try {
       await discardAll(repo.path);
       qc.invalidateQueries({ queryKey: queryKeys.status(repo.path) });
-      toast("Alterações não preparadas descartadas");
+      toast(t("shell.discard.done"));
     } catch (e: unknown) {
-      toast((e as { message?: string })?.message ?? "não foi possível descartar", "error");
+      toast((e as { message?: string })?.message ?? t("shell.error.discard"), "error");
     }
   }
 
@@ -368,14 +373,14 @@ export function Titlebar({ rail = false }: { rail?: boolean }) {
       <div data-tauri-drag-region style={{ flex: 1, alignSelf: "stretch" }} />
 
       <div style={{ display: "flex", gap: 6, alignItems: "center", flexShrink: 0 }}>
-        <Tooltip content="Fetch de origin" shortcut={fetchHint}>
-          <Tool onClick={refresh} title="Fetch de origin" bareLabel>
+        <Tooltip content={t("shell.fetch.tooltip")} shortcut={fetchHint}>
+          <Tool onClick={refresh} title={t("shell.fetch.tooltip")} bareLabel>
             <span style={{ fontSize: 14, lineHeight: 1, display: "inline-block", animation: sync.fetch.isPending ? "spin 0.8s linear infinite" : "none" }}>⟳</span>
-            {sync.fetch.isPending ? "A obter…" : "Fetch"}
+            {sync.fetch.isPending ? t("shell.fetch.fetching") : "Fetch"}
           </Tool>
         </Tooltip>
-        <Tool onClick={onDiscardClick} title="Descartar alterações não preparadas">
-          ↩ Descartar
+        <Tool onClick={onDiscardClick} title={t("shell.discard.tooltip")}>
+          {t("shell.discard.button")}
           {unstaged > 0 && (
             <span
               style={{
@@ -393,11 +398,11 @@ export function Titlebar({ rail = false }: { rail?: boolean }) {
         </Tool>
         <button
           type="button"
-          onClick={() => toast("Terminal integrado chega numa próxima fase")}
+          onClick={() => toast(t("shell.terminal.soon"))}
           onKeyDown={activateOnKeyDown}
           className="gs-lift"
-          title="Abrir terminal"
-          aria-label="Abrir terminal"
+          title={t("shell.terminal.open")}
+          aria-label={t("shell.terminal.open")}
           style={{
             display: "flex",
             alignItems: "center",
@@ -416,13 +421,13 @@ export function Titlebar({ rail = false }: { rail?: boolean }) {
         >
           &gt;_
         </button>
-        <Tooltip content="Pesquisar" shortcut={paletteHint}>
+        <Tooltip content={t("shell.search.label")} shortcut={paletteHint}>
           <button
             type="button"
             onClick={() => setPaletteOpen(true)}
             onKeyDown={activateOnKeyDown}
             className="gs-lift"
-            aria-label={`Pesquisar (${paletteHint})`}
+            aria-label={t("shell.search.aria", { hint: paletteHint })}
             style={{
               display: "flex",
               alignItems: "center",
@@ -438,7 +443,7 @@ export function Titlebar({ rail = false }: { rail?: boolean }) {
               fontFamily: "inherit",
             }}
           >
-            Pesquisar
+            {t("shell.search.label")}
             <span style={{ fontFamily: mono, fontSize: 10, border: "1px solid var(--btnB)", borderRadius: 5, padding: "1px 4px" }}>
               {paletteHint}
             </span>
@@ -449,12 +454,12 @@ export function Titlebar({ rail = false }: { rail?: boolean }) {
             native title, which never shows on keyboard focus) so keyboard
             users get the same label mouse users see; the target grows to
             32px to clear the minimum hit area (was 30px). */}
-        <Tooltip content="Definições">
+        <Tooltip content={t("shell.nav.settings")}>
           <button
             type="button"
             onClick={() => setView("settings")}
             onKeyDown={activateOnKeyDown}
-            aria-label="Definições"
+            aria-label={t("shell.nav.settings")}
             className="gs-lift"
             style={{
               display: "flex",
@@ -488,7 +493,7 @@ export function Titlebar({ rail = false }: { rail?: boolean }) {
       <div
         data-tauri-drag-region
         role="tablist"
-        aria-label="Repositórios abertos"
+        aria-label={t("shell.tabs.aria")}
         style={{ height: 38, display: "flex", alignItems: "center", gap: 5, padding: "0 12px", borderTop: "1px solid var(--bsoft)", minWidth: 0, overflowX: "auto", overflowY: "hidden", scrollbarWidth: "thin", animation: "fadeUp 0.25s ease both" }}
       >
         {groups.map((g) => {
@@ -517,7 +522,7 @@ export function Titlebar({ rail = false }: { rail?: boolean }) {
                   e.preventDefault();
                   setTabMenu({ x: e.clientX, y: e.clientY, kind: "group", id: g.id });
                 }}
-                title={`${g.collapsed ? "Expandir" : "Colapsar"} grupo · botão direito para opções`}
+                title={t("shell.group.toggleTooltip", { action: g.collapsed ? t("shell.expand") : t("shell.collapse") })}
                 aria-expanded={!g.collapsed}
                 style={{ fontSize: 11.5, fontWeight: 700, padding: "3px 9px", borderRadius: 7, background: gc.bg, color: gc.fg, cursor: "pointer", whiteSpace: "nowrap", border: "none", fontFamily: "inherit" }}
               >
@@ -533,8 +538,8 @@ export function Titlebar({ rail = false }: { rail?: boolean }) {
           onClick={() => setView("picker")}
           onKeyDown={activateOnKeyDown}
           className="gs-lift"
-          title="Abrir repositório"
-          aria-label="Abrir repositório"
+          title={t("shell.openRepo")}
+          aria-label={t("shell.openRepo")}
           style={{ width: 32, height: 32, borderRadius: 8, display: "grid", placeItems: "center", color: "var(--muted)", fontSize: 15, cursor: "pointer", flexShrink: 0, background: "transparent", border: "none", padding: 0, fontFamily: "inherit" }}
         >
           +
@@ -547,43 +552,46 @@ export function Titlebar({ rail = false }: { rail?: boolean }) {
           if (tabMenu.kind === "group") {
             const members = repos.filter((r) => groupOf[r.path] === tabMenu.id);
             const items: MenuItem[] = [
-              { label: "Editar nome e cor…", onClick: () => setEditGroup(tabMenu.id) },
+              { label: t("shell.group.editNameColor"), onClick: () => setEditGroup(tabMenu.id) },
               {
-                label: `Fechar todas as abas do grupo (${members.length})`,
+                label: t("shell.group.closeAllTabs", { count: members.length }),
                 danger: true,
                 onClick: () => members.forEach((r) => closeRepo(r.path)),
               },
-              { label: "Apagar grupo (mantém as abas)", onClick: () => removeGroup(tabMenu.id) },
+              { label: t("shell.group.deleteKeepTabs"), onClick: () => removeGroup(tabMenu.id) },
             ];
             return <ContextMenu x={tabMenu.x} y={tabMenu.y} items={items} onClose={() => setTabMenu(null)} />;
           }
           const path = tabMenu.id;
           const items: MenuItem[] = [
-            { label: "Novo grupo com este repo", onClick: () => { const id = addGroup("Grupo"); setRepoGroup(path, id); } },
-            ...groups.map((g) => ({ label: `Mover para “${g.name}”`, onClick: () => setRepoGroup(path, g.id) })),
+            { label: t("shell.group.newWithRepo"), onClick: () => { const id = addGroup(t("shell.group.defaultName")); setRepoGroup(path, id); } },
+            ...groups.map((g) => ({ label: t("shell.group.moveTo", { name: g.name }), onClick: () => setRepoGroup(path, g.id) })),
           ];
-          if (groupOf[path]) items.push({ label: "Remover do grupo", onClick: () => setRepoGroup(path, undefined) });
+          if (groupOf[path]) items.push({ label: t("shell.group.removeFrom"), onClick: () => setRepoGroup(path, undefined) });
           return <ContextMenu x={tabMenu.x} y={tabMenu.y} items={items} onClose={() => setTabMenu(null)} />;
         })()}
 
-      {confirmDiscard && (
-        <ConfirmDialog
-          message={`Descartar ${unstaged} alteração(ões) não preparada(s)?${
-            files.filter((f) => f.worktree_status === "?").length > 0
-              ? ` ${files.filter((f) => f.worktree_status === "?").length} ficheiro(s) não rastreado(s) serão apagados do disco.`
-              : ""
-          } As alterações preparadas mantêm-se. Esta ação não pode ser desfeita.`}
-          onCancel={() => setConfirmDiscard(false)}
-          onConfirm={doDiscardAll}
-        />
-      )}
+      {confirmDiscard && (() => {
+        const untracked = files.filter((f) => f.worktree_status === "?").length;
+        const message =
+          t("shell.discard.confirmCount", { count: unstaged }) +
+          (untracked > 0 ? t("shell.discard.confirmUntracked", { count: untracked }) : "") +
+          t("shell.discard.confirmTail");
+        return (
+          <ConfirmDialog
+            message={message}
+            onCancel={() => setConfirmDiscard(false)}
+            onConfirm={doDiscardAll}
+          />
+        );
+      })()}
 
       {editGroup && <GroupEditModal groupId={editGroup} onClose={() => setEditGroup(null)} />}
 
       {pendingClose && (
         <ConfirmDialog
-          message="Uma operação Git está em curso. Fechar mesmo assim?"
-          confirmLabel="Fechar"
+          message={t("shell.close.busyMessage")}
+          confirmLabel={t("common.close")}
           onCancel={cancelCloseRepo}
           onConfirm={confirmCloseRepo}
         />

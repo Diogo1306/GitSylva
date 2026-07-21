@@ -1,6 +1,7 @@
 import { useNotificationStore, type NotifKind } from "../state/notificationStore";
 import { useToastStore, type ToastKind } from "../state/toastStore";
 import { useThemeStore } from "../state/themeStore";
+import { useT } from "../i18n";
 
 // One notification corner for everything (user request R5): notification
 // cards AND quick toasts share the same stack at the bottom right, with the
@@ -72,6 +73,7 @@ export function Vine({ treeStyle }: { treeStyle: string }) {
 }
 
 export function Notifications() {
+  const t = useT();
   const notifications = useNotificationStore((s) => s.notifications);
   const dismiss = useNotificationStore((s) => s.dismiss);
   const pause = useNotificationStore((s) => s.pause);
@@ -105,7 +107,7 @@ export function Notifications() {
           </div>
           <button
             onClick={() => dismiss(n.id)}
-            aria-label="Fechar notificação"
+            aria-label={t("components.notif.dismiss")}
             style={{ width: 20, height: 20, borderRadius: 6, display: "grid", placeItems: "center", background: "transparent", border: "none", color: "var(--muted)", fontSize: 12, cursor: "pointer", flexShrink: 0, fontFamily: "inherit" }}
             className="gs-row"
           >
@@ -113,20 +115,20 @@ export function Notifications() {
           </button>
         </div>
       ))}
-      {toasts.map((t) => (
+      {toasts.map((to) => (
         <div
-          key={`t${t.id}`}
-          onClick={() => dismissToast(t.id)}
-          title="Fechar"
-          role={t.kind === "error" ? "alert" : "status"}
+          key={`t${to.id}`}
+          onClick={() => dismissToast(to.id)}
+          title={t("common.close")}
+          role={to.kind === "error" ? "alert" : "status"}
           // The store removes the toast 220ms after dismiss — the exit must
           // not outlive that window.
-          style={{ ...cardStyle(t.kind === "error", t.exiting, 200), cursor: "pointer" }}
+          style={{ ...cardStyle(to.kind === "error", to.exiting, 200), cursor: "pointer" }}
         >
           {anims && <Vine treeStyle={treeStyle} />}
-          <span style={{ width: 9, height: 9, borderRadius: "50%", background: TOAST_DOT[t.kind], marginTop: 4, flexShrink: 0 }} />
+          <span style={{ width: 9, height: 9, borderRadius: "50%", background: TOAST_DOT[to.kind], marginTop: 4, flexShrink: 0 }} />
           <span style={{ flex: 1, minWidth: 0, fontSize: 13, color: "var(--text)", lineHeight: 1.4, overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical" }}>
-            {t.text}
+            {to.text}
           </span>
         </div>
       ))}
