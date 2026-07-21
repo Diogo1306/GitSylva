@@ -80,6 +80,32 @@ describe("CommandPalette: remote branches", () => {
   });
 });
 
+// Task 14: a short shortcuts help list, reachable from the palette. Simplest
+// sound option: an "Atalhos" entry opens the compact ShortcutsModal (reuses
+// the shared Modal shell — Escape-closable, focus-trapped — instead of
+// deep-linking into Settings' scroll position).
+describe("CommandPalette: Atalhos entry (Task 14)", () => {
+  it("lists an 'Atalhos' entry", async () => {
+    renderWithProviders(<CommandPalette />);
+    expect(await screen.findByText("Atalhos")).toBeTruthy();
+  });
+
+  it("opens the shortcuts help and closes the palette when selected", async () => {
+    renderWithProviders(<CommandPalette />);
+    const row = await screen.findByText("Atalhos");
+    fireEvent.click(row);
+    expect(useAppStore.getState().modal).toBe("shortcuts");
+    expect(useAppStore.getState().paletteOpen).toBe(false);
+  });
+
+  it("is filtered out of the results when the query does not match it", async () => {
+    renderWithProviders(<CommandPalette />);
+    const input = screen.getByPlaceholderText(/Pesquisar/);
+    fireEvent.change(input, { target: { value: "Histórico" } });
+    expect(screen.queryByText("Atalhos")).toBeNull();
+  });
+});
+
 describe("CommandPalette: empty state with suggestion", () => {
   it("offers a real 'clear search' action when a query has no matches", async () => {
     renderWithProviders(<CommandPalette />);

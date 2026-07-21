@@ -12,7 +12,9 @@ import { Button } from "../../components/ui/Button";
 import { Chip, CheckSquare } from "../../components/ui/misc";
 import { initials, avatarColor, relativeTime } from "../../lib/format";
 import { errMsg, classifySyncError, type SyncErrorKind } from "../../lib/errors";
+import { comboHint } from "../../lib/platform";
 import { PULL_MODES } from "../../lib/pullModes";
+import { useShortcutsStore, SHORTCUT_LABELS, type ShortcutAction } from "../../state/shortcutsStore";
 import type { Commit } from "../../lib/types";
 
 const mono = "'JetBrains Mono', monospace";
@@ -386,6 +388,42 @@ function PushModal({ onClose }: { onClose: () => void }) {
   );
 }
 
+// Task 14: compact shortcuts help, reachable from the palette's "Atalhos"
+// entry. Built on the same shared Modal shell as every dialog above, so
+// Escape-to-close, the scrim, and the Tab focus trap all come for free.
+// Data is pulled live from shortcutsStore (SHORTCUT_LABELS + bindings) via
+// comboHint, so it always matches the platform and any rebinds — never a
+// hardcoded list. Full rebinding stays in Definições → Atalhos.
+function ShortcutsModal({ onClose }: { onClose: () => void }) {
+  const bindings = useShortcutsStore((s) => s.bindings);
+  const actions = Object.keys(SHORTCUT_LABELS) as ShortcutAction[];
+  return (
+    <Modal title="Atalhos de teclado" onClose={onClose} width={380}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+        {actions.map((a) => (
+          <div key={a} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "6px 2px" }}>
+            <span style={{ fontSize: 13, color: "var(--text2)" }}>{SHORTCUT_LABELS[a]}</span>
+            <kbd
+              style={{
+                fontFamily: mono,
+                fontSize: 11.5,
+                padding: "2px 7px",
+                borderRadius: 6,
+                background: "var(--btn)",
+                border: "1px solid var(--btnB)",
+                color: "var(--text)",
+              }}
+            >
+              {comboHint(bindings[a])}
+            </kbd>
+          </div>
+        ))}
+      </div>
+      <div style={{ fontSize: 12, color: "var(--muted)" }}>Regrava estes atalhos em Definições → Atalhos.</div>
+    </Modal>
+  );
+}
+
 export function Modals() {
   const modal = useAppStore((s) => s.modal);
   const setModal = useAppStore((s) => s.setModal);
@@ -396,5 +434,6 @@ export function Modals() {
   if (modal === "merge") return <MergeModal onClose={close} />;
   if (modal === "pull") return <PullModal onClose={close} />;
   if (modal === "push") return <PushModal onClose={close} />;
+  if (modal === "shortcuts") return <ShortcutsModal onClose={close} />;
   return null;
 }

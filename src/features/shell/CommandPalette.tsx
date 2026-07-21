@@ -146,6 +146,18 @@ export function CommandPalette() {
     const nav: Item[] = navItems
       .filter(([n]) => match(n))
       .map(([n, v]) => ({ label: n, sub: "ir para", dot: "var(--muted)", dotR: "50%", run: go(v) }));
+    // Task 14: short shortcuts help, reachable from the palette. Opens the
+    // compact ShortcutsModal (reuses shortcutsStore's data) instead of
+    // navigating — Definições → Atalhos stays the place to rebind them.
+    if (match("Atalhos")) {
+      nav.push({
+        label: "Atalhos",
+        sub: "atalhos de teclado",
+        dot: "var(--muted)",
+        dotR: "50%",
+        run: () => { setModal("shortcuts"); setOpen(false); },
+      });
+    }
 
     const fl: Item[] = (files ?? [])
       .filter((f) => match(f.path))

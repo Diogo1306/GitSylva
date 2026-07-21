@@ -3,7 +3,7 @@ import { persist } from "zustand/middleware";
 import type { RepoInfo } from "../lib/types";
 
 export type View = "working" | "history" | "stashes" | "settings" | "picker";
-export type Modal = "branch" | "stash" | "tag" | "merge" | "pull" | "push" | null;
+export type Modal = "branch" | "stash" | "tag" | "merge" | "pull" | "push" | "shortcuts" | null;
 
 export type RepoGroup = { id: string; name: string; color: number; collapsed: boolean };
 
