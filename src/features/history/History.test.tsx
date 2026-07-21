@@ -104,7 +104,7 @@ describe("History commit rows: keyboard + semantics", () => {
   it("does not disable the outline inline on the filter input (focus ring must survive)", async () => {
     renderHistory();
     await screen.findByRole("option", { name: /Terceiro commit/ });
-    const input = screen.getByLabelText(/Filtrar histórico/i);
+    const input = screen.getByLabelText(/Filtrar commits/i);
     expect((input as HTMLInputElement).style.outline).not.toBe("none");
   });
 });

@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAppStore } from "../../state/appStore";
 import { useLog, useCommitDetail, useRewriteActions, useBranchActions, useTagActions } from "../../state/queries";
 import { Modal } from "../../components/ui/Modal";
@@ -31,20 +31,6 @@ import type { Commit } from "../../lib/types";
 
 const ROW_H = 52;
 const mono = "'JetBrains Mono', monospace";
-
-// Visually hides the filter's <label> text while keeping it in the
-// accessibility tree (the design has no visible label, only a placeholder).
-const srOnly: CSSProperties = {
-  position: "absolute",
-  width: 1,
-  height: 1,
-  padding: 0,
-  margin: -1,
-  overflow: "hidden",
-  clip: "rect(0,0,0,0)",
-  whiteSpace: "nowrap",
-  border: 0,
-};
 
 // Above this many rows the list renders in a window (uniform row height →
 // simple math). Measured: 2000 commits fully rendered = 2000 divs + 11.6k SVG
@@ -484,7 +470,7 @@ export function History() {
       <div style={{ flex: 1, minWidth: 0, minHeight: 0, display: "flex", flexDirection: "column", borderRight: below ? "none" : "1px solid var(--border)" }}>
         <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <FormField label={<span style={srOnly}>Filtrar histórico</span>}>
+            <FormField label="Filtrar commits" hideLabel>
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
