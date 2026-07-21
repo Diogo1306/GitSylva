@@ -79,7 +79,7 @@ describe("classifySyncError", () => {
   });
 });
 
-// Fetch has no dedicated modal — it is a one-shot action wired to a top-right
+// Fetch has no dedicated modal — it is a one-shot action wired to a bottom-right
 // notification in several places (Titlebar, Sidebar, CommandPalette,
 // AppShell shortcut). This gives every one of those call sites the same
 // distinct auth-needed title without duplicating classification logic.
