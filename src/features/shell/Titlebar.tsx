@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAppStore } from "../../state/appStore";
 import { useStatus, queryKeys, useSyncActions } from "../../state/queries";
@@ -45,6 +45,13 @@ export function Titlebar({ rail = false }: { rail?: boolean }) {
   const setRepoGroup = useAppStore((s) => s.setRepoGroup);
   const [tabMenu, setTabMenu] = useState<{ x: number; y: number; kind: "repo" | "group"; id: string } | null>(null);
   const [editGroup, setEditGroup] = useState<string | null>(null);
+  // Roving-tabindex focus memory for the repo tab strip. It lives HERE, not in
+  // TabStrip, because Titlebar renders the strip only in tab mode (`!rail`) and
+  // the rail/tabs layout is live-toggleable (Settings → Aparência); owning it in
+  // TabStrip would reset the keyboard-focused tab every time the user flipped the
+  // layout. Passed down to TabStrip, which stays a controlled child for it.
+  const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const [focusedTab, setFocusedTab] = useState(repo.path);
   // The search hint follows the rebindable palette shortcut and the platform
   // (Ctrl+K on Windows/Linux, ⌘K on macOS) — it was a hardcoded ⌘K before.
   const paletteHint = comboHint(useShortcutsStore((s) => s.bindings.palette));
@@ -145,6 +152,9 @@ export function Titlebar({ rail = false }: { rail?: boolean }) {
         repos={repos}
         groups={groups}
         groupOf={groupOf}
+        tabRefs={tabRefs}
+        focusedTab={focusedTab}
+        setFocusedTab={setFocusedTab}
         onSwitchRepo={switchRepo}
         onRequestCloseRepo={requestCloseRepo}
         onTabContextMenu={(x, y, kind, id) => setTabMenu({ x, y, kind, id })}

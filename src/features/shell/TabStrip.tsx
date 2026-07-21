@@ -1,4 +1,4 @@
-import { useRef, useState, type KeyboardEvent } from "react";
+import { type KeyboardEvent } from "react";
 import type { RepoGroup } from "../../state/appStore";
 import { groupColor } from "../../lib/groupColors";
 import { activateOnKeyDown } from "../../components/ui/keys";
@@ -15,11 +15,21 @@ const mono = "'JetBrains Mono', monospace";
 // roving-tabindex contract below matches it exactly. The set spans every
 // CURRENTLY VISIBLE tab (grouped + ungrouped, respecting collapse) so arrow
 // keys move seamlessly across group boundaries.
+//
+// The roving-focus memory (`tabRefs` + `focusedTab`) is OWNED BY Titlebar and
+// passed down: Titlebar renders this strip only in tab mode (`!rail`), and the
+// rail/tabs layout is live-toggleable (Settings → Aparência), so keeping that
+// state here would reset the keyboard-focused tab every time the user flipped
+// the layout and back. Lifting it to the always-mounted parent preserves it —
+// same reasoning as Sidebar's shared `openFolders`.
 export function TabStrip({
   repo,
   repos,
   groups,
   groupOf,
+  tabRefs,
+  focusedTab,
+  setFocusedTab,
   onSwitchRepo,
   onRequestCloseRepo,
   onTabContextMenu,
@@ -30,6 +40,9 @@ export function TabStrip({
   repos: RepoInfo[];
   groups: RepoGroup[];
   groupOf: Record<string, string | undefined>;
+  tabRefs: { current: Record<string, HTMLButtonElement | null> };
+  focusedTab: string;
+  setFocusedTab: (path: string) => void;
   onSwitchRepo: (path: string) => void;
   onRequestCloseRepo: (path: string) => void;
   onTabContextMenu: (x: number, y: number, kind: "repo" | "group", id: string) => void;
@@ -46,8 +59,6 @@ export function TabStrip({
     }),
     ...ungrouped.map((r) => r.path),
   ];
-  const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
-  const [focusedTab, setFocusedTab] = useState(repo.path);
   // If the focus target isn't currently rendered (its group is collapsed),
   // fall back to the first visible tab so roving tabindex always lands one
   // real tab at index 0 instead of stranding every tab at -1.
