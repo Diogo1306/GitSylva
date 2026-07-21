@@ -320,12 +320,16 @@ export function Onboarding() {
               </ChoiceGroup>
             </div>
 
-            {/* Saltar was removed (item 3): it only reset the pickers above to
-                their defaults before landing on the same "grow" phase that
-                Plantar e entrar reaches — a second CTA for "I changed my mind
-                about these already-live-previewed picks" wasn't worth the
-                extra decision point. See task-5-report.md for the full
-                rationale. */}
+            {/* Saltar was removed (item 3): its handler called
+                themeStore.resetPrefs(), which wipes the entire persisted prefs
+                slice (theme, treeStyle, repoLayout AND anims, accent, font,
+                branchColor, historyLayout, density, pullMode, confirmDiscard,
+                notif* ...), not just the pickers above — then landed on the
+                same "grow" phase Plantar e entrar reaches. As a one-click,
+                no-confirm button reachable when replaying onboarding, it was a
+                footgun that could silently reset a returning user's whole
+                config. The confirm-gated "Repor todas as definicoes" in
+                Settings > Cleanup covers the real reset need. */}
             <Button
               variant="primary"
               onClick={() => setPhase("grow")}
