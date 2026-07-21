@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { render, screen, fireEvent, cleanup } from "@testing-library/react";
+import { render, screen, fireEvent, cleanup, act } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { History } from "./History";
 import { useAppStore } from "../../state/appStore";
@@ -110,6 +110,61 @@ describe("History commit rows: keyboard + semantics", () => {
     await screen.findByRole("option", { name: /Terceiro commit/ });
     const input = screen.getByLabelText(/Filtrar commits/i);
     expect((input as HTMLInputElement).style.outline).not.toBe("none");
+  });
+});
+
+// Task 8 ("Dar feedback visual inequívoco"): a commit's selected highlight
+// (background + aria-selected) must survive opening the detail panel and
+// using the command palette — neither action may silently clear selectedHash.
+describe("History: commit selection persists across detail panel + palette (Task 8)", () => {
+  it("keeps aria-selected=true on the clicked commit after the detail panel opens", async () => {
+    renderHistory();
+    const second = await screen.findByRole("option", { name: /Segundo commit/ });
+    fireEvent.click(second);
+    expect(second.getAttribute("aria-selected")).toBe("true");
+
+    // Open the detail/diff panel via the header toggle (closed by beforeEach).
+    fireEvent.click(screen.getByRole("button", { name: /Diff/ }));
+    expect(second.getAttribute("aria-selected")).toBe("true");
+  });
+
+  it("keeps the selected commit's background after the detail panel opens", async () => {
+    renderHistory();
+    const second = await screen.findByRole("option", { name: /Segundo commit/ });
+    fireEvent.click(second);
+    expect(second.style.background).toContain("--sel");
+
+    fireEvent.click(screen.getByRole("button", { name: /Diff/ }));
+    expect(second.style.background).toContain("--sel");
+  });
+
+  it("keeps the previously selected commit's aria-selected after the command palette opens and closes without picking anything", async () => {
+    renderHistory();
+    const second = await screen.findByRole("option", { name: /Segundo commit/ });
+    fireEvent.click(second);
+    expect(second.getAttribute("aria-selected")).toBe("true");
+
+    // Simulate the palette opening and closing (Task 8: palette navigation
+    // must not reach in and clear the list's own selection state).
+    useAppStore.getState().setPaletteOpen(true);
+    useAppStore.getState().setPaletteOpen(false);
+
+    expect(second.getAttribute("aria-selected")).toBe("true");
+  });
+
+  it("keeps the previously selected commit highlighted when the palette focuses a DIFFERENT commit, until that new focus is itself superseded", async () => {
+    renderHistory();
+    const second = await screen.findByRole("option", { name: /Segundo commit/ });
+    fireEvent.click(second);
+    expect(second.getAttribute("aria-selected")).toBe("true");
+
+    // A palette pick on a commit sets focusCommit (Task 8 must not regress
+    // this pre-existing "palette pick wins" behavior): the newly focused
+    // commit becomes selected, and the old one is correctly deselected.
+    act(() => useAppStore.getState().setFocusCommit("ccc3333"));
+    const third = screen.getByRole("option", { name: /Primeiro commit/ });
+    expect(third.getAttribute("aria-selected")).toBe("true");
+    expect(second.getAttribute("aria-selected")).toBe("false");
   });
 });
 
