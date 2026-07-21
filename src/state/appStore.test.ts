@@ -45,12 +45,99 @@ describe("appStore repo groups", () => {
     expect(useAppStore.getState().repos).toHaveLength(1);
   });
 
-  it("refuses to close the last open repository (spec)", () => {
+  it("closing the last open repository clears it and falls back to the picker", () => {
     useAppStore.getState().setRepo(repo("/only"));
     useAppStore.getState().closeRepo("/only");
 
     const st = useAppStore.getState();
-    expect(st.repos).toHaveLength(1);
-    expect(st.repo?.path).toBe("/only");
+    expect(st.repos).toHaveLength(0);
+    expect(st.repo).toBeNull();
+  });
+
+  it("closing a non-last repo activates the next open repo", () => {
+    useAppStore.getState().setRepo(repo("/a"));
+    useAppStore.getState().setRepo(repo("/b"));
+    useAppStore.getState().setRepo(repo("/c"));
+    // /c is active; close it and /b (the new last of the remaining repos)
+    // should take over.
+    useAppStore.getState().closeRepo("/c");
+
+    const st = useAppStore.getState();
+    expect(st.repos.map((r) => r.path)).toEqual(["/a", "/b"]);
+    expect(st.repo?.path).toBe("/b");
+  });
+
+  it("closing a non-active repo leaves the active repo untouched", () => {
+    useAppStore.getState().setRepo(repo("/a"));
+    useAppStore.getState().setRepo(repo("/b"));
+    useAppStore.getState().switchRepo("/a");
+    useAppStore.getState().closeRepo("/b");
+
+    const st = useAppStore.getState();
+    expect(st.repos.map((r) => r.path)).toEqual(["/a"]);
+    expect(st.repo?.path).toBe("/a");
+  });
+});
+
+describe("appStore close-repo confirmation (op in progress)", () => {
+  beforeEach(() => {
+    useAppStore.setState({ repos: [], repo: null, groups: [], groupOf: {}, busyRepos: {}, pendingClose: null });
+  });
+
+  it("requestCloseRepo closes immediately when no Git operation is in progress", () => {
+    useAppStore.getState().setRepo(repo("/a"));
+    useAppStore.getState().setRepo(repo("/b"));
+    useAppStore.getState().requestCloseRepo("/b");
+
+    const st = useAppStore.getState();
+    expect(st.repos.map((r) => r.path)).toEqual(["/a"]);
+    expect(st.pendingClose).toBeNull();
+  });
+
+  it("requestCloseRepo does not close and sets pendingClose when the repo is busy", () => {
+    useAppStore.getState().setRepo(repo("/a"));
+    useAppStore.getState().setRepo(repo("/b"));
+    useAppStore.getState().setRepoBusy("/b", true);
+    useAppStore.getState().requestCloseRepo("/b");
+
+    const st = useAppStore.getState();
+    expect(st.repos.map((r) => r.path)).toEqual(["/a", "/b"]);
+    expect(st.pendingClose).toBe("/b");
+  });
+
+  it("confirmCloseRepo closes the pending repo and clears pendingClose", () => {
+    useAppStore.getState().setRepo(repo("/a"));
+    useAppStore.getState().setRepo(repo("/b"));
+    useAppStore.getState().setRepoBusy("/b", true);
+    useAppStore.getState().requestCloseRepo("/b");
+    useAppStore.getState().confirmCloseRepo();
+
+    const st = useAppStore.getState();
+    expect(st.repos.map((r) => r.path)).toEqual(["/a"]);
+    expect(st.pendingClose).toBeNull();
+  });
+
+  it("cancelCloseRepo clears pendingClose without closing the repo", () => {
+    useAppStore.getState().setRepo(repo("/a"));
+    useAppStore.getState().setRepo(repo("/b"));
+    useAppStore.getState().setRepoBusy("/b", true);
+    useAppStore.getState().requestCloseRepo("/b");
+    useAppStore.getState().cancelCloseRepo();
+
+    const st = useAppStore.getState();
+    expect(st.repos.map((r) => r.path)).toEqual(["/a", "/b"]);
+    expect(st.pendingClose).toBeNull();
+  });
+
+  it("requestCloseRepo on the last busy repo still asks for confirmation before falling back to the picker", () => {
+    useAppStore.getState().setRepo(repo("/only"));
+    useAppStore.getState().setRepoBusy("/only", true);
+    useAppStore.getState().requestCloseRepo("/only");
+    expect(useAppStore.getState().repo?.path).toBe("/only");
+
+    useAppStore.getState().confirmCloseRepo();
+    const st = useAppStore.getState();
+    expect(st.repos).toHaveLength(0);
+    expect(st.repo).toBeNull();
   });
 });
