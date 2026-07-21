@@ -1,6 +1,7 @@
 import type { MessageValue } from "../types";
 import type { MessageKey } from "./pt";
 import { enCommon } from "./en/common";
+import { enConfig } from "./en/config";
 import { enSettings } from "./en/settings";
 import { enShell } from "./en/shell";
 import { enWorkspace } from "./en/workspace";
@@ -11,6 +12,7 @@ import { enEntry } from "./en/entry";
 // compile error. Real translations, never a copy of the Portuguese text.
 export const en: Record<MessageKey, MessageValue> = {
   ...enCommon,
+  ...enConfig,
   ...enSettings,
   ...enShell,
   ...enWorkspace,

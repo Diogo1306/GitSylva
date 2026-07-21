@@ -4,7 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Modals } from "./Modals";
 import { useAppStore } from "../../state/appStore";
 import { useNotificationStore } from "../../state/notificationStore";
-import { useShortcutsStore, SHORTCUT_LABELS, DEFAULT_BINDINGS } from "../../state/shortcutsStore";
+import { useShortcutsStore, SHORTCUT_ACTIONS, shortcutLabel, DEFAULT_BINDINGS } from "../../state/shortcutsStore";
 import { comboHint } from "../../lib/platform";
 import type { RepoInfo, Commit } from "../../lib/types";
 import { fetchRemote, syncStatus, pull, push, outgoing, incoming } from "../../lib/api";
@@ -62,8 +62,8 @@ describe("Modals: shortcuts help (Task 14)", () => {
     useAppStore.setState({ modal: "shortcuts" });
     renderModal();
     expect(screen.getByRole("dialog")).toBeTruthy();
-    for (const action of Object.keys(SHORTCUT_LABELS) as (keyof typeof SHORTCUT_LABELS)[]) {
-      expect(screen.getByText(SHORTCUT_LABELS[action])).toBeTruthy();
+    for (const action of SHORTCUT_ACTIONS) {
+      expect(screen.getByText(shortcutLabel(action))).toBeTruthy();
       expect(screen.getByText(comboHint(DEFAULT_BINDINGS[action]))).toBeTruthy();
     }
   });

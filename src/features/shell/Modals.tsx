@@ -13,8 +13,8 @@ import { Chip, CheckSquare } from "../../components/ui/misc";
 import { initials, avatarColor, relativeTime } from "../../lib/format";
 import { errMsg, classifySyncError, type SyncErrorKind } from "../../lib/errors";
 import { comboHint } from "../../lib/platform";
-import { PULL_MODES } from "../../lib/pullModes";
-import { useShortcutsStore, SHORTCUT_LABELS, type ShortcutAction } from "../../state/shortcutsStore";
+import { PULL_MODES, pullModeHint } from "../../lib/pullModes";
+import { useShortcutsStore, SHORTCUT_ACTIONS, shortcutLabel } from "../../state/shortcutsStore";
 import type { Commit } from "../../lib/types";
 
 const mono = "'JetBrains Mono', monospace";
@@ -308,7 +308,7 @@ function PullModal({ onClose }: { onClose: () => void }) {
       <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, color: "var(--text2)" }}>
         <span>Modo</span>
         <Chip bg="var(--l0bg)" color="var(--l0)" border="var(--l0bd)" mono={false}>{activeMode.name}</Chip>
-        <Tooltip content={activeMode.hint}>
+        <Tooltip content={pullModeHint(activeMode.key)}>
           <span
             tabIndex={0}
             aria-label={`Sobre o modo ${activeMode.name}`}
@@ -396,13 +396,13 @@ function PushModal({ onClose }: { onClose: () => void }) {
 // hardcoded list. Full rebinding stays in Definições → Atalhos.
 function ShortcutsModal({ onClose }: { onClose: () => void }) {
   const bindings = useShortcutsStore((s) => s.bindings);
-  const actions = Object.keys(SHORTCUT_LABELS) as ShortcutAction[];
+  const actions = SHORTCUT_ACTIONS;
   return (
     <Modal title="Atalhos de teclado" onClose={onClose} width={380}>
       <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
         {actions.map((a) => (
           <div key={a} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "6px 2px" }}>
-            <span style={{ fontSize: 13, color: "var(--text2)" }}>{SHORTCUT_LABELS[a]}</span>
+            <span style={{ fontSize: 13, color: "var(--text2)" }}>{shortcutLabel(a)}</span>
             <kbd
               style={{
                 fontFamily: mono,

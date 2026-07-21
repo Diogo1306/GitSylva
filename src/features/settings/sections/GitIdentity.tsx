@@ -6,10 +6,12 @@ import { Input } from "../../../components/ui/Input";
 import { Button } from "../../../components/ui/Button";
 import { FormField } from "../../../components/ui/FormField";
 import { SectionTitle, Hint } from "./_shared";
+import { useT } from "../../../i18n";
 
 const fieldLabelStyle = { fontSize: 12.5, fontWeight: 600, color: "var(--text2)" } as const;
 
 export function GitIdentity() {
+  const t = useT();
   const repo = useAppStore((s) => s.repo)!;
   const { data } = useIdentity(repo.path);
   const save = useSetIdentity(repo.path);
@@ -26,13 +28,13 @@ export function GitIdentity() {
 
   return (
     <div id="set-git" style={{ display: "flex", flexDirection: "column", gap: 16, scrollMarginTop: 20 }}>
-      <SectionTitle>GIT</SectionTitle>
+      <SectionTitle>{t("settings.git.title")}</SectionTitle>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-        <FormField label={<span style={fieldLabelStyle}>Nome</span>}>
-          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="O teu nome" />
+        <FormField label={<span style={fieldLabelStyle}>{t("settings.git.name")}</span>}>
+          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder={t("settings.git.namePlaceholder")} />
         </FormField>
-        <FormField label={<span style={fieldLabelStyle}>Email</span>}>
-          <Input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="tu@exemplo.dev" />
+        <FormField label={<span style={fieldLabelStyle}>{t("settings.git.email")}</span>}>
+          <Input value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t("settings.git.emailPlaceholder")} />
         </FormField>
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -44,16 +46,16 @@ export function GitIdentity() {
             save.mutate(
               { name, email },
               {
-                onSuccess: () => { toast("Identidade guardada"); setNameEdit(null); setEmailEdit(null); },
-                onError: (e: unknown) => toast((e as { message?: string })?.message ?? "não foi possível guardar a identidade", "error"),
+                onSuccess: () => { toast(t("settings.git.identitySaved")); setNameEdit(null); setEmailEdit(null); },
+                onError: (e: unknown) => toast((e as { message?: string })?.message ?? t("settings.git.saveFailed"), "error"),
               },
             )
           }
           style={changed ? undefined : { opacity: 0.5, cursor: "default", background: "var(--btn)", color: "var(--muted)", border: "1px solid var(--btnB)" }}
         >
-          {save.isPending ? "A guardar…" : "Guardar identidade"}
+          {save.isPending ? t("settings.git.saving") : t("settings.git.saveIdentity")}
         </Button>
-        <Hint>Usada nos commits deste repositório.</Hint>
+        <Hint>{t("settings.git.usedInCommits")}</Hint>
       </div>
     </div>
   );

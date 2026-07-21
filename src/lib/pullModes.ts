@@ -1,11 +1,18 @@
 import type { PullMode } from "../state/themeStore";
+import { t } from "../i18n";
 
 // Single source of truth for the pull-mode copy: shown as the picker in
 // Settings → Push & Pull (src/features/settings/sections/PushPull.tsx) AND as
 // read-only inline help in the Pull modal (src/features/shell/Modals.tsx), so
-// both stay in sync.
-export const PULL_MODES: { key: PullMode; name: string; hint: string }[] = [
-  { key: "ff", name: "Fast-forward", hint: "Só avança se possível; falha se divergir (sem merge surpresa)." },
-  { key: "merge", name: "Merge", hint: "Integra com um commit de merge quando divergir." },
-  { key: "rebase", name: "Rebase", hint: "Reaplica os teus commits por cima dos remotos." },
+// both stay in sync. The names (Fast-forward/Merge/Rebase) read the same in
+// both languages; the hint is localized via pullModeHint().
+export const PULL_MODES: { key: PullMode; name: string }[] = [
+  { key: "ff", name: "Fast-forward" },
+  { key: "merge", name: "Merge" },
+  { key: "rebase", name: "Rebase" },
 ];
+
+/** The localized inline hint for a pull mode (reads the active language). */
+export function pullModeHint(key: PullMode): string {
+  return t(`pullMode.${key}.hint`);
+}

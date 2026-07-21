@@ -1,17 +1,19 @@
 import { useThemeStore } from "../../../state/themeStore";
-import { PULL_MODES as MODES } from "../../../lib/pullModes";
+import { PULL_MODES as MODES, pullModeHint } from "../../../lib/pullModes";
 import { SectionTitle, FieldLabel, Hint } from "./_shared";
+import { useT } from "../../../i18n";
 
 export function PushPull() {
+  const t = useT();
   const pullMode = useThemeStore((s) => s.pullMode);
   const save = useThemeStore((s) => s.savePrefs);
   const active = MODES.find((m) => m.key === pullMode) ?? MODES[0];
 
   return (
     <div id="set-pushpull" style={{ display: "flex", flexDirection: "column", gap: 16, scrollMarginTop: 20 }}>
-      <SectionTitle>PUSH &amp; PULL</SectionTitle>
+      <SectionTitle>{t("settings.pushPull.title")}</SectionTitle>
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        <FieldLabel>Comportamento do pull</FieldLabel>
+        <FieldLabel>{t("settings.pushPull.pullBehavior")}</FieldLabel>
         <div style={{ display: "inline-flex", gap: 4, padding: 4, borderRadius: 10, background: "var(--panel2)", border: "1px solid var(--border)", alignSelf: "flex-start" }}>
           {MODES.map((m) => (
             <div
@@ -23,7 +25,7 @@ export function PushPull() {
             </div>
           ))}
         </div>
-        <Hint>{active.hint}</Hint>
+        <Hint>{pullModeHint(active.key)}</Hint>
       </div>
     </div>
   );

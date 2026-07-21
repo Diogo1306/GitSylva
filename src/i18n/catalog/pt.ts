@@ -1,5 +1,6 @@
 import type { MessageValue } from "../types";
 import { ptCommon } from "./pt/common";
+import { ptConfig } from "./pt/config";
 import { ptSettings } from "./pt/settings";
 import { ptShell } from "./pt/shell";
 import { ptWorkspace } from "./pt/workspace";
@@ -11,6 +12,7 @@ import { ptEntry } from "./pt/entry";
 // mirrors this shape and is checked key-for-key at compile time.
 export const pt = {
   ...ptCommon,
+  ...ptConfig,
   ...ptSettings,
   ...ptShell,
   ...ptWorkspace,
