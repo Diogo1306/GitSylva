@@ -1,4 +1,5 @@
 import { hexAlpha } from "../theme/themes";
+import { t, type MessageKey } from "../i18n";
 
 // Tab-group palette (user request R5): groups pick from a fixed set of eight
 // mid-tone hues that read on every theme, instead of borrowing the three lane
@@ -22,4 +23,10 @@ export type GroupColorStyle = { fg: string; bg: string; bd: string };
 export function groupColor(idx: number): GroupColorStyle {
   const { hex } = GROUP_COLORS[((idx % GROUP_COLORS.length) + GROUP_COLORS.length) % GROUP_COLORS.length];
   return { fg: hex, bg: hexAlpha(hex, 0.13), bd: hexAlpha(hex, 0.32) };
+}
+
+/** The localized name for a group color index (reads the active language). */
+export function groupColorName(idx: number): string {
+  const i = ((idx % GROUP_COLORS.length) + GROUP_COLORS.length) % GROUP_COLORS.length;
+  return t(`groupColor.${i}` as MessageKey);
 }

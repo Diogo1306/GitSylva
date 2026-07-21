@@ -70,4 +70,23 @@ export const enConfig: Record<ConfigKey, MessageValue> = {
   "pullMode.ff.hint": "Only advances when possible; fails if diverged (no surprise merge).",
   "pullMode.merge.hint": "Integrates with a merge commit when diverged.",
   "pullMode.rebase.hint": "Reapplies your commits on top of the remote ones.",
+
+  // git status letter → human title
+  "status.added": "Added",
+  "status.untracked": "Untracked",
+  "status.deleted": "Deleted",
+  "status.conflict": "Conflicted",
+  "status.renamed": "Renamed",
+  "status.copied": "Copied",
+  "status.modified": "Modified",
+
+  // tab-group color names
+  "groupColor.0": "Green",
+  "groupColor.1": "Blue",
+  "groupColor.2": "Amber",
+  "groupColor.3": "Pink",
+  "groupColor.4": "Purple",
+  "groupColor.5": "Cyan",
+  "groupColor.6": "Red",
+  "groupColor.7": "Gray",
 };

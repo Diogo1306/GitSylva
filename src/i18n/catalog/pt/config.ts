@@ -74,6 +74,25 @@ export const ptConfig = {
   "pullMode.ff.hint": "Só avança se possível; falha se divergir (sem merge surpresa).",
   "pullMode.merge.hint": "Integra com um commit de merge quando divergir.",
   "pullMode.rebase.hint": "Reaplica os teus commits por cima dos remotos.",
+
+  // git status letter → human title (lib/status.ts, file-list tooltips)
+  "status.added": "Adicionado",
+  "status.untracked": "Não rastreado",
+  "status.deleted": "Apagado",
+  "status.conflict": "Em conflito",
+  "status.renamed": "Renomeado",
+  "status.copied": "Copiado",
+  "status.modified": "Modificado",
+
+  // tab-group color names (lib/groupColors.ts, GroupEditModal swatches)
+  "groupColor.0": "Verde",
+  "groupColor.1": "Azul",
+  "groupColor.2": "Âmbar",
+  "groupColor.3": "Rosa",
+  "groupColor.4": "Roxo",
+  "groupColor.5": "Ciano",
+  "groupColor.6": "Vermelho",
+  "groupColor.7": "Cinza",
 } satisfies Record<string, MessageValue>;
 
 export type ConfigKey = keyof typeof ptConfig;
