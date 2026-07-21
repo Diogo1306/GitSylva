@@ -12,7 +12,7 @@ import type { View } from "../../state/appStore";
 
 const mono = "'JetBrains Mono', monospace";
 
-type Item = { label: string; sub: string; dot: string; dotR: string; run: () => void };
+type Item = { label: string; sub: string; badge?: string; dot: string; dotR: string; run: () => void };
 type Group = { title: string; items: Item[] };
 
 // Bold the matched portion of a result label.
@@ -87,28 +87,55 @@ export function CommandPalette() {
         run: () => { switchRepo(r.path); setOpen(false); },
       }));
 
+    // Task 12: remote branches used to be excluded outright. They now show up
+    // too, labelled "remota" — but a remote whose short name already has a
+    // local branch is skipped (the local row already reaches the same
+    // branch, so listing both would just be a distinct-looking duplicate).
+    const localNames = new Set((branches ?? []).filter((b) => !b.is_remote).map((b) => b.name));
+    const remoteShortName = (name: string) => {
+      const slash = name.indexOf("/");
+      return slash >= 0 ? name.slice(slash + 1) : name;
+    };
+
+    const runCheckout = (checkoutName: string) => () => {
+      checkout.mutate(checkoutName, {
+        onSuccess: () => {
+          // Task 10: track the checkout so it surfaces under "Recentes"
+          // in the sidebar, same as a checkout triggered from there.
+          if (repo) useRecentBranchesStore.getState().record(repo.path, checkoutName);
+          toast(`Em ${checkoutName}`);
+        },
+        onError: (e: unknown) => toast((e as { message?: string })?.message ?? "não foi possível fazer checkout", "error"),
+      });
+      setOpen(false);
+    };
+
     const br: Item[] = (branches ?? [])
-      .filter((b) => !b.is_remote && !b.is_current)
+      .filter((b) => !b.is_current)
+      .filter((b) => !b.is_remote || !localNames.has(remoteShortName(b.name)))
       .filter((b) => match(b.name))
       .slice(0, 6)
-      .map((b) => ({
-        label: b.name,
-        sub: "checkout",
-        dot: "var(--leaf)",
-        dotR: "2px",
-        run: () => {
-          checkout.mutate(b.name, {
-            onSuccess: () => {
-              // Task 10: track the checkout so it surfaces under "Recentes"
-              // in the sidebar, same as a checkout triggered from there.
-              if (repo) useRecentBranchesStore.getState().record(repo.path, b.name);
-              toast(`Em ${b.name}`);
+      .map((b) =>
+        b.is_remote
+          ? {
+              label: b.name,
+              sub: "criar branch local",
+              badge: "remota",
+              dot: "var(--muted)",
+              dotR: "2px",
+              // Remote rows check out the short name — same DWIM `git
+              // checkout <name>` the Sidebar's remote rows use, which git
+              // resolves into a new local branch tracking the remote one.
+              run: runCheckout(remoteShortName(b.name)),
+            }
+          : {
+              label: b.name,
+              sub: "checkout",
+              dot: "var(--leaf)",
+              dotR: "2px",
+              run: runCheckout(b.name),
             },
-            onError: (e: unknown) => toast((e as { message?: string })?.message ?? "não foi possível fazer checkout", "error"),
-          });
-          setOpen(false);
-        },
-      }));
+      );
     const navItems: [string, View][] = [
       ["Histórico", "history"],
       ["Cópia de trabalho", "working"],
@@ -261,6 +288,11 @@ export function CommandPalette() {
                   >
                     <span style={{ width: 7, height: 7, borderRadius: it.dotR, background: it.dot, flexShrink: 0 }} />
                     <span style={{ flex: 1, fontSize: 13.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{markMatch(it.label, q.trim())}</span>
+                    {it.badge && (
+                      <span style={{ fontFamily: mono, fontSize: 10, fontWeight: 700, padding: "1px 7px", borderRadius: 999, background: "var(--l1bg)", color: "var(--l1)", border: "1px solid var(--l1bd)", flexShrink: 0 }}>
+                        {it.badge}
+                      </span>
+                    )}
                     <span style={{ fontFamily: mono, fontSize: 11, color: "var(--muted)", whiteSpace: "nowrap" }}>{it.sub}</span>
                   </div>
                 );
