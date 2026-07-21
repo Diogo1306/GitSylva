@@ -1,4 +1,13 @@
-import type { ReactNode } from "react";
+import type { KeyboardEvent, ReactNode } from "react";
+
+// Cancels the button's own native Enter/Space click so the manual click()
+// below is the only one that ever fires (used by Toggle and IconButton).
+function activateOnKeyDown(e: KeyboardEvent<HTMLButtonElement>) {
+  if (e.key === "Enter" || e.key === " ") {
+    e.preventDefault();
+    e.currentTarget.click();
+  }
+}
 
 // Small shared primitives: pill Chip, count Badge, IconButton, Toggle, labels.
 
@@ -38,25 +47,63 @@ export function Badge({ children, accent }: { children: ReactNode; accent?: bool
   );
 }
 
-export function IconButton({ onClick, title, size = 30, children }: { onClick?: () => void; title?: string; size?: number; children: ReactNode }) {
+export function IconButton({ onClick, title, size = 30, children, disabled }: { onClick?: () => void; title?: string; size?: number; children: ReactNode; disabled?: boolean }) {
   return (
-    <div
+    <button
+      type="button"
       onClick={onClick}
+      onKeyDown={activateOnKeyDown}
       title={title}
+      aria-label={title}
+      disabled={disabled}
       className="gs-lift"
-      style={{ display: "flex", alignItems: "center", justifyContent: "center", width: size, height: size, borderRadius: "var(--radius-sm)", background: "var(--btn)", border: "1px solid var(--btnB)", color: "var(--btnT)", cursor: "pointer" }}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        width: size,
+        height: size,
+        borderRadius: "var(--radius-sm)",
+        background: "var(--btn)",
+        border: "1px solid var(--btnB)",
+        color: "var(--btnT)",
+        cursor: disabled ? "default" : "pointer",
+        opacity: disabled ? 0.5 : 1,
+        padding: 0,
+        fontFamily: "inherit",
+      }}
     >
       {children}
-    </div>
+    </button>
   );
 }
 
-export function Toggle({ on }: { on: boolean }) {
+export function Toggle({ on, onClick, disabled, "aria-label": ariaLabel }: { on: boolean; onClick?: () => void; disabled?: boolean; "aria-label"?: string }) {
   return (
-    <div style={{ width: 38, height: 22, borderRadius: "var(--radius-pill)", background: on ? "var(--accent)" : "var(--btnB)", position: "relative", flexShrink: 0, transition: "background 0.15s" }}>
+    <button
+      type="button"
+      aria-pressed={on}
+      aria-label={ariaLabel}
+      onClick={onClick}
+      onKeyDown={activateOnKeyDown}
+      disabled={disabled}
+      style={{
+        width: 38,
+        height: 22,
+        borderRadius: "var(--radius-pill)",
+        background: on ? "var(--accent)" : "var(--btnB)",
+        position: "relative",
+        flexShrink: 0,
+        transition: "background 0.15s",
+        border: "none",
+        padding: 0,
+        cursor: disabled ? "default" : "pointer",
+        opacity: disabled ? 0.5 : 1,
+      }}
+    >
       {/* Themed knob with a hairline border so it stays visible on light tracks. */}
-      <div style={{ position: "absolute", top: 2, left: on ? 18 : 2, width: 18, height: 18, borderRadius: "50%", background: "var(--win)", border: "1px solid var(--border)", boxSizing: "border-box", boxShadow: "0 1px 3px rgba(0,0,0,0.25)", transition: "left 0.15s" }} />
-    </div>
+      <span style={{ position: "absolute", top: 2, left: on ? 18 : 2, width: 18, height: 18, borderRadius: "50%", background: "var(--win)", border: "1px solid var(--border)", boxSizing: "border-box", boxShadow: "0 1px 3px rgba(0,0,0,0.25)", transition: "left 0.15s" }} />
+    </button>
   );
 }
 
