@@ -3,6 +3,7 @@ import { useAppStore } from "../../state/appStore";
 import { useLog, useBranches, useBranchActions, useStatus, useSyncActions } from "../../state/queries";
 import { toast } from "../../state/toastStore";
 import { notify } from "../../state/notificationStore";
+import { useRecentBranchesStore } from "../../state/recentBranchesStore";
 import { spawnLeaf } from "../../lib/leaf";
 import { fold, foldChars } from "../../lib/fold";
 import { comboHint } from "../../lib/platform";
@@ -97,7 +98,12 @@ export function CommandPalette() {
         dotR: "2px",
         run: () => {
           checkout.mutate(b.name, {
-            onSuccess: () => toast(`Em ${b.name}`),
+            onSuccess: () => {
+              // Task 10: track the checkout so it surfaces under "Recentes"
+              // in the sidebar, same as a checkout triggered from there.
+              if (repo) useRecentBranchesStore.getState().record(repo.path, b.name);
+              toast(`Em ${b.name}`);
+            },
             onError: (e: unknown) => toast((e as { message?: string })?.message ?? "não foi possível fazer checkout", "error"),
           });
           setOpen(false);
