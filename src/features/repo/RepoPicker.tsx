@@ -4,6 +4,7 @@ import { useRecentsStore } from "../../state/recentsStore";
 import { pickFolder, initRepo, cloneRepo } from "../../lib/api";
 import { notify } from "../../state/notificationStore";
 import { initials } from "../../lib/format";
+import { fold } from "../../lib/fold";
 import { useOpenRepo } from "./useOpenRepo";
 import { FormField } from "../../components/ui/FormField";
 import { SelectableRow } from "../../components/ui/SelectableRow";
@@ -58,7 +59,7 @@ export function RepoPicker() {
   }
 
   const filteredRecents = recents.filter((r) =>
-    (r.name + " " + r.path).toLowerCase().includes(q.trim().toLowerCase()),
+    fold(r.name + " " + r.path).includes(fold(q.trim())),
   );
 
   const tabs: [Tab, string][] = [
@@ -180,8 +181,22 @@ export function RepoPicker() {
                   </SelectableRow>
                 ))}
                 {filteredRecents.length === 0 && (
-                  <div style={{ padding: 18, border: "1px dashed var(--btnB)", borderRadius: 11, textAlign: "center", color: "var(--muted)", fontSize: 13 }}>
-                    {recents.length === 0 ? "Ainda sem repositórios recentes." : "Nada encontrado para essa procura."}
+                  <div style={{ padding: 18, border: "1px dashed var(--btnB)", borderRadius: 11, textAlign: "center", color: "var(--muted)", fontSize: 13, display: "flex", flexDirection: "column", gap: 10, alignItems: "center" }}>
+                    {recents.length === 0 ? (
+                      "Ainda sem repositórios recentes."
+                    ) : (
+                      <>
+                        <div>Nenhum recente corresponde. Abrir ou clonar um repositório?</div>
+                        <div style={{ display: "flex", gap: 8 }}>
+                          <button type="button" onClick={browseAndOpen} onKeyDown={activateOnKeyDown} disabled={busy} style={browseBtn} className="gs-lift">
+                            Abrir pasta…
+                          </button>
+                          <button type="button" onClick={() => setTab("clone")} onKeyDown={activateOnKeyDown} style={browseBtn} className="gs-lift">
+                            Clonar…
+                          </button>
+                        </div>
+                      </>
+                    )}
                   </div>
                 )}
               </div>
