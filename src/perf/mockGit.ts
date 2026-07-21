@@ -17,8 +17,11 @@ const N_FILES = 500;
 const N_BRANCHES = 200;
 
 function hash(i: number): string {
-  return (i + 1).toString(16).padStart(7, "a").repeat(6).slice(0, 40);
+  return (i + 1).toString(16).padStart(40, "0");
 }
+
+// Exported for testing
+export { N_COMMITS, hash };
 
 const authors = ["Ana Souza", "Marco Duarte", "Lia Ferraz"];
 
