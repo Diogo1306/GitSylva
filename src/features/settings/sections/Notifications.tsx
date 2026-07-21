@@ -27,7 +27,7 @@ export function Notifications() {
     <div id="set-notificacoes" style={{ display: "flex", flexDirection: "column", gap: 14, scrollMarginTop: 20 }}>
       <SectionTitle>NOTIFICAÇÕES</SectionTitle>
       <Hint>
-        Notificações aparecem no canto superior direito (~4s; parar o rato pausa o tempo).
+        Notificações aparecem no canto inferior direito (~4s; parar o rato pausa o tempo).
         Confirmações rápidas aparecem como toasts na base.
       </Hint>
 
