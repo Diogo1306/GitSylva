@@ -6,6 +6,7 @@ import { Badge } from "../../components/ui/misc";
 import { useBreakpoint } from "../../lib/useBreakpoint";
 import { comboHint } from "../../lib/platform";
 import { useShortcutsStore } from "../../state/shortcutsStore";
+import { useT, type TFunction } from "../../i18n";
 
 const mono = "'JetBrains Mono', monospace";
 
@@ -26,6 +27,7 @@ function actionButton({
   badge,
   badgeAccent,
   shortcut,
+  t,
 }: {
   key: string;
   label: string;
@@ -38,9 +40,10 @@ function actionButton({
   // shown in the tooltip on hover AND keyboard focus. Omitted for actions
   // with no bound shortcut (Merge, Tag) — never invent a fake combo.
   shortcut?: string;
+  t: TFunction;
 }) {
   return (
-    <Tooltip key={key} content={soon ? `${label} · em breve` : label} shortcut={soon ? undefined : shortcut}>
+    <Tooltip key={key} content={soon ? t("shell.soonTooltip", { label }) : label} shortcut={soon ? undefined : shortcut}>
       <ToolbarButton
         onClick={onClick}
         aria-label={label}
@@ -81,6 +84,7 @@ export function ActionBar() {
   const { data } = useStatus(repo.path);
   const { data: syncData } = useSyncStatus(repo.path);
   const bp = useBreakpoint();
+  const t = useT();
   // Shortcut hints follow the rebindable bindings and the platform (Task 14).
   const bindings = useShortcutsStore((s) => s.bindings);
 
@@ -92,7 +96,7 @@ export function ActionBar() {
 
   return (
     <Toolbar
-      ariaLabel="Ações"
+      ariaLabel={t("shell.actionBar.aria")}
       style={{
         height: 54,
         flexShrink: 0,
@@ -107,15 +111,15 @@ export function ActionBar() {
         scrollbarWidth: "thin",
       }}
     >
-      {actionButton({ key: "commit", label: "Commit", onClick: () => setView("working"), badge: staged, badgeAccent: true, shortcut: comboHint(bindings.commit) })}
+      {actionButton({ key: "commit", label: "Commit", onClick: () => setView("working"), badge: staged, badgeAccent: true, shortcut: comboHint(bindings.commit), t })}
       <Divider />
-      {actionButton({ key: "pull", label: "↓ Pull", onClick: () => setModal("pull"), badge: behind, shortcut: comboHint(bindings.pull) })}
-      {actionButton({ key: "push", label: "↑ Push", onClick: () => setModal("push"), badge: ahead, badgeAccent: true, shortcut: comboHint(bindings.push) })}
+      {actionButton({ key: "pull", label: "↓ Pull", onClick: () => setModal("pull"), badge: behind, shortcut: comboHint(bindings.pull), t })}
+      {actionButton({ key: "push", label: "↑ Push", onClick: () => setModal("push"), badge: ahead, badgeAccent: true, shortcut: comboHint(bindings.push), t })}
       <Divider />
-      {actionButton({ key: "branch", label: "Branch", onClick: () => setModal("branch"), shortcut: comboHint(bindings.branch) })}
-      {actionButton({ key: "merge", label: "Merge", onClick: () => setModal("merge") })}
-      {actionButton({ key: "stash", label: "Stash", onClick: () => setModal("stash"), shortcut: comboHint(bindings.stash) })}
-      {actionButton({ key: "tag", label: "Tag", onClick: () => setModal("tag") })}
+      {actionButton({ key: "branch", label: "Branch", onClick: () => setModal("branch"), shortcut: comboHint(bindings.branch), t })}
+      {actionButton({ key: "merge", label: "Merge", onClick: () => setModal("merge"), t })}
+      {actionButton({ key: "stash", label: "Stash", onClick: () => setModal("stash"), shortcut: comboHint(bindings.stash), t })}
+      {actionButton({ key: "tag", label: "Tag", onClick: () => setModal("tag"), t })}
       <div style={{ flex: 1 }} />
       {/* Task 6 progressive disclosure: this duplicates context already
           visible in the Sidebar/Titlebar — hide it first at narrow widths so
@@ -127,8 +131,8 @@ export function ActionBar() {
             <span style={{ color: "var(--muted)" }}> / </span>
             <span style={{ color: "var(--l0)", fontWeight: 600 }}>{repo.current_branch}</span>
           </span>
-          <span title="commits por enviar">↑{ahead}</span>
-          <span title="commits por integrar">↓{behind}</span>
+          <span title={t("shell.actionBar.commitsToPush")}>↑{ahead}</span>
+          <span title={t("shell.actionBar.commitsToPull")}>↓{behind}</span>
         </div>
       )}
     </Toolbar>

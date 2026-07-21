@@ -124,7 +124,7 @@ describe("PullModal: pre-action explanation and sync states", () => {
   it("explains what a pull will do: source (upstream), destination (branch) and the count", async () => {
     useAppStore.setState({ modal: "pull" });
     renderModal();
-    expect(await screen.findByText("Pull vai integrar 2 commit(s) de origin/main em main.")).toBeTruthy();
+    expect(await screen.findByText("Pull vai integrar 2 commits de origin/main em main.")).toBeTruthy();
   });
 
   it("says the branch is up to date when there is nothing incoming", async () => {
@@ -139,7 +139,7 @@ describe("PullModal: pre-action explanation and sync states", () => {
     vi.mocked(pull).mockRejectedValue({ message: "fatal: could not read Username for 'https://github.com': terminal prompts disabled" });
     useAppStore.setState({ modal: "pull" });
     renderModal();
-    await screen.findByText("Pull vai integrar 2 commit(s) de origin/main em main.");
+    await screen.findByText("Pull vai integrar 2 commits de origin/main em main.");
     fireEvent.click(screen.getByRole("button", { name: "Fazer pull" }));
     expect(await screen.findByText("Autenticação necessária")).toBeTruthy();
     expect(screen.queryByText("não foi possível fazer pull")).toBeNull();
@@ -149,7 +149,7 @@ describe("PullModal: pre-action explanation and sync states", () => {
     vi.mocked(pull).mockRejectedValue({ message: "fatal: unable to access 'https://github.com/x/y.git/': Could not resolve host: github.com" });
     useAppStore.setState({ modal: "pull" });
     renderModal();
-    await screen.findByText("Pull vai integrar 2 commit(s) de origin/main em main.");
+    await screen.findByText("Pull vai integrar 2 commits de origin/main em main.");
     fireEvent.click(screen.getByRole("button", { name: "Fazer pull" }));
     expect(await screen.findByText("Sem ligação ao remoto")).toBeTruthy();
     expect(screen.queryByText("Autenticação necessária")).toBeNull();
@@ -159,7 +159,7 @@ describe("PullModal: pre-action explanation and sync states", () => {
     vi.mocked(pull).mockRejectedValue({ message: "fatal: something unexpected happened" });
     useAppStore.setState({ modal: "pull" });
     renderModal();
-    await screen.findByText("Pull vai integrar 2 commit(s) de origin/main em main.");
+    await screen.findByText("Pull vai integrar 2 commits de origin/main em main.");
     fireEvent.click(screen.getByRole("button", { name: "Fazer pull" }));
     expect(await screen.findByText("fatal: something unexpected happened")).toBeTruthy();
     expect(screen.queryByText("Autenticação necessária")).toBeNull();
@@ -174,7 +174,7 @@ describe("PullModal: pre-action explanation and sync states", () => {
     });
     useAppStore.setState({ modal: "pull" });
     renderModal();
-    await screen.findByText("Pull vai integrar 2 commit(s) de origin/main em main.");
+    await screen.findByText("Pull vai integrar 2 commits de origin/main em main.");
     fireEvent.click(screen.getByRole("button", { name: "Fazer pull" }));
     // Distinct conflict panel copy, not the auth/network/generic text.
     expect(await screen.findByText("Conflito ao integrar")).toBeTruthy();
@@ -186,7 +186,7 @@ describe("PullModal: pre-action explanation and sync states", () => {
   it("exposes inline help for the active pull mode", async () => {
     useAppStore.setState({ modal: "pull" });
     renderModal();
-    await screen.findByText("Pull vai integrar 2 commit(s) de origin/main em main.");
+    await screen.findByText("Pull vai integrar 2 commits de origin/main em main.");
     const help = screen.getByLabelText(/Sobre o modo/i);
     fireEvent.focus(help);
     expect(await screen.findByRole("tooltip")).toBeTruthy();
@@ -202,14 +202,14 @@ describe("PushModal: pre-action explanation and sync states", () => {
   it("explains what a push will do: source (branch), destination (upstream) and the count", async () => {
     useAppStore.setState({ modal: "push" });
     renderModal();
-    expect(await screen.findByText("Push vai enviar 3 commit(s) de main para origin/main.")).toBeTruthy();
+    expect(await screen.findByText("Push vai enviar 3 commits de main para origin/main.")).toBeTruthy();
   });
 
   it("shows a distinct authentication-needed message on a credential failure, not the generic error text", async () => {
     vi.mocked(push).mockRejectedValue({ message: "git@github.com: Permission denied (publickey).\nfatal: Could not read from remote repository." });
     useAppStore.setState({ modal: "push" });
     renderModal();
-    await screen.findByText("Push vai enviar 3 commit(s) de main para origin/main.");
+    await screen.findByText("Push vai enviar 3 commits de main para origin/main.");
     fireEvent.click(screen.getByRole("button", { name: "Fazer push" }));
     expect(await screen.findByText("Autenticação necessária")).toBeTruthy();
     expect(screen.queryByText("não foi possível fazer push")).toBeNull();
