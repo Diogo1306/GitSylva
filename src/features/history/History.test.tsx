@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { History } from "./History";
 import { useAppStore } from "../../state/appStore";
 import { useThemeStore } from "../../state/themeStore";
+import { listBranches, getBranchCommits } from "../../lib/api";
 import type { RepoInfo } from "../../lib/types";
 
 // Keyboard/semantic migration (Task 2): commit rows must be real Tab-reachable
@@ -26,6 +27,11 @@ vi.mock("../../lib/api", async (importOriginal) => {
     ...actual,
     getLog: vi.fn().mockResolvedValue(mockCommits),
     commitDetail: vi.fn().mockResolvedValue({ message: "Terceiro commit", additions: 1, deletions: 0, files: [], diff: "" }),
+    // Task 11 filter bar: deterministic branch list, no branch/path filter
+    // active by default so these never fire in the pre-existing tests above.
+    listBranches: vi.fn().mockResolvedValue([]),
+    getBranchCommits: vi.fn().mockResolvedValue([]),
+    getPathCommits: vi.fn().mockResolvedValue([]),
   };
 });
 
@@ -232,5 +238,97 @@ describe("History: responsive commit-detail layout (Task 6)", () => {
 
     const root = container.firstElementChild as HTMLElement;
     expect(root.style.flexDirection).toBe("column");
+  });
+});
+
+// Task 11: filter bar + accent-tolerant search/author + empty state.
+describe("History: filters", () => {
+  it("keeps the free-text search accent-tolerant (matches an unaccented query against an accented subject)", async () => {
+    renderHistory();
+    await screen.findByRole("option", { name: /Terceiro commit/ });
+    const input = screen.getByLabelText(/Filtrar commits/i);
+    // mockCommits has no accented subject, so assert via a query that only
+    // matches case-insensitively/accent-insensitively against "Segundo".
+    fireEvent.change(input, { target: { value: "SEGUNDO" } });
+    expect(screen.getByRole("option", { name: /Segundo commit/ })).toBeTruthy();
+    expect(screen.queryByRole("option", { name: /Terceiro commit/ })).toBeNull();
+  });
+
+  it("shows an empty state with a working clear-filters button when the free-text filter matches nothing", async () => {
+    renderHistory();
+    await screen.findByRole("option", { name: /Terceiro commit/ });
+    const input = screen.getByLabelText(/Filtrar commits/i);
+    fireEvent.change(input, { target: { value: "nao-existe-nenhum-commit-assim" } });
+
+    expect(screen.queryByRole("option")).toBeNull();
+    expect(screen.getByText(/Sem resultados/i)).toBeTruthy();
+    const clear = screen.getByRole("button", { name: /Limpar filtros/i });
+
+    fireEvent.click(clear);
+    // Clearing restores the full list and the empty state goes away.
+    expect(await screen.findByRole("option", { name: /Terceiro commit/ })).toBeTruthy();
+    expect(screen.queryByText(/Sem resultados/i)).toBeNull();
+    expect((input as HTMLInputElement).value).toBe("");
+  });
+
+  it("opens the advanced filter bar and narrows by author, accent-tolerantly", async () => {
+    renderHistory();
+    await screen.findByRole("option", { name: /Terceiro commit/ });
+    fireEvent.click(screen.getByRole("button", { name: /^Filtros/ }));
+
+    const authorInput = screen.getByLabelText(/^Autor$/i);
+    fireEvent.change(authorInput, { target: { value: "BRUNO" } });
+
+    expect(screen.getByRole("option", { name: /Segundo commit/ })).toBeTruthy();
+    expect(screen.queryByRole("option", { name: /Terceiro commit/ })).toBeNull();
+    expect(screen.queryByRole("option", { name: /Primeiro commit/ })).toBeNull();
+  });
+
+  it("narrows to only merge commits when the merge tab is set to Merges", async () => {
+    renderHistory();
+    await screen.findByRole("option", { name: /Terceiro commit/ });
+    fireEvent.click(screen.getByRole("button", { name: /^Filtros/ }));
+    fireEvent.click(screen.getByRole("tab", { name: "Merges" }));
+
+    // None of the fixture commits have more than one parent. (Not
+    // `queryByRole("option")`: the open filter bar's branch <select> also
+    // renders native <option> elements, which share that implicit role.)
+    expect(screen.queryByRole("listbox")).toBeNull();
+    expect(screen.getByText(/Sem resultados/i)).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("tab", { name: "Todos" }));
+    expect(await screen.findByRole("option", { name: /Terceiro commit/ })).toBeTruthy();
+  });
+
+  it("shows a distinct error (not a false 'no results') when the branch filter fails to resolve", async () => {
+    vi.mocked(listBranches).mockResolvedValueOnce([
+      { name: "feature/x", is_current: false, is_remote: false, upstream: null, tip: "aaa1111", ahead: 0, behind: 0 },
+    ]);
+    vi.mocked(getBranchCommits).mockRejectedValueOnce(new Error("branch not found"));
+
+    renderHistory();
+    await screen.findByRole("option", { name: /Terceiro commit/ });
+    fireEvent.click(screen.getByRole("button", { name: /^Filtros/ }));
+    const branchSelect = await screen.findByLabelText(/^Branch$/i);
+    fireEvent.change(branchSelect, { target: { value: "feature/x" } });
+
+    expect(await screen.findByText(/Não foi possível aplicar o filtro/i)).toBeTruthy();
+    expect(screen.queryByText(/Sem resultados/i)).toBeNull();
+
+    // The same clear action recovers from the error.
+    fireEvent.click(screen.getByRole("button", { name: /Limpar filtros/i }));
+    expect(await screen.findByRole("option", { name: /Terceiro commit/ })).toBeTruthy();
+  });
+
+  it("clear-filters from the empty state also resets a structured (non-text) filter", async () => {
+    renderHistory();
+    await screen.findByRole("option", { name: /Terceiro commit/ });
+    fireEvent.click(screen.getByRole("button", { name: /^Filtros/ }));
+    fireEvent.click(screen.getByRole("tab", { name: "Merges" }));
+    await screen.findByText(/Sem resultados/i);
+
+    fireEvent.click(screen.getByRole("button", { name: /Limpar filtros/i }));
+    expect(await screen.findByRole("option", { name: /Terceiro commit/ })).toBeTruthy();
+    expect(screen.getByRole("tab", { name: "Todos" }).getAttribute("aria-selected")).toBe("true");
   });
 });
