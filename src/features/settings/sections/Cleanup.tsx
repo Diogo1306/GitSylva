@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useThemeStore } from "../../../state/themeStore";
 import { useRecentsStore } from "../../../state/recentsStore";
 import { toast } from "../../../state/toastStore";
+import { notify } from "../../../state/notificationStore";
 import { Button } from "../../../components/ui/Button";
 import { ConfirmDialog } from "../../../components/ConfirmDialog";
 import { Hint } from "./_shared";
@@ -24,10 +25,14 @@ export function Cleanup() {
       </div>
       {confirmReset && (
         <ConfirmDialog
-          message="Repor tema, estilo de árvore, cores, fonte e restantes preferências para os valores predefinidos?"
+          message="Repor tema, estilo de árvore, cor de branch, fonte, acento, densidade, layout (repositórios e histórico), animações, modo de pull, confirmação ao descartar e notificações para os valores predefinidos? Não apaga repositórios nem a identidade Git, não limpa os recentes e não reinicia o onboarding. Os atalhos de teclado não são incluídos — repõem-se em Atalhos."
           confirmLabel="Repor"
           onCancel={() => setConfirmReset(false)}
-          onConfirm={() => { resetPrefs(); setConfirmReset(false); toast("Definições repostas"); }}
+          onConfirm={() => {
+            resetPrefs();
+            setConfirmReset(false);
+            notify("Definições repostas", "Aparência, densidade, layout e preferências voltaram ao padrão.");
+          }}
         />
       )}
     </div>
