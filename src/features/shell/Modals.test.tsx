@@ -3,6 +3,7 @@ import { render, screen, cleanup, fireEvent } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Modals } from "./Modals";
 import { useAppStore } from "../../state/appStore";
+import { useNotificationStore } from "../../state/notificationStore";
 import type { RepoInfo, Commit } from "../../lib/types";
 import { fetchRemote, syncStatus, pull, push, outgoing, incoming } from "../../lib/api";
 
@@ -45,6 +46,9 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   useAppStore.setState({ repo: null, repos: [], modal: null });
+  // Sync failures raise notifications (conflict); clear the stack so a card
+  // from one test can't leak into the next test's assertions.
+  useNotificationStore.setState({ notifications: [] });
 });
 
 describe("Modals: labelled fields", () => {
@@ -126,6 +130,24 @@ describe("PullModal: pre-action explanation and sync states", () => {
     fireEvent.click(screen.getByRole("button", { name: "Fazer pull" }));
     expect(await screen.findByText("fatal: something unexpected happened")).toBeTruthy();
     expect(screen.queryByText("Autenticação necessária")).toBeNull();
+  });
+
+  it("renders a distinct conflict state and raises a conflict notification on a merge conflict", async () => {
+    // The real combined stdout+stderr the backend now sends for a merge-mode
+    // pull conflict (see combine_git_streams / the cargo conflict fixture).
+    vi.mocked(pull).mockRejectedValue({
+      message:
+        "From https://github.com/example/repo\n * branch main -> FETCH_HEAD\nAuto-merging a.txt\nCONFLICT (content): Merge conflict in a.txt\nAutomatic merge failed; fix conflicts and then commit the result.",
+    });
+    useAppStore.setState({ modal: "pull" });
+    renderModal();
+    await screen.findByText("Pull vai integrar 2 commit(s) de origin/main em main.");
+    fireEvent.click(screen.getByRole("button", { name: "Fazer pull" }));
+    // Distinct conflict panel copy, not the auth/network/generic text.
+    expect(await screen.findByText("Conflito ao integrar")).toBeTruthy();
+    expect(screen.queryByText("Autenticação necessária")).toBeNull();
+    // Side effect: the conflict notification is raised.
+    expect(useNotificationStore.getState().notifications.some((n) => n.title === "Conflitos no pull")).toBe(true);
   });
 
   it("exposes inline help for the active pull mode", async () => {

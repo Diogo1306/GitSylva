@@ -66,7 +66,9 @@ export function classifySyncError(message: string): SyncErrorKind {
 export function fetchFailureNotice(e: unknown): { title: string; sub: string } {
   const msg = errMsg(e, "não foi possível fazer fetch");
   const kind = classifySyncError(msg);
-  if (kind === "auth") return { title: "Autenticação necessária", sub: "Configura as credenciais Git para origin (credential manager ou uma chave SSH)." };
+  // Every branch keeps the raw git message so diagnostic detail is never
+  // hidden (same principle as SyncFailurePanel); auth prepends guidance.
+  if (kind === "auth") return { title: "Autenticação necessária", sub: `Configura as credenciais Git para origin (credential manager ou uma chave SSH).\n${msg}` };
   if (kind === "network") return { title: "Sem ligação ao remoto", sub: msg };
   return { title: "Fetch falhou", sub: msg };
 }

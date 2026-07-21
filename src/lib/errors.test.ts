@@ -45,9 +45,19 @@ describe("classifySyncError", () => {
   });
 
   it("classifies merge/rebase conflicts as conflict", () => {
-    expect(
-      classifySyncError("CONFLICT (content): Merge conflict in a.txt\nAutomatic merge failed; fix conflicts and then commit the result."),
-    ).toBe("conflict");
+    // The REAL string the frontend now receives for a merge-mode pull
+    // conflict: the backend's `combine_git_streams` (src-tauri/src/git/mod.rs)
+    // joins git's stderr fetch summary with the STDOUT conflict text, because
+    // git prints "CONFLICT ..."/"Automatic merge failed ..." to STDOUT and the
+    // old code (stderr-only) dropped it. Verified end-to-end by the cargo test
+    // `pull_merge_conflict_surfaces_conflict_text`.
+    const realMergeConflict =
+      "From https://github.com/example/repo\n" +
+      " * branch            main       -> FETCH_HEAD\n" +
+      "Auto-merging a.txt\n" +
+      "CONFLICT (content): Merge conflict in a.txt\n" +
+      "Automatic merge failed; fix conflicts and then commit the result.";
+    expect(classifySyncError(realMergeConflict)).toBe("conflict");
     expect(classifySyncError("erro: conflito ao aplicar o commit")).toBe("conflict");
   });
 
@@ -74,9 +84,11 @@ describe("classifySyncError", () => {
 // AppShell shortcut). This gives every one of those call sites the same
 // distinct auth-needed title without duplicating classification logic.
 describe("fetchFailureNotice", () => {
-  it("gives an actionable, distinct title for an auth failure", () => {
+  it("gives an actionable, distinct title for an auth failure and keeps the raw message", () => {
     const n = fetchFailureNotice({ message: "fatal: Authentication failed for 'https://github.com/x/y.git'" });
     expect(n.title).toBe("Autenticação necessária");
+    // Raw git detail must survive, not be swallowed by the canned guidance.
+    expect(n.sub).toContain("fatal: Authentication failed for 'https://github.com/x/y.git'");
   });
 
   it("gives a distinct title for a network failure", () => {
