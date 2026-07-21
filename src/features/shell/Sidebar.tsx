@@ -519,7 +519,13 @@ export function Sidebar() {
             <div key={`pasta-${g.name}`} style={{ display: "flex", flexDirection: "column", gap: 1 }}>
               <button
                 type="button"
-                onClick={() => setOpenFolders((s) => ({ ...s, [g.name]: !folderOpen(g) }))}
+                // While filtering, folders are force-open via the override in
+                // folderOpen — a click here would compute !true and write an
+                // explicit `false`, silently collapsing the folder once the
+                // query clears (and defeating "current-branch folder open by
+                // default"). No-op during filtering: the override already
+                // shows the correct open state, so no affordance is lost.
+                onClick={() => { if (filtering) return; setOpenFolders((s) => ({ ...s, [g.name]: !folderOpen(g) })); }}
                 onKeyDown={activateOnKeyDown}
                 className={`gs-row ${BRANCH_ROW_CLASS}`}
                 title={`${folderOpen(g) ? "Colapsar" : "Expandir"} ${g.name}`}
@@ -588,7 +594,11 @@ export function Sidebar() {
                       button below so both stay independently reachable. */}
                   <button
                     type="button"
-                    onClick={() => setOpenRemotes((s) => ({ ...s, [remote]: !isOpen }))}
+                    // No-op while filtering (same reasoning as the local
+                    // folder toggle): remoteOpen force-returns true, so a
+                    // click would write an explicit `false` that only
+                    // surfaces once the query clears.
+                    onClick={() => { if (filtering) return; setOpenRemotes((s) => ({ ...s, [remote]: !isOpen })); }}
                     onKeyDown={activateOnKeyDown}
                     className="gs-row"
                     title={`${isOpen ? "Colapsar" : "Expandir"} ${remote}`}
@@ -630,7 +640,10 @@ export function Sidebar() {
                       <div key={`pasta-${remote}:${g.name}`} style={{ display: "flex", flexDirection: "column", gap: 1 }}>
                         <button
                           type="button"
-                          onClick={() => setOpenFolders((s) => ({ ...s, [`${remote}:${g.name}`]: !(filtering || (s[`${remote}:${g.name}`] ?? false)) }))}
+                          // No-op while filtering (see the local folder and
+                          // remote toggles above): the forced-open override
+                          // would otherwise be inverted into a stale `false`.
+                          onClick={() => { if (filtering) return; setOpenFolders((s) => ({ ...s, [`${remote}:${g.name}`]: !(s[`${remote}:${g.name}`] ?? false) })); }}
                           onKeyDown={activateOnKeyDown}
                           className="gs-row"
                           title={`${filtering || (openFolders[`${remote}:${g.name}`] ?? false) ? "Colapsar" : "Expandir"} ${g.name}`}

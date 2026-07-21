@@ -402,6 +402,37 @@ describe("Sidebar: branch search filter (Task 10)", () => {
     fireEvent.change(search, { target: { value: "" } });
     expect(screen.queryByRole("button", { name: "época" })).toBeNull();
   });
+
+  // Reviewer fix: while filtering, a folder is force-open via the override in
+  // folderOpen(), so a toggle click would compute !true and write an explicit
+  // `false` — invisible during filtering but silently collapsing the folder
+  // once the query clears (defeating "current-branch folder open by default").
+  // The toggle handlers no-op while filtering, so a filtering-time click must
+  // leave the folder's persisted open/closed state untouched.
+  it("clicking a folder toggle WHILE filtering does not collapse that folder after the query is cleared", async () => {
+    // "feature" holds the current branch → open by default; both members
+    // visible with no query.
+    const foldered: BranchInfo[] = [
+      { name: "feature/atual", is_current: true, is_remote: false, upstream: null, tip: "aaa1111", ahead: 0, behind: 0 },
+      { name: "feature/login", is_current: false, is_remote: false, upstream: null, tip: "bbb2222", ahead: 0, behind: 0 },
+    ];
+    vi.mocked(listBranches).mockResolvedValueOnce(foldered);
+    renderWithProviders(<Sidebar />);
+    // Default state: folder open, so the current-branch member is visible.
+    expect(await screen.findByRole("button", { name: "atual" })).toBeTruthy();
+
+    const search = screen.getByRole("searchbox", { name: "Procurar branches" });
+    fireEvent.change(search, { target: { value: "login" } });
+    // While filtering the folder is force-open (its title reads "Colapsar").
+    const toggle = await screen.findByTitle("Colapsar feature");
+    // Click it while the query is active — this must NOT write collapsed state.
+    fireEvent.click(toggle);
+
+    fireEvent.change(search, { target: { value: "" } });
+    // Folder is still open by default: the filtering-time click was a no-op,
+    // so the current-branch member is visible again.
+    expect(await screen.findByRole("button", { name: "atual" })).toBeTruthy();
+  });
 });
 
 describe("Sidebar: remotes collapsed by default (Task 10)", () => {
