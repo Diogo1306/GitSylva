@@ -96,6 +96,30 @@ describe("Toolbar", () => {
     fireEvent.keyDown(um, { key: "ArrowDown" });
     expect(document.activeElement).toBe(dois);
   });
+
+  it("leaves non-ToolbarButton children untouched and roves only real buttons", () => {
+    render(
+      <Toolbar ariaLabel="Ações">
+        <ToolbarButton aria-label="Um">1</ToolbarButton>
+        <span data-testid="divider" aria-hidden="true">
+          |
+        </span>
+        <ToolbarButton aria-label="Dois">2</ToolbarButton>
+      </Toolbar>,
+    );
+    const divider = screen.getByTestId("divider");
+    // The passthrough child must not receive roving-tabindex/keydown props.
+    expect(divider.getAttribute("tabindex")).toBeNull();
+    expect(divider.hasAttribute("data-toolbar-item")).toBe(false);
+    // Roving still walks button-to-button, ignoring the divider in between.
+    const um = screen.getByRole("button", { name: "Um" });
+    const dois = screen.getByRole("button", { name: "Dois" });
+    expect((um as HTMLButtonElement).tabIndex).toBe(0);
+    expect((dois as HTMLButtonElement).tabIndex).toBe(-1);
+    um.focus();
+    fireEvent.keyDown(um, { key: "ArrowRight" });
+    expect(document.activeElement).toBe(dois);
+  });
 });
 
 describe("ToolbarButton", () => {
@@ -120,5 +144,10 @@ describe("ToolbarButton", () => {
     expect(btn.disabled).toBe(true);
     fireEvent.click(btn);
     expect(onClick).not.toHaveBeenCalled();
+  });
+
+  it("keeps a visible focus ring (does not disable the outline inline)", () => {
+    render(<ToolbarButton>X</ToolbarButton>);
+    expect(screen.getByRole("button", { name: "X" }).style.outline).not.toBe("none");
   });
 });
