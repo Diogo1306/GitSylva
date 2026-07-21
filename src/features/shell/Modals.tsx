@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { cloneElement, useEffect, useId, useState, type ReactElement } from "react";
 import { useAppStore } from "../../state/appStore";
 import { useBranchActions, useBranches, useStashActions, useTagActions, useSyncActions, useSyncStatus, useOutgoing, useIncoming } from "../../state/queries";
 import { toast } from "../../state/toastStore";
@@ -13,11 +13,17 @@ import type { Commit } from "../../lib/types";
 
 const mono = "'JetBrains Mono', monospace";
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+// Real <label htmlFor> bound to the wrapped control's id (generated with
+// useId), so every modal field is reachable via getByLabelText and announced
+// by assistive tech — not just visually associated by proximity.
+function Field({ label, children }: { label: string; children: ReactElement<{ id?: string }> }) {
+  const id = useId();
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-      <div style={{ fontSize: 12.5, fontWeight: 600, color: "var(--text2)" }}>{label}</div>
-      {children}
+      <label htmlFor={id} style={{ fontSize: 12.5, fontWeight: 600, color: "var(--text2)" }}>
+        {label}
+      </label>
+      {cloneElement(children, { id })}
     </div>
   );
 }
