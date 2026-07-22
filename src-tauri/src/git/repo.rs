@@ -44,13 +44,11 @@ pub fn open_repo(path: String) -> Result<RepoInfo, GitError> {
             message: "esta pasta não é um repositório git".into(),
         });
     }
-    // Normalize to the repository root: opening a subfolder must not create a
-    // second "repo" with a wrong name and subfolder-relative paths.
+    // Normalize to the repo root: opening a subfolder must not create a second "repo".
     let path = run_git(&path, &["rev-parse", "--show-toplevel"])
         .map(|s| s.trim().to_string())
         .unwrap_or(path);
-    // symbolic-ref resolves the branch name even on an unborn branch (no commits yet),
-    // where rev-parse --abbrev-ref would only print "HEAD". Falls back on detached HEAD.
+    // symbolic-ref resolves the branch name on an unborn branch too (rev-parse --abbrev-ref would only print "HEAD").
     let branch = run_git(&path, &["symbolic-ref", "--short", "HEAD"])
         .map(|s| s.trim().to_string())
         .unwrap_or_else(|_| "HEAD".into());

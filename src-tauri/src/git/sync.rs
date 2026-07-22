@@ -40,9 +40,8 @@ pub async fn incoming_cmd(path: String) -> Result<Vec<Commit>, GitError> {
     crate::git::run_blocking("incoming", move || incoming(path)).await
 }
 
-/// Fetch all remotes and prune deleted refs. Fails fast (no credential
-/// prompt) and is killed after 120s: fetch is idempotent, so a hung network
-/// must not leave the UI "A verificar origin…" forever.
+/// Fetches all remotes and prunes deleted refs; killed after 120s since a
+/// hung network must not block the UI forever (fetch is idempotent).
 pub fn fetch(path: String) -> Result<(), GitError> {
     crate::git::run_git_timeout(&path, &["fetch", "--all", "--prune"], 120).map(|_| ())
 }
@@ -68,13 +67,9 @@ pub fn incoming(path: String) -> Result<Vec<Commit>, GitError> {
     Ok(log_range(&path, "HEAD..@{u}"))
 }
 
-/// Pull using the chosen mode: "ff" (fast-forward only, safe default),
-/// "merge" (default git merge), or "rebase".
-///
-/// Uses `run_git_full` (not plain `run_git`) so a merge/rebase conflict's
-/// "CONFLICT ..."/"Automatic merge failed ..." text — which git prints to
-/// STDOUT — reaches the frontend and is classified as a conflict instead of a
-/// generic error.
+/// Pulls using `mode`: "ff" (fast-forward only, safe default), "merge", or
+/// "rebase". Uses `run_git_full` so a conflict's STDOUT text reaches the
+/// frontend classifier instead of being dropped.
 pub fn pull(path: String, mode: String) -> Result<(), GitError> {
     let flag = match mode.as_str() {
         "merge" => "--no-rebase",
@@ -133,7 +128,6 @@ mod tests {
         let bare_s = slug(&bare);
         run_git(&bare_s, &["init", "--bare", "-b", "main"]).unwrap();
 
-        // Uploader clone: commit and push "one".
         let up = base.join("up");
         fs::create_dir_all(&up).unwrap();
         let up_s = up.to_string_lossy().to_string();
@@ -146,12 +140,10 @@ mod tests {
         run_git(&up_s, &["remote", "add", "origin", &bare_s]).unwrap();
         run_git(&up_s, &["push", "-u", "origin", "main"]).unwrap();
 
-        // Downloader clone.
         let down = base.join("down");
         run_git(&slug(&base), &["clone", &bare_s, "down"]).unwrap();
         let down_s = down.to_string_lossy().to_string();
 
-        // New commit pushed from the uploader.
         fs::write(up.join("a.txt"), "one\ntwo\n").unwrap();
         run_git(&up_s, &["commit", "-am", "two"]).unwrap();
         run_git(&up_s, &["push"]).unwrap();
@@ -192,10 +184,7 @@ mod tests {
 
     #[test]
     fn pull_merge_conflict_surfaces_conflict_text() {
-        // Regression: a merge-mode `git pull` prints "CONFLICT ..."/"Automatic
-        // merge failed ..." to STDOUT, which plain run_git discards. `pull`
-        // uses run_git_full so that text reaches the frontend classifier —
-        // without it the user saw only the fetch summary in an error box.
+        // Regression: merge conflict text lands on STDOUT; run_git_full must forward it.
         let base = std::env::temp_dir().join(format!("gitsylva-pull-conflict-{}", std::process::id()));
         let _ = fs::remove_dir_all(&base);
         fs::create_dir_all(&base).unwrap();
@@ -205,7 +194,6 @@ mod tests {
         let bare_s = slug(&bare);
         run_git(&bare_s, &["init", "--bare", "-b", "main"]).unwrap();
 
-        // Uploader: base commit pushed to origin/main.
         let up = base.join("up");
         fs::create_dir_all(&up).unwrap();
         let up_s = up.to_string_lossy().to_string();
@@ -218,8 +206,7 @@ mod tests {
         run_git(&up_s, &["remote", "add", "origin", &bare_s]).unwrap();
         run_git(&up_s, &["push", "-u", "origin", "main"]).unwrap();
 
-        // Downloader clones, then both sides edit the same line differently so
-        // the histories diverge with a real content conflict.
+        // Both sides then edit the same line differently, causing a real content conflict.
         let down = base.join("down");
         run_git(&slug(&base), &["clone", &bare_s, "down"]).unwrap();
         let down_s = down.to_string_lossy().to_string();

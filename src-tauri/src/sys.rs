@@ -37,8 +37,7 @@ pub fn open_path(path: String, file: String) -> Result<(), GitError> {
     let full = Path::new(&path).join(&file);
     #[cfg(target_os = "windows")]
     {
-        // hide_console: o cmd intermediário não pode piscar um terminal (a app
-        // que o `start` lança abre a sua própria janela normalmente).
+        // hide_console: the intermediate cmd must not flash a terminal.
         let mut cmd = std::process::Command::new("cmd");
         cmd.args(["/C", "start", ""]).arg(&full);
         crate::git::hide_console(&mut cmd);

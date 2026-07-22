@@ -4,10 +4,8 @@ mod sys;
 
 use tauri_plugin_log::{RotationStrategy, Target, TargetKind};
 
-/// Capture every panic with location, message, backtrace and the git operation
-/// running on that thread. Panics inside commands are already converted into
-/// GitError by run_blocking (the process survives); this hook guarantees the
-/// evidence lands in the log either way.
+/// Captures every panic (location, message, backtrace, current git op) as a
+/// safety net — run_blocking already converts in-command panics to GitError.
 fn install_panic_hook() {
   std::panic::set_hook(Box::new(|info| {
     let location = info
@@ -38,9 +36,7 @@ pub fn run() {
     .plugin(tauri_plugin_updater::Builder::new().build())
     .plugin(tauri_plugin_process::init())
     .plugin(
-      // Release builds log too (INFO+): freezes/crashes in real use are
-      // undiagnosable without a trail. File lives in the app's log dir
-      // (%LOCALAPPDATA%/com.gitsylva.app/logs), capped and rotated.
+      // Release builds also log (INFO+) to the app's log dir, capped and rotated.
       tauri_plugin_log::Builder::default()
         .level(if cfg!(debug_assertions) {
           log::LevelFilter::Debug
