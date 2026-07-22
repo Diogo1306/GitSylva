@@ -307,7 +307,14 @@ export function History() {
 
         <div
           ref={setScrollEl}
-          onScroll={virtual ? (e) => setScrollTop(e.currentTarget.scrollTop) : undefined}
+          // Track scrollTop ALWAYS, not only in virtual mode: when the list
+          // crosses VIRTUAL_MIN (e.g. "load more" grows it past 300 while the
+          // user has already scrolled down), the windowing must compute from
+          // the real scroll position. Wiring this only in virtual mode left
+          // scrollTop stale at 0 through the transition, so the window rendered
+          // rows at the top while the container sat scrolled down — a blank
+          // gap until the next scroll "tidied it up".
+          onScroll={(e) => setScrollTop(e.currentTarget.scrollTop)}
           style={{ flex: 1, overflowY: "auto" }}
         >
           {filterError ? (
