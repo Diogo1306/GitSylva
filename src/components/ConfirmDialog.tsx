@@ -67,7 +67,7 @@ export function ConfirmDialog({ message, confirmLabel, onConfirm, onCancel }: Pr
         position: "fixed",
         inset: 0,
         zIndex: 60,
-        background: "rgba(0,0,0,0.5)",
+        background: "rgba(0,0,0,0.45)",
         display: "grid",
         placeItems: "center",
         animation: closing ? "fadeOut 180ms var(--ease-standard) both" : "fadeIn 0.15s ease both",
@@ -82,20 +82,20 @@ export function ConfirmDialog({ message, confirmLabel, onConfirm, onCancel }: Pr
         style={{
           background: "var(--win)",
           border: "1px solid var(--border)",
-          boxShadow: "var(--shadow-2)",
-          padding: "var(--sp-5)",
-          borderRadius: "var(--radius)",
+          boxShadow: "var(--shadow)",
+          padding: "var(--sp-8)",
+          borderRadius: "var(--r-card)",
           maxWidth: 380,
           display: "flex",
           flexDirection: "column",
-          gap: "var(--sp-4)",
+          gap: "var(--sp-6)",
           animation: closing
             ? "modalOut 180ms var(--ease-standard) both"
             : "popIn 0.2s var(--ease-pop) both",
         }}
       >
-        <div style={{ fontSize: 14, lineHeight: 1.5, color: "var(--text)" }}>{message}</div>
-        <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+        <div style={{ fontSize: "var(--fs-md)", lineHeight: "var(--lh-body)", color: "var(--text)" }}>{message}</div>
+        <div style={{ display: "flex", gap: "var(--sp-3)", justifyContent: "flex-end" }}>
           <Button ref={cancelRef} onClick={requestCancel}>{t("common.cancel")}</Button>
           <Button variant="primary" style={{ background: "var(--danger)", color: "var(--dangerT)" }} onClick={onConfirm}>
             {confirmLabel ?? t("components.confirm.discard")}
