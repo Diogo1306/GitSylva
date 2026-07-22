@@ -14,10 +14,7 @@ import {
 import { activateOnKeyDown } from "./keys";
 import { Tooltip } from "./Tooltip";
 
-// Accessible toolbar: role="toolbar" with real <button> children and roving
-// tabindex arrow navigation (WAI-ARIA toolbar pattern). Only ToolbarButton
-// children take part in roving; any other child (dividers, spacers) renders
-// untouched.
+// Accessible toolbar (WAI-ARIA pattern): role="toolbar", roving tabindex arrow nav over real <button> children only.
 
 const TOOLBAR_ITEM = "data-toolbar-item";
 
@@ -31,10 +28,7 @@ type ToolbarProps = {
 const isToolbarButton = (c: ReactNode): c is ReactElement<ButtonHTMLAttributes<HTMLButtonElement>> =>
   isValidElement(c) && c.type === ToolbarButton;
 
-// A ToolbarButton wrapped in <Tooltip> (Task 14: shortcut-hint on hover +
-// keyboard focus) is still a real toolbar item — unwrap one level so roving
-// tabindex/arrow-key navigation keeps managing the real <button> inside,
-// instead of losing it because it's no longer Toolbar's direct child.
+// A ToolbarButton wrapped in <Tooltip> is still a real toolbar item — unwrap one level so roving tabindex keeps reaching the <button>.
 function unwrapToolbarButton(c: ReactNode): ReactElement<ButtonHTMLAttributes<HTMLButtonElement>> | null {
   if (isToolbarButton(c)) return c;
   if (isValidElement(c) && c.type === Tooltip) {
@@ -138,9 +132,9 @@ export function ToolbarButton({ onClick, disabled, children, style, ...rest }: B
       style={{
         display: "grid",
         placeItems: "center",
-        width: 30,
-        height: 30,
-        borderRadius: "var(--radius-sm)",
+        width: "var(--h-btn)",
+        height: "var(--h-btn)",
+        borderRadius: "var(--r-btn)",
         background: "transparent",
         border: "none",
         color: "var(--btnT)",
