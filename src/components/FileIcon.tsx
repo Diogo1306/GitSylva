@@ -1,8 +1,6 @@
 import { iconFor, type FileGlyph } from "../lib/fileIcons";
 import { hexAlpha } from "../theme/themes";
 
-const mono = "'JetBrains Mono', monospace";
-
 // Small SVG glyphs for the types whose icon isn't letters. Drawn with
 // currentColor so the tile decides the tone.
 function Glyph({ kind }: { kind: FileGlyph }) {
@@ -48,13 +46,13 @@ export function FileIcon({ path, size = 16 }: { path: string; size?: number }) {
       style={{
         width: size,
         height: size,
-        borderRadius: 4,
+        borderRadius: "var(--r-xs)",
         background: hexAlpha(d.color, 0.16),
         color: d.color,
         display: "grid",
         placeItems: "center",
         flexShrink: 0,
-        fontFamily: mono,
+        fontFamily: "var(--font-mono)",
         fontWeight: 800,
         lineHeight: 1,
         fontSize: d.label && d.label.length > 1 ? size * 0.44 : size * 0.58,

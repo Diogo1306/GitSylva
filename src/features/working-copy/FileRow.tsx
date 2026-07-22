@@ -1,15 +1,38 @@
 import { useState } from "react";
 import { statusStyle, statusTitle } from "../../lib/status";
+import { StatusBadge, type FileStatus } from "../../components/ui/StatusBadge";
+import { CheckSquare } from "../../components/ui/misc";
+import { SelectableRow } from "../../components/ui/SelectableRow";
+import { activateOnKeyDown } from "../../components/ui/keys";
 import { FileIcon } from "../../components/FileIcon";
 import { useT } from "../../i18n";
 import type { FileChange } from "../../lib/types";
-
-const mono = "'JetBrains Mono', monospace";
 
 function splitPath(p: string): { name: string; dir: string } {
   const parts = p.split("/");
   const name = parts.pop() ?? p;
   return { name, dir: parts.join("/") };
+}
+
+function isBadgeStatus(s: string): s is FileStatus {
+  return s === "A" || s === "M" || s === "D" || s === "U";
+}
+
+// StatusBadge only covers A/M/D/U; git porcelain also reports R(enamed),
+// C(opied), T(ypechange) and ? (untracked) — those fall back to a badge-shaped
+// span built from the same tokens so it never crashes on a real repo.
+export function FileStatusMark({ letter }: { letter: string }) {
+  const title = statusTitle(letter);
+  if (isBadgeStatus(letter)) return <StatusBadge status={letter} title={title} />;
+  const st = statusStyle(letter);
+  return (
+    <span
+      title={title}
+      style={{ display: "grid", placeItems: "center", width: 16, height: 16, borderRadius: "var(--r-xs)", fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: "var(--fw-bold)", background: st.bg, color: st.color, flexShrink: 0 }}
+    >
+      {letter}
+    </span>
+  );
 }
 
 export function FileRow({
@@ -38,60 +61,56 @@ export function FileRow({
   onContext?: (x: number, y: number) => void;
 }) {
   const t = useT();
-  const st = statusStyle(letter);
   const { name, dir } = splitPath(file.path);
+  const toggleTitle = conflicted ? t("workingCopy.file.conflictedTitle") : checked ? t("workingCopy.file.unstageTitle") : t("workingCopy.file.stageTitle");
   // Frozen at mount: if the delay tracked the live index, staging a row above
   // would change this style and RESTART the entrance of every row below it.
   const [entranceDelay] = useState(() => Math.min(stagger * 22, 220));
   return (
-    <div
-      onClick={onSelect}
+    <SelectableRow
+      selected={selected}
+      onSelect={onSelect}
       onContextMenu={(e) => {
         e.preventDefault();
         onContext?.(e.clientX, e.clientY);
       }}
-      className="gs-row"
       style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 9,
-        padding: inFolder ? "6px 8px 6px 30px" : "7px 8px",
-        borderRadius: 8,
-        cursor: "pointer",
-        // Only set when selected — an inline "transparent" would beat the
-        // .gs-row:hover background and kill the hover entirely.
-        background: selected ? "var(--sel)" : undefined,
-        // Small per-row stagger, capped so long lists never feel sluggish.
-        animation: `fileIn 0.22s cubic-bezier(0.2, 0.9, 0.3, 1) ${entranceDelay}ms both`,
+        gap: "var(--sp-3)",
+        padding: inFolder ? "6px var(--sp-3) 6px 30px" : "7px var(--sp-3)",
+        animation: `fileIn 0.22s var(--ease-pop) ${entranceDelay}ms both`,
       }}
     >
-      <div
+      <button
+        type="button"
+        role="checkbox"
+        aria-checked={conflicted ? undefined : checked}
+        aria-label={toggleTitle}
+        disabled={conflicted}
         onClick={(e) => {
           e.stopPropagation();
           if (!conflicted) onToggle();
         }}
-        title={conflicted ? t("workingCopy.file.conflictedTitle") : checked ? t("workingCopy.file.unstageTitle") : t("workingCopy.file.stageTitle")}
-        style={
-          checked
-            ? { width: 17, height: 17, borderRadius: 5, background: "var(--accent)", flexShrink: 0, display: "grid", placeItems: "center", color: "var(--accentT)", fontSize: 11, fontWeight: 800, cursor: "pointer" }
-            : { width: 17, height: 17, borderRadius: 5, border: "1.5px solid var(--btnB)", boxSizing: "border-box", flexShrink: 0, cursor: "pointer" }
-        }
+        onKeyDown={(e) => {
+          // Stop the row's own Enter/Space activation (SelectableRow's
+          // onKeyDown) from also firing via bubbling; activate this button
+          // itself the same explicit way every other migrated control does.
+          e.stopPropagation();
+          activateOnKeyDown(e);
+        }}
+        title={toggleTitle}
+        className="gs-press-97"
+        style={{ display: "grid", placeItems: "center", padding: 0, border: "none", background: "transparent", flexShrink: 0, cursor: conflicted ? "default" : "pointer" }}
       >
-        {checked ? "✓" : ""}
-      </div>
+        <CheckSquare on={checked} />
+      </button>
       <FileIcon path={file.path} />
       <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
-        <span style={{ fontSize: 13, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name}</span>
+        <span style={{ fontSize: "var(--fs-sm)", color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name}</span>
         {dir && !inFolder && (
-          <span style={{ fontFamily: mono, fontSize: 10.5, color: "var(--muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{dir}</span>
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-label)", color: "var(--muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{dir}</span>
         )}
       </div>
-      <span
-        title={statusTitle(letter)}
-        style={{ fontFamily: mono, fontSize: 10.5, fontWeight: 700, color: st.color, width: 12, textAlign: "center", flexShrink: 0 }}
-      >
-        {letter}
-      </span>
-    </div>
+      <FileStatusMark letter={letter} />
+    </SelectableRow>
   );
 }

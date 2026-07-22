@@ -1,6 +1,7 @@
 import type { usePanelHeight } from "../../lib/usePanelWidth";
 import { groupFilesByFolder } from "../../lib/fileGroups";
 import { isConflict } from "../../lib/status";
+import { activateOnKeyDown } from "../../components/ui/keys";
 import { useT } from "../../i18n";
 import type { FileChange } from "../../lib/types";
 import { FileRow } from "./FileRow";
@@ -11,7 +12,26 @@ export type Ghost = { id: number; file: FileChange; letter: string; list: "u" | 
 
 function SectionHead({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: "1.2px", color: "var(--muted)", flex: 1 }}>{children}</div>
+    <div style={{ fontSize: "var(--fs-label)", fontWeight: "var(--fw-semibold)", letterSpacing: "var(--ls-label)", color: "var(--muted)", flex: 1 }}>{children}</div>
+  );
+}
+
+// Delicate text-link action (Stage all / Discard): a real Button would read too
+// heavy in this dense header row, so it stays a token-styled span with the
+// same keyboard activation every other migrated control here uses.
+function LinkAction({ children, color, disabled, onClick }: { children: React.ReactNode; color: string; disabled?: boolean; onClick: () => void }) {
+  return (
+    <span
+      role="button"
+      tabIndex={disabled ? -1 : 0}
+      aria-disabled={disabled || undefined}
+      onClick={disabled ? undefined : onClick}
+      onKeyDown={disabled ? undefined : activateOnKeyDown}
+      className="gs-row"
+      style={{ fontSize: "var(--fs-xs)", color, cursor: disabled ? "default" : "pointer", opacity: disabled ? 0.6 : 1, padding: "4px var(--sp-3)", borderRadius: "var(--r-sm)", fontWeight: "var(--fw-semibold)" }}
+    >
+      {children}
+    </span>
   );
 }
 
@@ -116,28 +136,16 @@ export function FileList({
       {/* R5.4: each list scrolls inside its own pane too, the split between
           the two is draggable. */}
       <div style={{ height: unstagedH.height, minHeight: 96, flexShrink: 0, display: "flex", flexDirection: "column" }}>
-        <div style={{ padding: "12px 16px 8px", display: "flex", alignItems: "center", flexShrink: 0 }}>
+        <div style={{ padding: "var(--sp-5) var(--sp-7) var(--sp-3)", display: "flex", alignItems: "center", flexShrink: 0 }}>
           <SectionHead>{t("workingCopy.unstagedSection")} · {unstaged.length}</SectionHead>
-          <div
-            onClick={() =>
-              // Double-click must not queue the same operation twice, and a
-              // failure has to surface (it was silent before).
-              !stageAllPending && onStageAll()
-            }
-            className="gs-row"
-            style={{ fontSize: 12, color: "var(--l0)", cursor: stageAllPending ? "default" : "pointer", opacity: stageAllPending ? 0.6 : 1, padding: "3px 8px", borderRadius: 6, fontWeight: 600 }}
-          >
+          <LinkAction color="var(--l0)" disabled={stageAllPending} onClick={onStageAll}>
             {stageAllPending ? t("workingCopy.staging") : t("workingCopy.stageAll")}
-          </div>
-          <div
-            onClick={onDiscardAllClick}
-            className="gs-row"
-            style={{ fontSize: 12, color: "var(--ddT)", cursor: unstaged.length ? "pointer" : "default", opacity: unstaged.length ? 1 : 0.5, padding: "3px 8px", borderRadius: 6, fontWeight: 600 }}
-          >
+          </LinkAction>
+          <LinkAction color="var(--ddT)" disabled={unstaged.length === 0} onClick={onDiscardAllClick}>
             {t("workingCopy.discard")}
-          </div>
+          </LinkAction>
         </div>
-        <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "0 10px 8px", display: "flex", flexDirection: "column", gap: 1 }}>
+        <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "0 var(--sp-4) var(--sp-3)", display: "flex", flexDirection: "column", gap: 1 }}>
           {fileList("u")}
         </div>
       </div>
@@ -147,16 +155,16 @@ export function FileList({
         {...unstagedH.handleProps}
         className="gs-resize"
         title={t("workingCopy.dragLists")}
-        style={{ height: 9, flexShrink: 0, cursor: "ns-resize", display: "flex", alignItems: "center", padding: "0 10px", touchAction: "none", boxSizing: "border-box" }}
+        style={{ height: 9, flexShrink: 0, cursor: "ns-resize", display: "flex", alignItems: "center", padding: "0 var(--sp-4)", touchAction: "none", boxSizing: "border-box" }}
       >
         <div style={{ height: 1, width: "100%", background: "var(--border)" }} />
       </div>
 
       <div style={{ flex: 1, minHeight: 96, display: "flex", flexDirection: "column" }}>
-        <div style={{ padding: "6px 16px 8px", display: "flex", alignItems: "center", flexShrink: 0 }}>
+        <div style={{ padding: "var(--sp-2) var(--sp-7) var(--sp-3)", display: "flex", alignItems: "center", flexShrink: 0 }}>
           <SectionHead>{t("workingCopy.stagedSection")} · {staged.length}</SectionHead>
         </div>
-        <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "0 10px 10px", display: "flex", flexDirection: "column", gap: 1 }}>
+        <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "0 var(--sp-4) var(--sp-4)", display: "flex", flexDirection: "column", gap: 1 }}>
           {fileList("s")}
         </div>
       </div>
