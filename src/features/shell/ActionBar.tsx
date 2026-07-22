@@ -11,7 +11,7 @@ import { useT, type TFunction } from "../../i18n";
 const mono = "'JetBrains Mono', monospace";
 
 function Divider() {
-  return <div style={{ width: 1, height: 22, background: "var(--border)", margin: "0 4px" }} />;
+  return <div style={{ width: 1, height: 22, background: "var(--border)", margin: "0 var(--sp-1)" }} />;
 }
 
 // A real toolbar button, styled to match the original pill look. Called as a
@@ -58,13 +58,13 @@ function actionButton({
           boxSizing: "border-box",
           display: "flex",
           alignItems: "center",
-          gap: 6,
+          gap: "var(--sp-2)",
           padding: "7px 13px",
-          borderRadius: 8,
+          borderRadius: "var(--r-btn)",
           background: "var(--btn)",
           border: "1px solid var(--btnB)",
-          fontSize: 12.5,
-          fontWeight: 600,
+          fontSize: "var(--fs-btn)",
+          fontWeight: "var(--fw-semibold)",
           color: "var(--btnT)",
           whiteSpace: "nowrap",
           opacity: soon ? 0.6 : 1,
@@ -98,13 +98,13 @@ export function ActionBar() {
     <Toolbar
       ariaLabel={t("shell.actionBar.aria")}
       style={{
-        height: 54,
+        height: "var(--h-actionbar)",
         flexShrink: 0,
         borderTop: "1px solid var(--border)",
         background: "var(--panel)",
         alignItems: "center",
-        gap: 6,
-        padding: "0 14px",
+        gap: "var(--sp-2)",
+        padding: "0 var(--sp-6)",
         // Narrow windows scroll the bar instead of clipping actions away.
         overflowX: "auto",
         overflowY: "hidden",
@@ -125,11 +125,11 @@ export function ActionBar() {
           visible in the Sidebar/Titlebar — hide it first at narrow widths so
           the primary action buttons above get the room instead. */}
       {!bp.hideSecondary && (
-        <div style={{ display: "flex", alignItems: "center", gap: 10, fontFamily: mono, fontSize: 11.5, color: "var(--muted)", whiteSpace: "nowrap" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "var(--sp-4)", fontFamily: mono, fontSize: "var(--fs-2xs)", color: "var(--muted)", whiteSpace: "nowrap" }}>
           <span>
             {repoName}
             <span style={{ color: "var(--muted)" }}> / </span>
-            <span style={{ color: "var(--l0)", fontWeight: 600 }}>{repo.current_branch}</span>
+            <span style={{ color: "var(--l0)", fontWeight: "var(--fw-semibold)" }}>{repo.current_branch}</span>
           </span>
           <span title={t("shell.actionBar.commitsToPush")}>↑{ahead}</span>
           <span title={t("shell.actionBar.commitsToPull")}>↓{behind}</span>
