@@ -1,10 +1,7 @@
 import type { CSSProperties, HTMLAttributes, KeyboardEvent, ReactNode } from "react";
 import { activateOnKeyDown } from "./keys";
 
-// Accessible replacement for `<div onClick>` rows: a real focusable element
-// with role="button" (a plain action row) or role="option" (inside a
-// role="listbox" container), Enter/Space activation and a visible focus ring
-// via the shared :focus-visible rule in tokens.css.
+// Accessible replacement for `<div onClick>` rows: role="button" or role="option" (inside a listbox), Enter/Space activation, shared focus ring.
 
 type Role = "button" | "option";
 
@@ -57,8 +54,8 @@ export function SelectableRow(props: SelectableRowProps) {
         alignItems: "center",
         gap: "var(--sp-2)",
         padding: "7px 10px",
-        borderRadius: "var(--radius-sm)",
-        fontSize: 13.5,
+        borderRadius: "var(--r-btn)",
+        fontSize: "var(--fs-base)",
         ...props.style,
       }}
     />
@@ -75,10 +72,10 @@ export function SelectableCard(props: SelectableRowProps) {
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
-        gap: 6,
-        padding: 14,
+        gap: "var(--sp-2)",
+        padding: "var(--sp-6)",
         border: `2px solid ${props.selected ? "var(--accent)" : "var(--btnB)"}`,
-        borderRadius: "var(--radius)",
+        borderRadius: "var(--r-win)",
         background: "var(--win)",
         ...props.style,
       }}
