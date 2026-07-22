@@ -1,8 +1,7 @@
-import { SectionTitle, FieldLabel, Hint } from "./_shared";
+import { SectionTitle, FieldLabel, Hint, ToggleRow } from "./_shared";
 import { toast } from "../../../state/toastStore";
 import { notify } from "../../../state/notificationStore";
 import { useThemeStore } from "../../../state/themeStore";
-import { Toggle } from "../../../components/ui/misc";
 import { Button } from "../../../components/ui/Button";
 import { useT } from "../../../i18n";
 
@@ -11,39 +10,27 @@ import { useT } from "../../../i18n";
 export function Notifications() {
   const t = useT();
   const prefs = useThemeStore();
-  const row = (label: string, hint: string, key: "notifPush" | "notifFetch" | "notifConflicts") => (
-    <div
-      onClick={() => prefs.savePrefs({ [key]: !prefs[key] })}
-      className="gs-row"
-      style={{ display: "flex", alignItems: "center", gap: 12, padding: "9px 12px", borderRadius: 9, cursor: "pointer", border: "1px solid var(--border)", background: "var(--panel)" }}
-    >
-      <div style={{ flex: 1 }}>
-        <div style={{ fontSize: 13.5, fontWeight: 600 }}>{label}</div>
-        <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 2 }}>{hint}</div>
-      </div>
-      <Toggle on={prefs[key]} aria-label={label} />
-    </div>
-  );
 
   return (
     <div id="set-notificacoes" style={{ display: "flex", flexDirection: "column", gap: 14, scrollMarginTop: 20 }}>
       <SectionTitle>{t("settings.notifications.title")}</SectionTitle>
       <Hint>{t("settings.notifications.intro")}</Hint>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-        {row(t("settings.notifications.pushPull"), t("settings.notifications.pushPullHint"), "notifPush")}
-        {row(t("settings.notifications.fetch"), t("settings.notifications.fetchHint"), "notifFetch")}
-        {row(t("settings.notifications.conflicts"), t("settings.notifications.conflictsHint"), "notifConflicts")}
+      <div style={{ display: "flex", flexDirection: "column" }}>
+        <ToggleRow label={t("settings.notifications.pushPull")} hint={t("settings.notifications.pushPullHint")} on={prefs.notifPush} onToggle={() => prefs.savePrefs({ notifPush: !prefs.notifPush })} />
+        <ToggleRow label={t("settings.notifications.fetch")} hint={t("settings.notifications.fetchHint")} on={prefs.notifFetch} onToggle={() => prefs.savePrefs({ notifFetch: !prefs.notifFetch })} />
+        <ToggleRow label={t("settings.notifications.conflicts")} hint={t("settings.notifications.conflictsHint")} on={prefs.notifConflicts} onToggle={() => prefs.savePrefs({ notifConflicts: !prefs.notifConflicts })} />
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         <FieldLabel>{t("settings.notifications.whereShow")}</FieldLabel>
-        <div style={{ display: "inline-flex", gap: 4, padding: 4, borderRadius: 10, background: "var(--panel2)", border: "1px solid var(--border)", alignSelf: "flex-start" }}>
-          <div style={{ padding: "6px 16px", borderRadius: 7, fontSize: 13, fontWeight: 600, background: "var(--win)", color: "var(--text)" }}>{t("settings.notifications.inApp")}</div>
+        {/* Not a real Segmented: the 2nd slot is a disabled "coming soon" placeholder, not a selectable value. Same track chrome as Segmented for visual consistency. */}
+        <div style={{ display: "inline-flex", gap: 4, padding: 4, borderRadius: "var(--r-lg)", background: "var(--panel2)", border: "1px solid var(--border)", alignSelf: "flex-start" }}>
+          <div style={{ padding: "6px 16px", borderRadius: "var(--r-md)", fontSize: "var(--fs-sm)", fontWeight: "var(--fw-semibold)", background: "var(--win)", color: "var(--text)" }}>{t("settings.notifications.inApp")}</div>
           <div
             title={t("settings.notifications.systemUnavailable")}
             aria-disabled="true"
-            style={{ padding: "6px 16px", borderRadius: 7, fontSize: 13, fontWeight: 600, color: "var(--muted)", opacity: 0.55, cursor: "default" }}
+            style={{ padding: "6px 16px", borderRadius: "var(--r-md)", fontSize: "var(--fs-sm)", fontWeight: "var(--fw-semibold)", color: "var(--muted)", opacity: 0.55, cursor: "default" }}
           >
             {t("settings.notifications.systemSoon")}
           </div>
