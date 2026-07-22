@@ -1,6 +1,8 @@
+import { Textarea } from "../../components/ui/Input";
+import { Button } from "../../components/ui/Button";
+import { CheckSquare } from "../../components/ui/misc";
+import { activateOnKeyDown } from "../../components/ui/keys";
 import { useT } from "../../i18n";
-
-const mono = "'JetBrains Mono', monospace";
 
 export function CommitBox({
   msg,
@@ -29,59 +31,36 @@ export function CommitBox({
 }) {
   const t = useT();
   return (
-    <div style={{ padding: 14, borderTop: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 10, background: "var(--panel)", flexShrink: 0 }}>
-      <textarea
-        value={msg}
-        onChange={(e) => setMsg(e.target.value)}
-        placeholder={t("workingCopy.commitPlaceholder")}
-        style={{
-          height: 64,
-          resize: "none",
-          background: "var(--input)",
-          border: "1px solid var(--btnB)",
-          borderRadius: 9,
-          padding: "10px 12px",
-          fontSize: 13,
-          color: "var(--text)",
-          outline: "none",
-          fontFamily: "var(--font)",
-          boxSizing: "border-box",
-        }}
-      />
-      {commitErr && <div style={{ color: "var(--ddT)", fontSize: 12.5 }}>{commitErr}</div>}
-      <div onClick={onToggleAmend} style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 12.5, color: "var(--text2)" }}>
-        <span style={{ width: 15, height: 15, borderRadius: 4, border: "1.5px solid var(--btnB)", boxSizing: "border-box", display: "grid", placeItems: "center", background: amend ? "var(--accent)" : "transparent", color: "var(--accentT)", fontSize: 10, fontWeight: 800 }}>
-          {amend ? "✓" : ""}
-        </span>
+    <div style={{ padding: "var(--sp-6)", borderTop: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: "var(--sp-4)", background: "var(--panel)", flexShrink: 0 }}>
+      <Textarea value={msg} onChange={(e) => setMsg(e.target.value)} placeholder={t("workingCopy.commitPlaceholder")} style={{ height: 64 }} />
+      {commitErr && <div style={{ color: "var(--ddT)", fontSize: "var(--fs-btn)" }}>{commitErr}</div>}
+      <div
+        role="checkbox"
+        aria-checked={amend}
+        tabIndex={0}
+        onClick={onToggleAmend}
+        onKeyDown={activateOnKeyDown}
+        className="gs-row"
+        style={{ display: "flex", alignItems: "center", gap: "var(--sp-3)", cursor: "pointer", fontSize: "var(--fs-btn)", color: "var(--text2)", padding: "var(--sp-1) var(--sp-2)", borderRadius: "var(--r-sm)" }}
+      >
+        <CheckSquare on={amend} />
         <span>{t("workingCopy.amendLabel")}</span>
       </div>
       {amendPushed && (
-        <div style={{ fontSize: 11.5, color: "var(--stMT)", lineHeight: 1.4 }}>
+        <div style={{ fontSize: "var(--fs-2xs)", color: "var(--stMT)", lineHeight: "var(--lh-body)" }}>
           {t("workingCopy.amendPushedWarning")}
         </div>
       )}
-      <div
-        onClick={() => commitReady && !committing && onCommit()}
-        className="gs-press"
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: 8,
-          padding: 10,
-          borderRadius: 9,
-          background: commitReady ? "var(--accent)" : "var(--btn)",
-          color: commitReady ? "var(--accentT)" : "var(--muted)",
-          border: commitReady ? "none" : "1px solid var(--btnB)",
-          fontSize: 13.5,
-          fontWeight: 700,
-          cursor: commitReady ? "pointer" : "default",
-          opacity: committing ? 0.7 : 1,
-        }}
+      <Button
+        variant={commitReady ? "primary" : "secondary"}
+        disabled={!commitReady || committing}
+        loading={committing}
+        onClick={onCommit}
+        style={{ width: "100%", padding: "var(--sp-4)", fontSize: "var(--fs-base)" }}
       >
         {committing ? t("workingCopy.committing") : amend ? t("workingCopy.amendCommit") : t("workingCopy.commitTo", { branch })}
-        <span style={{ fontFamily: mono, fontWeight: 500, opacity: 0.75 }}>· {t("workingCopy.filesShort", { count: stagedCount })}</span>
-      </div>
+        <span style={{ fontFamily: "var(--font-mono)", fontWeight: "var(--fw-medium)", opacity: 0.75 }}>· {t("workingCopy.filesShort", { count: stagedCount })}</span>
+      </Button>
     </div>
   );
 }
