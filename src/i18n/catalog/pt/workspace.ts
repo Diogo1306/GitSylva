@@ -26,6 +26,7 @@ export const ptWorkspace = {
   "history.detail.noTextChanges": "Sem alterações textuais.",
   "history.detail.hidePanel": "Esconder o painel de detalhe/diff",
   "history.detail.showPanel": "Mostrar o painel de detalhe/diff",
+  "history.detail.diffToggle": "Diff",
 
   // ── filter bar ─────────────────────────────────────────────────────────────
   "history.filter.label": "Filtrar commits",

@@ -1,12 +1,14 @@
 // Large-diff protections: paged rendering, backend-cap marker handling and
 // the highlight limits. These are the guards against the 4–6s single-task
 // freezes measured with 50k-line patches.
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { render, fireEvent, cleanup } from "@testing-library/react";
 
 // No global setup file: unmount between tests so queries (scoped to
 // document.body) never see a previous test's tree.
 afterEach(cleanup);
+// The diff mode toggle persists to sessionStorage; start each test clean.
+beforeEach(() => sessionStorage.removeItem("gitsylva-diff-mode"));
 import { DiffView } from "./DiffView";
 import { DIFF_PAGE_LINES, TRUNCATED_MARKER } from "../lib/diffLimits";
 
@@ -52,5 +54,26 @@ describe("DiffView paging", () => {
     const { queryAllByText } = render(<DiffView patch={patch} onStageHunk={onStage} stageLabel="Preparar" />);
     // Single hunk, cut by paging: no stage button may appear for it.
     expect(queryAllByText("Preparar")).toHaveLength(0);
+  });
+});
+
+describe("DiffView unified/split toggle is keyboard-operable", () => {
+  it("renders both modes as real, focusable buttons with aria-pressed state", () => {
+    const { getByRole } = render(<DiffView patch={makePatch(5)} />);
+    const unified = getByRole("button", { name: "Unificado" });
+    const split = getByRole("button", { name: "Lado a lado" });
+    expect(unified.getAttribute("aria-pressed")).toBe("true");
+    expect(split.getAttribute("aria-pressed")).toBe("false");
+  });
+
+  it("switches mode on click and on Enter/Space", () => {
+    const { getByRole, container } = render(<DiffView patch={makePatch(5)} />);
+    const split = getByRole("button", { name: "Lado a lado" });
+    fireEvent.click(split);
+    expect(split.getAttribute("aria-pressed")).toBe("true");
+    expect(container.querySelector('[style*="grid-template-columns"]')).toBeTruthy();
+
+    fireEvent.keyDown(getByRole("button", { name: "Unificado" }), { key: "Enter" });
+    expect(getByRole("button", { name: "Unificado" }).getAttribute("aria-pressed")).toBe("true");
   });
 });

@@ -25,6 +25,7 @@ export const enWorkspace: Record<WorkspaceKey, MessageValue> = {
   "history.detail.noTextChanges": "No text changes.",
   "history.detail.hidePanel": "Hide the detail/diff panel",
   "history.detail.showPanel": "Show the detail/diff panel",
+  "history.detail.diffToggle": "Diff",
 
   // ── filter bar ─────────────────────────────────────────────────────────────
   "history.filter.label": "Filter commits",

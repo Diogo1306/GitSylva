@@ -31,11 +31,9 @@ import { FilterBar } from "./FilterBar";
 
 const ROW_H = 52;
 
-// Above this many rows the list renders in a window (uniform row height →
-// simple math). Measured: 2000 commits fully rendered = 2000 divs + 11.6k SVG
-// elements (~1.6MB of markup) living in one 104k-px-tall layer — scroll and
-// selection paid for all of it. Below the threshold everything renders (and
-// the entrance animation, capped at 120, still plays).
+// Above this many rows the list windows (uniform row height, simple math).
+// Measured: 2000 commits fully rendered = 2000 divs + 11.6k SVG elements
+// (~1.6MB) in one 104k-px layer — costly. Below the cutoff everything renders.
 const VIRTUAL_MIN = 300;
 const OVERSCAN = 10;
 
@@ -47,7 +45,7 @@ export function History() {
   const { data, isLoading, error, isFetching } = useLog(repo.path, limit);
   const rewrite = useRewriteActions(repo.path);
   const [selectedHash, setSelectedHash] = useState<string | null>(null);
-  // Task 11: filters compose over the free-text search (`filters.text`).
+  // Filters compose over the free-text search (`filters.text`).
   const [filters, setFilters] = useState<HistoryFilters>(EMPTY_HISTORY_FILTERS);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const branches = useBranches(repo.path);
@@ -68,8 +66,7 @@ export function History() {
   // Settings → Aparência → Densidade (handoff: conforto 52 / compacta 40).
   const density = useThemeStore((s) => s.density);
   const rowH = density === "compacta" ? 40 : ROW_H;
-  // Persisted (R5.10): closing the diff used to reset every time the screen
-  // remounted; now the choice sticks, and the header button shows the state.
+  // Persisted (R5.10): the diff panel's open/closed choice survives remounts.
   const [detailOpen, setDetailOpenState] = useState(() => localStorage.getItem("gitsylva-history-detail") !== "off");
   // R5.16: hide plays a short exit animation before the panel unmounts.
   const [detailClosing, setDetailClosing] = useState(false);
@@ -100,25 +97,23 @@ export function History() {
     setDetailClosing(false);
     setDetailOpenState(true);
   };
-  // Design: detail panel resizable 300–560, persisted; dragging well past the
-  // minimum minimizes it (R5.13), same as the header button.
+  // Resizable 300–560, persisted; dragging well past the minimum minimizes it
+  // (R5.13), same as the header button.
   const detailW = usePanelWidth("gitsylva-w-detail", 372, 300, 560, "left", collapseDetail);
-  // R5.9: the detail/diff panel can sit beside the list (default) or below it
-  // (SourceTree style); the handle sits ABOVE the bottom panel, so drag down
-  // shrinks and keeps shrinking into a collapse.
+  // R5.9: the panel sits beside the list (default) or below it (SourceTree
+  // style); the drag handle sits above the bottom panel so drag-down shrinks
+  // into a collapse.
   const storedBelow = useThemeStore((s) => s.historyLayout) === "baixo";
-  // Task 6: at the window minimum there isn't room for the detail panel
-  // beside the list, so width forces "below" too — a responsive OVERRIDE
-  // layered on top of the stored preference, never a write to it (the user's
-  // explicit choice survives resizing back up).
+  // At the window minimum there's no room beside the list, so width forces
+  // "below" too — a responsive override layered on the stored preference,
+  // never written back (survives resizing back up).
   const bp = useBreakpoint();
   const below = storedBelow || bp.historyStacked;
   const detailH = usePanelHeight("gitsylva-h-history-detail", 340, 160, 720, "top", collapseDetail);
 
-  // A focused commit (palette pick or a branch click in the sidebar) deeper
-  // than the loaded window grows the window instead of silently selecting the
-  // first row (derive-on-change, render phase). Capped so an unreachable hash
-  // can't grow the log forever.
+  // A focused commit deeper than the loaded window grows the window instead
+  // of silently selecting row 0 (derive-on-change); capped so an unreachable
+  // hash can't grow the log forever.
   {
     const loaded = data ?? [];
     if (
@@ -132,16 +127,11 @@ export function History() {
     }
   }
 
-  // Proactively load the rest of the history (up to the cap) right after the
-  // first page, WITHOUT waiting for the user to scroll to the bottom. This is
-  // what keeps every lane's line — main especially — already connected to its
-  // parent before it scrolls into view: the user never reaches a truncated
-  // boundary and sees a line fade out. The continuation fade is then reserved
-  // for the true end (a root commit, or the 2000 cap on a huge repo). It steps
-  // up after each page settles (the !isFetching guard) and stops once the repo
-  // is fully loaded (a short page: loaded.length < limit) or the cap is hit.
-  // Render-phase derive-on-change, not an effect (setState in effects is
-  // disallowed by lint here), same pattern as the focus-commit growth above.
+  // Proactively load the rest of the history (up to the 2000 cap) right after
+  // the first page, without waiting for scroll: every lane stays connected to
+  // its parent before it scrolls into view, so the continuation fade is only
+  // ever seen at the true end. Render-phase derive-on-change, same pattern as
+  // the focus-commit growth above.
   {
     const loaded = data ?? [];
     if (!isFetching && !hasActiveFilters(filters) && loaded.length >= limit && limit < 2000) {
@@ -156,8 +146,7 @@ export function History() {
     if (st.focusCommit) st.setFocusCommit(null);
   }, []);
 
-  // Stable handler so the memo() around CommitRow actually holds: without it,
-  // selecting a commit re-rendered every row in the list.
+  // Stable handler so memo() around CommitRow holds — else every row re-renders on select.
   const onContext = useCallback((hash: string, x: number, y: number) => setMenu({ hash, x, y }), []);
 
   // Arrow-key navigation between commits (kept in a ref so the listener binds once).
@@ -185,23 +174,19 @@ export function History() {
 
   const commits = useMemo(() => data ?? [], [data]);
   const rows = useMemo(() => graphRows(commits), [commits]);
-  // The text gutter follows the widest lane (graph audit): with all branches
-  // in the log, busy repos need more than the old fixed 96px.
+  // The text gutter follows the widest lane: busy repos need more than a fixed 96px.
   const gutter = useMemo(() => {
     const maxLane = rows.reduce((m, r) => Math.max(m, r.lane), 0);
     return Math.min(96 + Math.max(0, maxLane - 3) * 18, 96 + 9 * 18);
   }, [rows]);
 
-  // Branch/path filters need data the loaded window doesn't carry (branch
-  // reachability, per-commit changed files) — resolved as hash sets by a
-  // small dedicated backend query (see historyFilters.ts's module doc and
-  // get_branch_commits/get_path_commits in src-tauri/src/git/log.rs). Both
-  // are disabled (no request) when their filter isn't active.
+  // Branch/path filters need data the window doesn't carry (reachability,
+  // changed files) — resolved as hash sets via a dedicated backend query
+  // (historyFilters.ts, get_branch_commits/get_path_commits); disabled when inactive.
   const branchCommits = useBranchCommits(repo.path, filters.branch, limit);
   const pathCommits = usePathCommits(repo.path, filters.path.trim(), limit);
-  // `undefined` = still resolving (matchesFilters treats that as "don't
-  // exclude"); an error also resolves to an empty set rather than silently
-  // showing every commit, so a broken branch/path filter never lies.
+  // undefined = still resolving; an error resolves to an empty set rather
+  // than silently showing every commit.
   const branchHashes = useMemo(() => {
     if (!filters.branch) return undefined;
     if (branchCommits.data) return new Set(branchCommits.data);
@@ -212,13 +197,10 @@ export function History() {
     if (pathCommits.data) return new Set(pathCommits.data);
     return pathCommits.isError ? new Set<string>() : undefined;
   }, [filters.path, pathCommits.data, pathCommits.isError]);
-  // True while a branch/path filter is active but its membership hasn't
-  // resolved yet — the list is hidden behind a loading row instead of
-  // rendering with that dimension silently unfiltered.
+  // True while an active branch/path filter's membership hasn't resolved yet
+  // — a loading row stands in instead of rendering silently unfiltered.
   const resolving = (filters.branch !== "" && !branchHashes) || (filters.path.trim() !== "" && !pathHashes);
-  // A backend error resolving branch/path membership must surface as an
-  // error, not blend into "zero results" (that would read as "this branch
-  // has no commits", which is a different — and wrong — claim).
+  // A resolution error must surface as an error, not blend into "zero results".
   const filterError = filters.branch !== "" && branchCommits.isError ? "branch" : filters.path.trim() !== "" && pathCommits.isError ? "path" : null;
 
   const filtering = hasActiveFilters(filters);
@@ -233,8 +215,8 @@ export function History() {
   });
 
   // ── List windowing ────────────────────────────────────────────────────────
-  // Callback-ref state: the scroll container appears only after loading, so a
-  // plain useRef + [] effect would observe nothing.
+  // Callback-ref: the scroll container only appears after loading, so a plain
+  // useRef + [] effect would observe nothing.
   const [scrollEl, setScrollEl] = useState<HTMLDivElement | null>(null);
   const [viewH, setViewH] = useState(0);
   const [scrollTop, setScrollTop] = useState(0);
@@ -251,9 +233,9 @@ export function History() {
   const endIdx = virtual ? Math.min(filtered.length - 1, Math.ceil((scrollTop + viewH) / rowH) + OVERSCAN) : filtered.length - 1;
   const visibleCommits = virtual ? filtered.slice(startIdx, endIdx + 1) : filtered;
 
-  // Keep the selected row visible when the SELECTION changes (keyboard nav,
-  // palette jump). An element-level scrollIntoView ref would re-fire on every
-  // remount in windowed mode and hijack the user's scroll.
+  // Keep the selected row visible on selection change (keyboard nav, palette
+  // jump) — a plain scrollIntoView ref would re-fire on every remount in
+  // windowed mode and hijack the user's scroll.
   const lastScrolledTo = useRef<string | null>(null);
   useEffect(() => {
     if (!scrollEl || !selected) return;
@@ -269,14 +251,10 @@ export function History() {
       scrollEl.scrollTo({ top: top + rowH - scrollEl.clientHeight });
   });
 
-  // (Preloading is handled proactively in the render-phase block above, so the
-  // history loads to completion without waiting for the user to scroll.)
-
-  // Only the TRUE first load (no data yet) may replace the view. On "load
-  // more" the query key changes (limit is part of it), so react-query reports
-  // isLoading=true during the placeholder phase even though placeholderData is
-  // still serving the previous page — gating on that here blanked the whole
-  // list until the bigger page arrived (the "everything disappears" bug).
+  // Only the TRUE first load (no data yet) may replace the view: on "load
+  // more" react-query reports isLoading=true again during the placeholder
+  // phase even though the previous page is still showing — gating on that
+  // alone blanked the whole list ("everything disappears" bug).
   if (isLoading && commits.length === 0) return <div style={{ padding: 16, color: "var(--muted)" }}>{t("history.loading")}</div>;
   if (error) return <div style={{ padding: 16, color: "var(--ddT)" }}>{errMsg(error, t("history.readError"))}</div>;
   if (commits.length === 0) return <div style={{ padding: 16, color: "var(--muted)" }}>{t("history.noCommits")}</div>;
@@ -298,13 +276,9 @@ export function History() {
 
         <div
           ref={setScrollEl}
-          // Track scrollTop ALWAYS, not only in virtual mode: when the list
-          // crosses VIRTUAL_MIN (e.g. "load more" grows it past 300 while the
-          // user has already scrolled down), the windowing must compute from
-          // the real scroll position. Wiring this only in virtual mode left
-          // scrollTop stale at 0 through the transition, so the window rendered
-          // rows at the top while the container sat scrolled down — a blank
-          // gap until the next scroll "tidied it up".
+          // Track scrollTop always, not only in virtual mode: the list can
+          // cross VIRTUAL_MIN mid-session, and windowing must compute from
+          // the real (possibly already-scrolled) position, not a stale 0.
           onScroll={(e) => setScrollTop(e.currentTarget.scrollTop)}
           style={{ flex: 1, overflowY: "auto" }}
         >
@@ -318,9 +292,7 @@ export function History() {
               </Button>
             </div>
           ) : resolving ? (
-            // A branch/path filter is active but its backend-resolved hash
-            // set hasn't arrived yet — showing the list now would mean that
-            // dimension is silently unfiltered, so a loading row stands in.
+            // A branch/path filter's hash set hasn't resolved yet — a loading row stands in.
             <div style={{ padding: "48px 24px", textAlign: "center", color: "var(--muted)", fontSize: 13 }}>{t("history.filter.applying")}</div>
           ) : filtering && filtered.length === 0 ? (
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12, padding: "56px 24px" }}>
@@ -331,10 +303,9 @@ export function History() {
             </div>
           ) : (
             <>
-              {/* In windowed mode the spacer keeps the real scroll height and
-                  the rows are absolutely positioned inside it; the graph
-                  overlay is full-height either way, emitting only the
-                  visible range. */}
+              {/* Windowed mode: the spacer keeps the real scroll height, rows
+                  are absolutely positioned inside it, and the graph overlay
+                  stays full-height but only emits the visible range. */}
               <div style={{ position: "relative", height: virtual ? filtered.length * rowH : undefined }}>
                 {!filtering && (
                   <div style={{ position: "absolute", left: 14, top: 0, pointerEvents: "none" }}>
@@ -390,9 +361,7 @@ export function History() {
         </div>
       </div>
 
-      {/* The header "Diff" button is the single show/hide control (R5.11 —
-          the old floating arrow sat on top of the commit-hash chip). Entrance
-          and exit are short slides so the toggle never feels jarring. */}
+      {/* The header "Diff" button is the single show/hide control (R5.11); entrance/exit are short slides. */}
       {(detailOpen || detailClosing) && (
         <>
           {below && (
