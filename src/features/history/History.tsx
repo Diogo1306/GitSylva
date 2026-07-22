@@ -132,6 +132,23 @@ export function History() {
     }
   }
 
+  // Proactively load the rest of the history (up to the cap) right after the
+  // first page, WITHOUT waiting for the user to scroll to the bottom. This is
+  // what keeps every lane's line — main especially — already connected to its
+  // parent before it scrolls into view: the user never reaches a truncated
+  // boundary and sees a line fade out. The continuation fade is then reserved
+  // for the true end (a root commit, or the 2000 cap on a huge repo). It steps
+  // up after each page settles (the !isFetching guard) and stops once the repo
+  // is fully loaded (a short page: loaded.length < limit) or the cap is hit.
+  // Render-phase derive-on-change, not an effect (setState in effects is
+  // disallowed by lint here), same pattern as the focus-commit growth above.
+  {
+    const loaded = data ?? [];
+    if (!isFetching && !hasActiveFilters(filters) && loaded.length >= limit && limit < 2000) {
+      setLimit(Math.min(2000, limit + 800));
+    }
+  }
+
   // Selecting a commit locally also clears any pending palette focus request.
   const selectHash = useCallback((hash: string) => {
     setSelectedHash(hash);
@@ -221,9 +238,6 @@ export function History() {
   const [scrollEl, setScrollEl] = useState<HTMLDivElement | null>(null);
   const [viewH, setViewH] = useState(0);
   const [scrollTop, setScrollTop] = useState(0);
-  // Preload sentinel (the "load more" row): observed below so the next page
-  // loads BEFORE it scrolls into view.
-  const [sentinel, setSentinel] = useState<HTMLElement | null>(null);
   useEffect(() => {
     if (!scrollEl) return;
     // ResizeObserver fires once on observe — no synchronous measure needed.
@@ -255,31 +269,8 @@ export function History() {
       scrollEl.scrollTo({ top: top + rowH - scrollEl.clientHeight });
   });
 
-  // ── Preload ahead ─────────────────────────────────────────────────────────
-  // Grow the window BEFORE the user reaches the bottom, so a lane's line is
-  // already connected to its parent by the time it scrolls into view — no
-  // truncation flash, no manual click needed. Appending older commits is
-  // stable (a row's lane depends only on rows above it), so a grow only
-  // completes truncated edges and adds rows below; it never reshuffles what is
-  // already on screen. The `isFetching` guard keeps it to one page at a time.
-  const growRef = useRef({ limit, isFetching, full: commits.length >= limit, filtering: hasActiveFilters(filters) });
-  useEffect(() => {
-    growRef.current = { limit, isFetching, full: commits.length >= limit, filtering: hasActiveFilters(filters) };
-  });
-  useEffect(() => {
-    if (!sentinel || !scrollEl) return;
-    const io = new IntersectionObserver(
-      (entries) => {
-        if (!entries.some((e) => e.isIntersecting)) return;
-        const g = growRef.current;
-        if (g.isFetching || !g.full || g.filtering || g.limit >= 2000) return;
-        setLimit((l) => Math.min(2000, l + 400));
-      },
-      { root: scrollEl, rootMargin: "1200px 0px" },
-    );
-    io.observe(sentinel);
-    return () => io.disconnect();
-  }, [sentinel, scrollEl]);
+  // (Preloading is handled proactively in the render-phase block above, so the
+  // history loads to completion without waiting for the user to scroll.)
 
   // Only the TRUE first load (no data yet) may replace the view. On "load
   // more" the query key changes (limit is part of it), so react-query reports
@@ -374,7 +365,6 @@ export function History() {
               {/* When the log filled the window, there are probably older commits. */}
               {!filtering && commits.length >= limit && (
                 <button
-                  ref={setSentinel}
                   type="button"
                   onClick={() => !isFetching && setLimit((l) => l + 200)}
                   className="gs-row"
