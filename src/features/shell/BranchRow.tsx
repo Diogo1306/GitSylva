@@ -1,10 +1,11 @@
 import { Input } from "../../components/ui/Input";
 import { SelectableRow } from "../../components/ui/SelectableRow";
+import { Badge } from "../../components/ui/misc";
 import { activateOnKeyDown } from "../../components/ui/keys";
 import { useT } from "../../i18n";
 import type { BranchInfo } from "../../lib/types";
 
-const mono = "'JetBrains Mono', monospace";
+const mono = "var(--font-mono)";
 
 // Rows in the branches section (branch rows and folder-toggle headers) carry
 // this marker class so ArrowDown/ArrowUp can walk between whatever is
@@ -85,10 +86,10 @@ export function BranchRow({
       style={{
         gap: 9,
         padding: indent ? "6px 10px 6px 25px" : "6px 10px",
-        fontSize: 13,
+        fontSize: "var(--fs-sm)",
         fontFamily: mono,
-        color: b.is_current ? "var(--l0)" : "var(--text2)",
-        fontWeight: b.is_current ? 600 : 400,
+        color: b.is_current ? "var(--text)" : "var(--text2)",
+        fontWeight: b.is_current ? "var(--fw-semibold)" : "var(--fw-regular)",
         // Selection accent (Task 8): a lateral bar distinct from the
         // is_current dot/halo below — a branch can be selected without
         // being the checked-out branch, and vice versa.
@@ -119,7 +120,7 @@ export function BranchRow({
             if (e.key === "Enter" && renameVal.trim()) onRenameCommit(renameVal.trim());
           }}
           onBlur={onRenameCancel}
-          style={{ flex: 1, minWidth: 0, padding: "3px 7px", fontSize: 12.5 }}
+          style={{ flex: 1, minWidth: 0, padding: "3px 7px", fontSize: "var(--fs-btn)" }}
         />
       ) : (
         <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{display}</span>
@@ -127,13 +128,13 @@ export function BranchRow({
       {/* Ahead/behind the upstream (R5.8): work to push shows ↑n, work to
           pull shows ↓n — visible per branch, not only for the current one. */}
       {!isRenaming && b.ahead > 0 && (
-        <span title={t("shell.branch.aheadTitle", { count: b.ahead })} style={{ fontFamily: mono, fontSize: 10, fontWeight: 700, background: "var(--accent)", color: "var(--accentT)", borderRadius: 999, padding: "0 6px", flexShrink: 0 }}>
-          ↑{b.ahead}
+        <span title={t("shell.branch.aheadTitle", { count: b.ahead })} style={{ flexShrink: 0 }}>
+          <Badge accent>↑{b.ahead}</Badge>
         </span>
       )}
       {!isRenaming && b.behind > 0 && (
-        <span title={t("shell.branch.behindTitle", { count: b.behind })} style={{ fontFamily: mono, fontSize: 10, fontWeight: 700, background: "var(--badge)", color: "var(--badgeT)", borderRadius: 999, padding: "0 6px", flexShrink: 0 }}>
-          ↓{b.behind}
+        <span title={t("shell.branch.behindTitle", { count: b.behind })} style={{ flexShrink: 0 }}>
+          <Badge>↓{b.behind}</Badge>
         </span>
       )}
       {!b.is_current && !isRenaming && (
@@ -153,7 +154,7 @@ export function BranchRow({
           }}
           title={t("shell.branch.deleteAria", { name: b.name })}
           aria-label={t("shell.branch.deleteAria", { name: b.name })}
-          style={{ color: "var(--muted)", fontSize: 10, padding: "1px 4px", borderRadius: 5, flexShrink: 0, background: "transparent", border: "none", cursor: "pointer", fontFamily: "inherit" }}
+          style={{ color: "var(--muted)", fontSize: 10, padding: "1px 4px", borderRadius: "var(--r-xs)", flexShrink: 0, background: "transparent", border: "none", cursor: "pointer", fontFamily: "inherit" }}
         >
           ✕
         </button>

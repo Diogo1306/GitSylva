@@ -1,4 +1,5 @@
 import { SelectableRow } from "../../components/ui/SelectableRow";
+import { Badge } from "../../components/ui/misc";
 import { useT } from "../../i18n";
 import type { View } from "../../state/appStore";
 import { SectionLabel } from "./SectionLabel";
@@ -23,7 +24,7 @@ export function NavSection({
       style={{
         gap: 9,
         padding: "7px 10px",
-        fontSize: 13.5,
+        fontSize: "var(--fs-base)",
         color: "var(--text)",
         // undefined (not "transparent") so .gs-row:hover still paints.
         background: view === key ? "var(--sel)" : undefined,
@@ -31,11 +32,7 @@ export function NavSection({
     >
       {dot}
       <span style={{ flex: 1 }}>{label}</span>
-      {badge != null && badge > 0 && (
-        <span style={{ background: "var(--badge)", color: "var(--badgeT)", borderRadius: 999, fontSize: 11, fontWeight: 600, padding: "1px 7px" }}>
-          {badge}
-        </span>
-      )}
+      {badge != null && badge > 0 && <Badge>{badge}</Badge>}
     </SelectableRow>
   );
 
