@@ -1,9 +1,7 @@
 import { useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { activateOnKeyDown } from "./keys";
 
-// Accessible tabs: role="tablist"/"tab"/"tabpanel", roving tabindex, Left/Right
-// + Home/End move focus between tabs, Enter/Space commits the selection
-// (manual activation — arrow keys alone never change what's shown).
+// Accessible tabs: tablist/tab/tabpanel, roving tabindex, arrows+Home/End move focus, Enter/Space commits (manual activation).
 
 export type TabItem = { id: string; label: ReactNode; disabled?: boolean };
 
@@ -78,10 +76,10 @@ export function Tabs({ items, activeId, onChange, ariaLabel }: TabsProps) {
             onKeyDown={onKeyDown}
             className="gs-lift"
             style={{
-              padding: "8px 14px",
-              borderRadius: "var(--radius-sm)",
-              fontSize: 13,
-              fontWeight: 600,
+              padding: "var(--sp-3) var(--sp-6)",
+              borderRadius: "var(--r-btn)",
+              fontSize: "var(--fs-sm)",
+              fontWeight: "var(--fw-semibold)",
               fontFamily: "inherit",
               cursor: item.disabled ? "default" : "pointer",
               border: "none",

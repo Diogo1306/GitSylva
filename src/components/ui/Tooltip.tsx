@@ -1,8 +1,6 @@
 import { cloneElement, useId, useState, type FocusEvent, type MouseEvent, type ReactElement, type ReactNode } from "react";
 
-// Custom tooltip: shows on hover AND keyboard focus (native `title` only
-// shows on hover, never on focus, so it fails keyboard users). Supports an
-// optional shortcut-hint slot (e.g. "Ctrl+S").
+// Custom tooltip: shows on hover AND keyboard focus (native `title` only fires on hover). Optional shortcut-hint slot.
 
 type TriggerProps = {
   onMouseEnter?: (e: MouseEvent<HTMLElement>) => void;
@@ -56,15 +54,15 @@ export function Tooltip({ content, shortcut, children }: TooltipProps) {
             transform: "translateX(-50%)",
             display: "flex",
             alignItems: "center",
-            gap: 6,
+            gap: "var(--sp-2)",
             background: "var(--win)",
             color: "var(--text)",
             border: "1px solid var(--border)",
-            borderRadius: "var(--radius-sm)",
+            borderRadius: "var(--r-btn)",
             padding: "5px 9px",
-            fontSize: 11.5,
+            fontSize: "var(--fs-2xs)",
             whiteSpace: "nowrap",
-            boxShadow: "var(--shadow-1)",
+            boxShadow: "var(--shadow)",
             zIndex: 80,
             pointerEvents: "none",
           }}
