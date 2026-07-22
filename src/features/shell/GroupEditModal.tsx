@@ -24,7 +24,7 @@ export function GroupEditModal({ groupId, onClose }: { groupId: string; onClose:
     <Modal title={t("shell.group.editTitle")} onClose={onClose} width={380}>
       <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text2)" }}>{t("shell.field.name")}</div>
+          <div style={{ fontSize: "var(--fs-xs)", fontWeight: "var(--fw-semibold)", color: "var(--text2)" }}>{t("shell.field.name")}</div>
           <Input
             autoFocus
             value={name}
@@ -36,7 +36,7 @@ export function GroupEditModal({ groupId, onClose }: { groupId: string; onClose:
           />
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text2)" }}>{t("shell.group.color")}</div>
+          <div style={{ fontSize: "var(--fs-xs)", fontWeight: "var(--fw-semibold)", color: "var(--text2)" }}>{t("shell.group.color")}</div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             {GROUP_COLORS.map((c, i) => {
               const active = group.color === i;
