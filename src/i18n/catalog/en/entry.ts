@@ -95,6 +95,7 @@ export const enEntry: Record<EntryKey, MessageValue> = {
   "components.confirm.discard": "Discard",
 
   // ── components: DiffView ───────────────────────────────────────────────────
+  "components.diff.modeGroupLabel": "Diff display mode",
   "components.diff.unified": "Unified",
   "components.diff.split": "Side by side",
   "components.diff.showMoreLines": {

@@ -98,6 +98,7 @@ export const ptEntry = {
   "components.confirm.discard": "Descartar",
 
   // ── components: DiffView ───────────────────────────────────────────────────
+  "components.diff.modeGroupLabel": "Modo de visualização do diff",
   "components.diff.unified": "Unificado",
   "components.diff.split": "Lado a lado",
   "components.diff.showMoreLines": {
