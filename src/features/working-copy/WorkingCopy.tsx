@@ -126,8 +126,8 @@ export function WorkingCopy() {
     return () => window.removeEventListener("gitsylva:commit", onCommitShortcut);
   });
 
-  if (isLoading) return <div style={{ padding: 16, color: "var(--muted)" }}>{t("workingCopy.loadingChanges")}</div>;
-  if (error) return <div style={{ padding: 16, color: "var(--ddT)" }}>{errMsg(error, t("workingCopy.statusError"))}</div>;
+  if (isLoading) return <div style={{ padding: "var(--sp-7)", color: "var(--muted)" }}>{t("workingCopy.loadingChanges")}</div>;
+  if (error) return <div style={{ padding: "var(--sp-7)", color: "var(--ddT)" }}>{errMsg(error, t("workingCopy.statusError"))}</div>;
 
   const files = data ?? [];
   // Conflicted files show once (in the unstaged list, letter "U") — staging them
