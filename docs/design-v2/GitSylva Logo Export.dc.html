@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    html, body { margin: 0; padding: 0; background: #B9B9B0; }
+    a { color: #3B7A57; text-decoration: none; }
+    a:hover { color: #2F6B4F; }
+    @keyframes gsDraw { to { stroke-dashoffset: 0; } }
+    @keyframes gsPop { from { opacity: 0; transform: scale(0); } to { opacity: 1; transform: scale(1); } }
+    @keyframes gsLeaf { 0% { opacity: 0; transform: scale(0) rotate(-50deg); } 70% { opacity: 1; transform: scale(1.15) rotate(3deg); } 100% { opacity: 1; transform: scale(1) rotate(0deg); } }
+  </style>
+</helmet>
+<div style="min-height: 100vh; display: flex; flex-direction: column; align-items: center; gap: 44px; padding: 60px; box-sizing: border-box; font-family: 'Space Grotesk', sans-serif; background-image: repeating-conic-gradient(#C6C6BD 0% 25%, #B0B0A7 0% 50%); background-size: 28px 28px;">
+
+  <!-- 1 · Animação de entrada -->
+  <div style="font-size: 13px; font-weight: 600; letter-spacing: 2px; color: #59605A;">ANIMAÇÃO DE ENTRADA · CLICA NA ÁRVORE PARA REPETIR</div>
+  <div style="display: flex; gap: 12px;">
+    <sc-for list="{{ animThemes }}" as="at" hint-placeholder-count="4">
+      <div onClick="{{ at.pick }}" style="display: flex; align-items: center; gap: 8px; border: 2px solid {{ at.ring }}; border-radius: 10px; background: #F1F1EC; padding: 8px 14px; font-size: 13px; font-weight: 600; cursor: pointer;">
+        <span style="width: 13px; height: 13px; border-radius: 50%; background: {{ at.accent }};"></span>
+        <span>{{ at.name }}</span>
+      </div>
+    </sc-for>
+  </div>
+  <div id="anim-grow" onClick="{{ replay }}" title="clica para repetir" style="background: {{ animBg }}; border-radius: 18px; padding: 50px 80px; display: grid; place-items: center; cursor: pointer;">{{ animTree }}</div>
+
+  <!-- 2 · Wordmarks por tema (fundo do tema) -->
+  <div style="font-size: 13px; font-weight: 600; letter-spacing: 2px; color: #59605A;">WORDMARKS · POR TEMA</div>
+  <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px;">
+    <sc-for list="{{ themes }}" as="t" hint-placeholder-count="4">
+      <div style="display: flex; flex-direction: column; gap: 8px; align-items: center;">
+        <div style="font-size: 11px; font-weight: 600; letter-spacing: 1.6px; color: #59605A;">{{ t.label }}</div>
+        <div id="{{ t.idW }}" style="background: {{ t.demoBg }}; border-radius: 14px; padding: 30px 44px; display: flex; align-items: center;">
+          <span style="font-weight: 600; font-size: 64px; color: {{ t.ink }}; letter-spacing: 0.5px;">git</span>
+          <span style="display: inline-block; margin: 0 6px;">{{ t.logoWord }}</span>
+          <span style="font-weight: 600; font-size: 64px; color: {{ t.ink }}; letter-spacing: 0.5px;">ylva</span>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+
+  <!-- 3 · S sozinho por tema -->
+  <div style="font-size: 13px; font-weight: 600; letter-spacing: 2px; color: #59605A;">S · POR TEMA</div>
+  <div style="display: flex; gap: 20px; flex-wrap: wrap; justify-content: center;">
+    <sc-for list="{{ themes }}" as="t" hint-placeholder-count="4">
+      <div style="display: flex; flex-direction: column; gap: 8px; align-items: center;">
+        <div style="font-size: 11px; font-weight: 600; letter-spacing: 1.6px; color: #59605A;">{{ t.label }}</div>
+        <div id="{{ t.idS }}" style="background: {{ t.demoBg }}; border-radius: 14px; padding: 30px 44px; display: grid; place-items: center;">{{ t.logoS }}</div>
+      </div>
+    </sc-for>
+  </div>
+
+  <!-- 4 · Árvore do onboarding, 3 estágios -->
+  <div style="font-size: 13px; font-weight: 600; letter-spacing: 2px; color: #59605A;">ÁRVORE ONBOARDING · 3 ESTÁGIOS (TRANSPARENTE)</div>
+  <div style="display: flex; gap: 40px; align-items: flex-end;">
+    <div id="ob-stage-0" style="background: transparent; padding: 30px; width: 172px; height: 229px;">{{ obStage0 }}</div>
+    <div id="ob-stage-1" style="background: transparent; padding: 30px; width: 208px; height: 277px;">{{ obStage1 }}</div>
+    <div id="ob-stage-2" style="background: transparent; padding: 30px; width: 250px; height: 333px;">{{ obStage2 }}</div>
+  </div>
+
+  <!-- 5 · Branco para overlays -->
+  <div style="font-size: 13px; font-weight: 600; letter-spacing: 2px; color: #59605A;">S MONOCROMÁTICO BRANCO (TRANSPARENTE)</div>
+  <div id="logo-s-white" style="background: transparent; padding: 40px 60px; display: grid; place-items: center;">{{ logoWhite }}</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { animKey: 'classic', tick: 0 };
+
+  THEMES = [
+    { key: 'classic', name: 'Classic', label: 'CLASSIC', ink: '#191C1A', accent: '#3B7A57', demoBg: '#FFFFFF' },
+    { key: 'batman', name: 'Batman', label: 'BATMAN', ink: '#EAECEE', accent: '#82C99B', demoBg: '#141618' },
+    { key: 'gitclassic', name: 'Git Classic', label: 'GIT CLASSIC', ink: '#E6EDF3', accent: '#3FB950', demoBg: '#0D1117' },
+    { key: 'nipon', name: 'Nipon', label: 'NIPON', ink: '#241D1E', accent: '#C96C93', demoBg: '#FFFFFF' },
+  ];
+
+  // S de traço limpo (estático)
+  mkTree(h, accent, nodeFill) {
+    const g = accent;
+    const el = [];
+    const stroke = (d, w) => el.push(React.createElement('path', {
+      key: 'p' + d, d, fill: 'none',
+      style: { stroke: g, strokeWidth: w, strokeLinecap: 'round' },
+    }));
+    const node = (cx, cy, r, filled) => el.push(React.createElement('circle', {
+      key: `n${cx}-${cy}`, cx, cy, r,
+      style: { fill: filled ? g : nodeFill, stroke: g, strokeWidth: 4 },
+    }));
+    const leaf = (x, y, rot, s) => el.push(React.createElement('g', {
+      key: `l${x}-${y}`, transform: `translate(${x}, ${y}) rotate(${rot}) scale(${s})`,
+    }, React.createElement('path', {
+      d: 'M0,0 Q5,-4.5 10.5,-1 Q5.5,3.5 0,0 Z',
+      style: { fill: g },
+    })));
+    stroke('M34,12 C31,4 14,4 13,14 C12,24 33,32 33,44 C34,56 13,58 12,48', 7);
+    stroke('M26,32 C31,34 35,37 38,41', 4.5);
+    stroke('M13.5,13.5 C10,10.5 7.5,7.5 5,4.5', 4);
+    stroke('M28,51 C31.5,53.5 34,55.5 36.5,58', 4);
+    node(34, 12, 4);
+    node(12, 48, 4);
+    node(38, 41, 3.2, true);
+    node(5, 4.5, 3, true);
+    leaf(36, 57, -25, 0.85);
+    leaf(9, 9, -60, 0.7);
+    leaf(30, 6, -110, 0.6);
+    return React.createElement('svg', {
+      viewBox: '0 0 46 62', width: Math.round(h * 46 / 62), height: h,
+      style: { display: 'block', overflow: 'visible' },
+    }, el);
+  }
+
+  // S animado (entrada)
+  mkGrowTree(h, accent, bg, keyBase) {
+    const g = accent;
+    const E = 'cubic-bezier(0.2, 0.9, 0.3, 1)';
+    const el = [];
+    const stroke = (d, w, dur, delay) => el.push(React.createElement('path', {
+      key: keyBase + 'p' + d, d, fill: 'none', pathLength: 1,
+      style: {
+        stroke: g, strokeWidth: w, strokeLinecap: 'round',
+        strokeDasharray: 1, strokeDashoffset: 1,
+        animation: `gsDraw ${dur}s ${E} ${delay}s both`,
+      },
+    }));
+    const node = (cx, cy, r, delay, filled) => el.push(React.createElement('circle', {
+      key: `${keyBase}n${cx}-${cy}`, cx, cy, r,
+      style: {
+        fill: filled ? g : bg, stroke: g, strokeWidth: 4,
+        transformBox: 'fill-box', transformOrigin: 'center',
+        animation: `gsPop 0.35s ${E} ${delay}s both`,
+      },
+    }));
+    const leaf = (x, y, rot, s, delay) => el.push(React.createElement('g', {
+      key: `${keyBase}l${x}-${y}`, transform: `translate(${x}, ${y}) rotate(${rot}) scale(${s})`,
+    }, React.createElement('path', {
+      d: 'M0,0 Q5,-4.5 10.5,-1 Q5.5,3.5 0,0 Z',
+      style: {
+        fill: g, transformBox: 'fill-box', transformOrigin: 'left center',
+        animation: `gsLeaf 0.45s ${E} ${delay}s both`,
+      },
+    })));
+    stroke('M34,12 C31,4 14,4 13,14 C12,24 33,32 33,44 C34,56 13,58 12,48', 7, 0.9, 0.1);
+    stroke('M26,32 C31,34 35,37 38,41', 4.5, 0.3, 0.75);
+    stroke('M13.5,13.5 C10,10.5 7.5,7.5 5,4.5', 4, 0.3, 0.9);
+    stroke('M28,51 C31.5,53.5 34,55.5 36.5,58', 4, 0.3, 1.0);
+    node(34, 12, 4, 1.1);
+    node(12, 48, 4, 1.2);
+    node(38, 41, 3.2, 1.3, true);
+    node(5, 4.5, 3, 1.4, true);
+    leaf(36, 57, -25, 0.85, 1.45);
+    leaf(9, 9, -60, 0.7, 1.55);
+    leaf(30, 6, -110, 0.6, 1.65);
+    return React.createElement('svg', {
+      key: keyBase,
+      viewBox: '0 0 46 62', width: Math.round(h * 46 / 62), height: h,
+      style: { display: 'block', overflow: 'visible' },
+    }, el);
+  }
+
+  // árvore do onboarding (S base + crescimento por estágios)
+  mkObTree(stage) {
+    const tc = '#3B7A57';
+    const el = [];
+    const stroke = (d, w, k) => React.createElement('path', {
+      key: k, d, fill: 'none',
+      style: { stroke: tc, strokeWidth: w, strokeLinecap: 'round' },
+    });
+    const node = (cx, cy, r, filled) => React.createElement('circle', {
+      key: `n${cx}-${cy}`, cx, cy, r,
+      style: { fill: filled ? tc : 'rgba(0,0,0,0)', stroke: tc, strokeWidth: 4 },
+    });
+    const leaf = (x, y, rot, s) => React.createElement('g', {
+      key: `l${x}-${y}`, transform: `translate(${x}, ${y}) rotate(${rot}) scale(${s})`,
+    }, React.createElement('path', { d: 'M0,0 Q5,-4.5 10.5,-1 Q5.5,3.5 0,0 Z', style: { fill: tc } }));
+    const tuft = (x, y, rot, s) => React.createElement('g', {
+      key: `tf${x}-${y}`, transform: `translate(${x}, ${y}) rotate(${rot}) scale(${s})`,
+    }, [[-44, 0.8], [0, 1], [42, 0.78]].map(([dr, ds], k) =>
+      React.createElement('g', { key: k, transform: `rotate(${dr}) scale(${ds})` },
+        React.createElement('path', { d: 'M0,0 Q5,-4.5 10.5,-1 Q5.5,3.5 0,0 Z', style: { fill: tc } }))));
+    el.push(React.createElement('g', { key: 'base', transform: 'translate(12, 46)' },
+      stroke('M34,12 C31,4 14,4 13,14 C12,24 33,32 33,44 C34,56 13,58 12,48', 7, 's'),
+      stroke('M26,32 C31,34 35,37 38,41', 4.5, 'b1'),
+      stroke('M13.5,13.5 C10,10.5 7.5,7.5 5,4.5', 4, 'b2'),
+      stroke('M28,51 C31.5,53.5 34,55.5 36.5,58', 4, 'b3'),
+      node(12, 48, 3.6),
+      node(38, 41, 3, true),
+      node(5, 4.5, 2.8, true),
+      leaf(36, 57, -25, 0.8),
+      leaf(9, 9, -60, 0.65)));
+    if (stage === 0) {
+      el.push(React.createElement('g', { key: 'cap', transform: 'translate(12, 46)' },
+        node(34, 12, 3.8),
+        leaf(30, 6, -110, 0.55)));
+    }
+    if (stage >= 1) {
+      el.push(React.createElement('g', { key: 'ext' },
+        stroke('M46,58 C50,48 47,40 42,32', 4.5, 'e1'),
+        stroke('M45,44 C41,40 36,37 31,34', 2.6, 'e2'),
+        tuft(31, 34, -150, 0.8),
+        node(42, 32, 3.4),
+        leaf(49, 50, 15, 0.6)));
+    }
+    if (stage >= 2) {
+      el.push(React.createElement('g', { key: 'cr' },
+        stroke('M43,40 C50,37 57,35 63,31', 2.4, 'f1'),
+        stroke('M42,31 C44,27 46,24 49,21', 2.2, 'f2'),
+        stroke('M42,32 C38,27 34,24 29,21', 2, 'f3'),
+        tuft(63, 31, -35, 0.85),
+        tuft(49, 21, -80, 0.95),
+        tuft(29, 21, -130, 0.8),
+        node(63, 31, 2.6, true),
+        leaf(54, 36, -60, 0.6),
+        leaf(38, 34, 150, 0.55)));
+    }
+    return React.createElement('svg', {
+      viewBox: '0 0 84 112', width: '100%', height: '100%',
+      style: { display: 'block', overflow: 'visible' },
+    }, el);
+  }
+
+  renderVals() {
+    const cur = this.THEMES.find((t) => t.key === this.state.animKey) || this.THEMES[0];
+    return {
+      animThemes: this.THEMES.map((t) => ({
+        name: t.name, accent: t.accent,
+        ring: t.key === this.state.animKey ? '#3B7A57' : '#D8D6C8',
+        pick: () => this.setState((s) => ({ animKey: t.key, tick: s.tick + 1 })),
+      })),
+      animBg: cur.demoBg,
+      animTree: this.mkGrowTree(260, cur.accent, cur.demoBg, 'gt-' + cur.key + '-' + this.state.tick),
+      replay: () => this.setState((s) => ({ tick: s.tick + 1 })),
+      themes: this.THEMES.map((t) => ({
+        ...t,
+        idW: 'logo-w-' + t.key,
+        idS: 'logo-s-' + t.key,
+        logoWord: this.mkTree(80, t.accent, t.demoBg),
+        logoS: this.mkTree(150, t.accent, t.demoBg),
+      })),
+      obStage0: this.mkObTree(0),
+      obStage1: this.mkObTree(1),
+      obStage2: this.mkObTree(2),
+      logoWhite: this.mkTree(220, '#FFFFFF', 'rgba(0,0,0,0)'),
+    };
+  }
+}
+</script>
+</body>
+</html>

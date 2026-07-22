@@ -1,0 +1,1234 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <meta name="design_doc_mode" content="canvas">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    html, body { margin: 0; padding: 0; background: #E4E4DE; }
+    a { color: #3B7A57; text-decoration: none; }
+    a:hover { color: #2F6B4F; }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+    @keyframes popIn { from { opacity: 0; transform: scale(0.96) translateY(6px); } to { opacity: 1; transform: none; } }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    [tabindex]:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent, #3B7A57); outline-offset: 2px; border-radius: 6px; }
+    @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+  </style>
+</helmet>
+
+<template id="__bundler_thumbnail"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#3B7A57"></rect><text x="50" y="62" font-family="sans-serif" font-size="34" font-weight="700" fill="#FFFFFF" text-anchor="middle">UX</text></svg></template>
+<div data-screen-label="UX Proposta" style="font-family: 'Inter', sans-serif; color: #191C1A; padding: 48px; display: flex; flex-direction: column; gap: 40px; max-width: 1560px;">
+
+  <div style="display: flex; flex-direction: column; gap: 8px;">
+    <div style="font-size: 11px; font-weight: 700; letter-spacing: 2px; color: #767C74;">GITSYLVA · PROVA DE CONCEITO UX · NÃO É PRODUÇÃO</div>
+    <div style="font-family: 'Space Grotesk', sans-serif; font-size: 40px; font-weight: 600; letter-spacing: -0.8px;">Reorganização da interface</div>
+    <div style="font-size: 15px; color: #59605A; max-width: 720px; text-wrap: pretty;">Auditoria, três direções, matriz de ações e protótipo de alta fidelidade da direção recomendada — para validar posicionamento, hierarquia e usabilidade antes de tocar em produção.</div>
+  </div>
+
+  <!-- 1 · Auditoria -->
+  <div style="display: flex; flex-direction: column; gap: 14px;">
+    <div style="font-family: 'Space Grotesk', sans-serif; font-size: 22px; font-weight: 600;">1 · Auditoria curta da interface atual</div>
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; max-width: 1100px;">
+      <div style="background: #FFFFFF; border: 1px solid #DDDDD5; border-radius: 12px; padding: 16px 18px;">
+        <div style="font-size: 13px; font-weight: 700; margin-bottom: 6px;">Duplicação de ações</div>
+        <div style="font-size: 12.5px; color: #59605A; line-height: 1.5;">Pull/Push/Fetch/Commit existem em 3–4 sítios (header, barra inferior, sidebar, menus). Nenhum é claramente "o" sítio.</div>
+      </div>
+      <div style="background: #FFFFFF; border: 1px solid #DDDDD5; border-radius: 12px; padding: 16px 18px;">
+        <div style="font-size: 13px; font-weight: 700; margin-bottom: 6px;">Alvos e texto pequenos</div>
+        <div style="font-size: 12.5px; color: #59605A; line-height: 1.5;">A 900×560, 43/53 controlos têm &lt;32px numa dimensão; labels de 10–11px em ações funcionais; a caixa de commit sai do ecrã.</div>
+      </div>
+      <div style="background: #FFFFFF; border: 1px solid #DDDDD5; border-radius: 12px; padding: 16px 18px;">
+        <div style="font-size: 13px; font-weight: 700; margin-bottom: 6px;">Descoberta escondida</div>
+        <div style="font-size: 12.5px; color: #59605A; line-height: 1.5;">Checkout por duplo clique e operações essenciais só no botão direito; de 56 elementos clicáveis no Histórico só 1 é alcançável por teclado.</div>
+      </div>
+      <div style="background: #FFFFFF; border: 1px solid #DDDDD5; border-radius: 12px; padding: 16px 18px;">
+        <div style="font-size: 13px; font-weight: 700; margin-bottom: 6px;">Escala</div>
+        <div style="font-size: 12.5px; color: #59605A; line-height: 1.5;">A sidebar lista todas as branches sem pesquisa, pastas ou favoritas — não sobrevive a 200 branches nem a 500 ficheiros.</div>
+      </div>
+      <div style="background: #FFFFFF; border: 1px solid #DDDDD5; border-radius: 12px; padding: 16px 18px;">
+        <div style="font-size: 13px; font-weight: 700; margin-bottom: 6px;">Hierarquia plana</div>
+        <div style="font-size: 12.5px; color: #59605A; line-height: 1.5;">Commit (a ação nº1) tem o mesmo peso visual que Tag (rara). Ações destrutivas ao lado das frequentes.</div>
+      </div>
+      <div style="background: #FFFFFF; border: 1px solid #DDDDD5; border-radius: 12px; padding: 16px 18px;">
+        <div style="font-size: 13px; font-weight: 700; margin-bottom: 6px;">O que já está bem</div>
+        <div style="font-size: 12.5px; color: #59605A; line-height: 1.5;">Identidade da árvore, 4 temas com tokens sólidos, Ctrl+K funcional, informação Git credível. Preservar tudo isto.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2 · Direções -->
+  <div style="display: flex; flex-direction: column; gap: 14px;">
+    <div style="font-family: 'Space Grotesk', sans-serif; font-size: 22px; font-weight: 600;">2 · Três direções</div>
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; max-width: 1240px;">
+      <sc-for list="{{ directions }}" as="d" hint-placeholder-count="3">
+        <div style="background: #FFFFFF; border: 2px solid {{ d.ring }}; border-radius: 14px; padding: 18px; display: flex; flex-direction: column; gap: 10px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-family: 'Space Grotesk', sans-serif; font-size: 17px; font-weight: 600;">{{ d.name }}</span>
+            <span style="display: {{ d.badgeDisp }}; font-size: 10.5px; font-weight: 700; letter-spacing: 1px; background: #3B7A57; color: #FFFFFF; border-radius: 999px; padding: 3px 10px;">RECOMENDADA</span>
+          </div>
+          <div style="border: 1px solid #E7E7E0; border-radius: 9px; overflow: hidden;">{{ d.thumb }}</div>
+          <div style="font-size: 12.5px; color: #59605A; line-height: 1.55; text-wrap: pretty;">{{ d.desc }}</div>
+          <div style="font-size: 12px; color: #2F6B4F; line-height: 1.5;">✓ {{ d.pro }}</div>
+          <div style="font-size: 12px; color: #A34D4D; line-height: 1.5;">✗ {{ d.con }}</div>
+        </div>
+      </sc-for>
+    </div>
+    <div style="background: #FFFFFF; border: 1px solid #DDDDD5; border-radius: 12px; overflow: hidden; max-width: 1240px;">
+      <div style="display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr; font-size: 12.5px;">
+        <div style="padding: 10px 16px; font-weight: 700; background: #FAFAF7; border-bottom: 1px solid #E7E7E0;">Critério</div>
+        <div style="padding: 10px 16px; font-weight: 700; background: #FAFAF7; border-bottom: 1px solid #E7E7E0;">A · Contextual</div>
+        <div style="padding: 10px 16px; font-weight: 700; background: #FAFAF7; border-bottom: 1px solid #E7E7E0;">B · ActionBar</div>
+        <div style="padding: 10px 16px; font-weight: 700; background: #FAFAF7; border-bottom: 1px solid #E7E7E0;">C · Command-first</div>
+        <sc-for list="{{ compareRows }}" as="r" hint-placeholder-count="8">
+          <div style="padding: 9px 16px; border-bottom: 1px solid #F0F0EA; color: #363C37;">{{ r.k }}</div>
+          <div style="padding: 9px 16px; border-bottom: 1px solid #F0F0EA; color: {{ r.ca }}; font-weight: {{ r.wa }};">{{ r.a }}</div>
+          <div style="padding: 9px 16px; border-bottom: 1px solid #F0F0EA; color: {{ r.cb }}; font-weight: {{ r.wb }};">{{ r.b }}</div>
+          <div style="padding: 9px 16px; border-bottom: 1px solid #F0F0EA; color: {{ r.cc }}; font-weight: {{ r.wc }};">{{ r.c }}</div>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3 · Recomendação -->
+  <div style="display: flex; flex-direction: column; gap: 10px; max-width: 1240px;">
+    <div style="font-family: 'Space Grotesk', sans-serif; font-size: 22px; font-weight: 600;">3 · Direção recomendada: A, com o melhor de C</div>
+    <div style="background: #F0F3EE; border: 1px solid #C6CFC1; border-radius: 12px; padding: 18px 22px; font-size: 13.5px; line-height: 1.65; color: #2A3A30; text-wrap: pretty;">
+      <b>A — ações contextuais</b> vence porque resolve as três dores medidas: duplicação (cada ação passa a ter UM local principal), densidade (sem barra inferior permanente sobra ~54px verticais a 900×560, o suficiente para a caixa de commit ficar visível) e aprendizagem (a ação aparece onde o objeto está: Commit na cópia de trabalho, Checkout na branch, Revert no commit). <b>B</b> mantém a causa raiz — uma barra global de ações contextuais — e a personalização adia o problema para o utilizador. <b>C</b> é o mais rápido para power users mas falha "compreensível para quem não conhece atalhos": descoberta por paleta pura mede-se mal com utilizadores intermédios. A proposta final é A com a paleta Ctrl+K de C como local alternativo universal e atalhos regraváveis.
+    </div>
+  </div>
+
+  <!-- 4 · Mapa IA -->
+  <div style="display: flex; flex-direction: column; gap: 10px; max-width: 1240px;">
+    <div style="font-family: 'Space Grotesk', sans-serif; font-size: 22px; font-weight: 600;">4 · Mapa da arquitetura de informação</div>
+    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;">
+      <div style="background: #FFFFFF; border: 1px solid #DDDDD5; border-radius: 12px; padding: 14px 16px;">
+        <div style="font-size: 11px; font-weight: 700; letter-spacing: 1.2px; color: #767C74; margin-bottom: 8px;">HEADER GLOBAL</div>
+        <div style="font-size: 12.5px; color: #363C37; line-height: 1.7;">Seletor de repositório (abertos · registados · recentes)<br>+ abre a página Adicionar (Local · Clonar · Criar)<br>Sync (Fetch · Pull ↓ · Push ↑)<br>Pesquisa Ctrl+K · Notificações · Definições<br><span style="color: #767C74;">(sem barra de abas — uma linha só)</span></div>
+      </div>
+      <div style="background: #FFFFFF; border: 1px solid #DDDDD5; border-radius: 12px; padding: 14px 16px;">
+        <div style="font-size: 11px; font-weight: 700; letter-spacing: 1.2px; color: #767C74; margin-bottom: 8px;">SIDEBAR</div>
+        <div style="font-size: 12.5px; color: #363C37; line-height: 1.7;">Navegação (Cópia de trabalho · Histórico · Stashes)<br>Branches: pesquisa + favoritas + pastas<br>Remotes/Tags recolhidos<br><span style="color: #767C74;">(Definições sai daqui — fica só no header e Ctrl+K)</span></div>
+      </div>
+      <div style="background: #FFFFFF; border: 1px solid #DDDDD5; border-radius: 12px; padding: 14px 16px;">
+        <div style="font-size: 11px; font-weight: 700; letter-spacing: 1.2px; color: #767C74; margin-bottom: 8px;">ECRÃ (contexto)</div>
+        <div style="font-size: 12.5px; color: #363C37; line-height: 1.7;">Cópia de trabalho: Commit, preparar, descartar<br>Header &lt;1100px: Sync agrupado + pesquisa em ícone<br>Histórico: branch/tag/revert no commit, menu "…"<br>Stashes: criar, aplicar, pop, apagar</div>
+      </div>
+      <div style="background: #FFFFFF; border: 1px solid #DDDDD5; border-radius: 12px; padding: 14px 16px;">
+        <div style="font-size: 11px; font-weight: 700; letter-spacing: 1.2px; color: #767C74; margin-bottom: 8px;">CTRL+K + MENUS</div>
+        <div style="font-size: 12.5px; color: #363C37; line-height: 1.7;">Tudo, como local alternativo<br>Raras/avançadas (cherry-pick, reset, rebase) só aqui e no "…"<br>Destrutivas sempre com confirmação</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5 · Matriz de ações -->
+  <div style="display: flex; flex-direction: column; gap: 10px; max-width: 1240px;">
+    <div style="font-family: 'Space Grotesk', sans-serif; font-size: 22px; font-weight: 600;">5 · Matriz de posicionamento das ações</div>
+    <div style="background: #FFFFFF; border: 1px solid #DDDDD5; border-radius: 12px; overflow: hidden;">
+      <div style="display: grid; grid-template-columns: 1fr 1.4fr 1fr 0.7fr 1.2fr 0.7fr; font-size: 12px;">
+        <div style="padding: 9px 14px; font-weight: 700; background: #FAFAF7; border-bottom: 1px solid #E7E7E0;">Ação</div>
+        <div style="padding: 9px 14px; font-weight: 700; background: #FAFAF7; border-bottom: 1px solid #E7E7E0;">Local principal</div>
+        <div style="padding: 9px 14px; font-weight: 700; background: #FAFAF7; border-bottom: 1px solid #E7E7E0;">Alternativo</div>
+        <div style="padding: 9px 14px; font-weight: 700; background: #FAFAF7; border-bottom: 1px solid #E7E7E0;">Atalho</div>
+        <div style="padding: 9px 14px; font-weight: 700; background: #FAFAF7; border-bottom: 1px solid #E7E7E0;">Quando aparece</div>
+        <div style="padding: 9px 14px; font-weight: 700; background: #FAFAF7; border-bottom: 1px solid #E7E7E0;">Confirma?</div>
+        <sc-for list="{{ matrix }}" as="m" hint-placeholder-count="17">
+          <div style="padding: 8px 14px; border-bottom: 1px solid #F0F0EA; font-weight: 600; color: {{ m.color }};">{{ m.name }}</div>
+          <div style="padding: 8px 14px; border-bottom: 1px solid #F0F0EA; color: #363C37;">{{ m.main }}</div>
+          <div style="padding: 8px 14px; border-bottom: 1px solid #F0F0EA; color: #767C74;">{{ m.alt }}</div>
+          <div style="padding: 8px 14px; border-bottom: 1px solid #F0F0EA; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #59605A;">{{ m.key }}</div>
+          <div style="padding: 8px 14px; border-bottom: 1px solid #F0F0EA; color: #767C74;">{{ m.when }}</div>
+          <div style="padding: 8px 14px; border-bottom: 1px solid #F0F0EA; color: {{ m.confColor }}; font-weight: {{ m.confW }};">{{ m.conf }}</div>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6 · Protótipo -->
+  <div style="display: flex; flex-direction: column; gap: 14px;">
+    <div style="font-family: 'Space Grotesk', sans-serif; font-size: 22px; font-weight: 600;">6 · Protótipo de alta fidelidade (Direção A) — interativo</div>
+    <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+      <div style="display: flex; gap: 6px; align-items: center;">
+        <span style="font-size: 11px; font-weight: 700; letter-spacing: 1px; color: #767C74;">JANELA</span>
+        <sc-for list="{{ sizeOptions }}" as="so" hint-placeholder-count="4">
+          <div onClick="{{ so.pick }}" tabindex="0" style="padding: 7px 13px; border-radius: 8px; border: 2px solid {{ so.ring }}; background: #FFFFFF; font-size: 12.5px; font-weight: 600; cursor: pointer; font-family: 'JetBrains Mono', monospace;">{{ so.label }}</div>
+        </sc-for>
+      </div>
+      <div style="display: flex; gap: 6px; align-items: center;">
+        <span style="font-size: 11px; font-weight: 700; letter-spacing: 1px; color: #767C74;">TEMA</span>
+        <sc-for list="{{ themeOptions }}" as="to" hint-placeholder-count="4">
+          <div onClick="{{ to.pick }}" tabindex="0" title="{{ to.name }}" style="width: 26px; height: 26px; border-radius: 50%; border: 2px solid {{ to.ring }}; background: {{ to.swatch }}; cursor: pointer;"></div>
+        </sc-for>
+      </div>
+      <div style="display: flex; gap: 6px; align-items: center;">
+        <span style="font-size: 11px; font-weight: 700; letter-spacing: 1px; color: #767C74;">ECRÃ</span>
+        <sc-for list="{{ screenTabs }}" as="sc" hint-placeholder-count="6">
+          <div onClick="{{ sc.pick }}" tabindex="0" style="padding: 7px 13px; border-radius: 8px; border: 2px solid {{ sc.ring }}; background: #FFFFFF; font-size: 12.5px; font-weight: 600; cursor: pointer;">{{ sc.label }}</div>
+        </sc-for>
+      </div>
+    </div>
+
+    <!-- janela -->
+    <div style="width: {{ winW }}px; max-width: 100%;">
+    <div style="{{ themeVars }}">
+    <div style="width: {{ winW }}px; height: {{ winH }}px; background: var(--win); border: 1px solid var(--winB); border-radius: 12px; box-shadow: var(--shadow); overflow: hidden; display: flex; flex-direction: column; font-family: 'Inter', sans-serif; color: var(--text); position: relative;">
+
+      <!-- HEADER GLOBAL -->
+      <div style="height: 48px; flex-shrink: 0; display: flex; align-items: center; gap: 10px; padding: 0 12px; border-bottom: 1px solid var(--border); background: var(--panel);">
+        <div style="display: flex; align-items: baseline; flex-shrink: 0; font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 15px;">
+          <span>git</span><span style="display: inline-block; margin: 0 1px;">{{ logoTiny }}</span><span>ylva</span>
+        </div>
+        <div style="position: relative; min-width: 0;">
+          <div onClick="{{ toggleRepoMenu }}" tabindex="0" title="Repositório atual — clique para mudar" style="display: flex; align-items: center; gap: 8px; height: 36px; padding: 0 12px; border-radius: 9px; border: 1px solid var(--btnB); background: var(--btn); cursor: pointer; min-width: 0; box-sizing: border-box;" style-hover="background: var(--hover)">
+            <span style="width: 8px; height: 8px; border-radius: 50%; background: var(--l0); flex-shrink: 0;"></span>
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ curRepo }} / <b>main</b></span>
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted); white-space: nowrap;">↑1 ↓2</span>
+            <span style="color: var(--muted); font-size: 9px;">▾</span>
+          </div>
+          <sc-if value="{{ repoMenuOpen }}" hint-placeholder-val="{{ false }}">
+            <div style="position: absolute; top: 42px; left: 0; z-index: 25; width: 264px; background: var(--win); border: 1px solid var(--border); border-radius: 11px; box-shadow: var(--shadow); padding: 6px; display: flex; flex-direction: column; animation: popIn 0.15s ease both;">
+              <sc-for list="{{ repoMenu }}" as="rm" hint-placeholder-count="6">
+                <sc-if value="{{ rm.isHead }}" hint-placeholder-val="{{ false }}">
+                  <div style="padding: 8px 10px 4px; font-size: 10px; font-weight: 700; letter-spacing: 1.2px; color: var(--muted);">{{ rm.label }}</div>
+                </sc-if>
+                <sc-if value="{{ rm.isRepo }}" hint-placeholder-val="{{ true }}">
+                  <div onClick="{{ rm.pick }}" tabindex="0" style="display: flex; align-items: center; gap: 9px; height: 36px; padding: 0 10px; border-radius: 8px; cursor: pointer; background: {{ rm.bg }}; box-sizing: border-box;" style-hover="background: var(--hover)">
+                    <span style="width: 7px; height: 7px; border-radius: 50%; background: {{ rm.dot }}; flex-shrink: 0;"></span>
+                    <span style="flex: 1; min-width: 0; font-size: 12.5px; font-weight: {{ rm.w }}; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ rm.label }}</span>
+                    <span style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted); white-space: nowrap;">{{ rm.branch }}</span>
+                  </div>
+                </sc-if>
+              </sc-for>
+            </div>
+          </sc-if>
+        </div>
+        <div onClick="{{ goPicker }}" tabindex="0" title="Adicionar repositório — abre a página de adicionar/clonar/criar" style="width: 36px; height: 36px; border-radius: 9px; display: grid; place-items: center; border: 1px solid var(--btnB); background: {{ pickerBtnBg }}; color: var(--text2); font-size: 16px; cursor: pointer; box-sizing: border-box;" style-hover="background: var(--hover)">+</div>
+        <div style="flex: 1;"></div>
+        <sc-if value="{{ syncWide }}" hint-placeholder-val="{{ true }}">
+          <div onClick="{{ openSyncFetch }}" tabindex="0" style="display: flex; align-items: center; gap: 6px; height: 36px; padding: 0 13px; border-radius: 8px; background: var(--btn); border: 1px solid var(--btnB); font-size: 12.5px; color: var(--btnT); cursor: pointer; box-sizing: border-box;" style-hover="background: var(--hover)">⟳ Fetch</div>
+          <div onClick="{{ openSyncPull }}" tabindex="0" style="display: flex; align-items: center; gap: 6px; height: 36px; padding: 0 13px; border-radius: 8px; background: var(--btn); border: 1px solid var(--btnB); font-size: 12.5px; color: var(--btnT); cursor: pointer; box-sizing: border-box;" style-hover="background: var(--hover)">↓ Pull
+            <span style="background: var(--badge); color: var(--badgeT); border-radius: 999px; font-size: 10.5px; font-weight: 700; padding: 1px 7px;">2</span>
+          </div>
+          <div onClick="{{ openSyncPush }}" tabindex="0" style="display: flex; align-items: center; gap: 6px; height: 36px; padding: 0 13px; border-radius: 8px; background: var(--btn); border: 1px solid var(--btnB); font-size: 12.5px; color: var(--btnT); cursor: pointer; box-sizing: border-box;" style-hover="background: var(--hover)">↑ Push
+            <span style="background: var(--accent); color: var(--accentT); border-radius: 999px; font-size: 10.5px; font-weight: 700; padding: 1px 7px;">1</span>
+          </div>
+          <div style="width: 1px; height: 20px; background: var(--border);"></div>
+          <div tabindex="0" title="Pesquisar e executar (Ctrl+K)" style="display: flex; align-items: center; gap: 8px; height: 36px; padding: 0 12px; border-radius: 8px; background: var(--input); border: 1px solid var(--btnB); font-size: 12.5px; color: var(--muted); cursor: pointer; box-sizing: border-box;">Pesquisar ou executar…
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 10px; border: 1px solid var(--btnB); border-radius: 5px; padding: 1px 5px;">Ctrl+K</span>
+          </div>
+        </sc-if>
+        <sc-if value="{{ syncCompact }}" hint-placeholder-val="{{ false }}">
+          <div style="position: relative;">
+            <div onClick="{{ toggleSyncMenu }}" tabindex="0" title="Fetch · Pull · Push" style="display: flex; align-items: center; gap: 7px; height: 36px; padding: 0 13px; border-radius: 8px; background: var(--btn); border: 1px solid var(--btnB); font-size: 12.5px; font-weight: 600; color: var(--btnT); cursor: pointer; box-sizing: border-box;" style-hover="background: var(--hover)">⇅ Sync
+              <span style="background: var(--badge); color: var(--badgeT); border-radius: 999px; font-size: 10.5px; font-weight: 700; padding: 1px 7px; white-space: nowrap;">↑1 ↓2</span>
+              <span style="color: var(--muted); font-size: 8px;">▾</span>
+            </div>
+            <sc-if value="{{ syncMenuOpen }}" hint-placeholder-val="{{ false }}">
+              <div style="position: absolute; top: 40px; right: 0; z-index: 15; width: 168px; background: var(--win); border: 1px solid var(--border); border-radius: 10px; box-shadow: var(--shadow); padding: 5px; display: flex; flex-direction: column; animation: popIn 0.15s ease both;">
+                <div onClick="{{ menuFetch }}" tabindex="0" style="display: flex; align-items: center; height: 34px; padding: 0 10px; border-radius: 7px; font-size: 12.5px; font-weight: 500; color: var(--text); cursor: pointer; box-sizing: border-box;" style-hover="background: var(--hover)">⟳ Fetch</div>
+                <div onClick="{{ menuPull }}" tabindex="0" style="display: flex; align-items: center; gap: 7px; height: 34px; padding: 0 10px; border-radius: 7px; font-size: 12.5px; font-weight: 500; color: var(--text); cursor: pointer; box-sizing: border-box;" style-hover="background: var(--hover)">↓ Pull <span style="background: var(--badge); color: var(--badgeT); border-radius: 999px; font-size: 10px; font-weight: 700; padding: 1px 6px;">2</span></div>
+                <div onClick="{{ menuPush }}" tabindex="0" style="display: flex; align-items: center; gap: 7px; height: 34px; padding: 0 10px; border-radius: 7px; font-size: 12.5px; font-weight: 500; color: var(--text); cursor: pointer; box-sizing: border-box;" style-hover="background: var(--hover)">↑ Push <span style="background: var(--accent); color: var(--accentT); border-radius: 999px; font-size: 10px; font-weight: 700; padding: 1px 6px;">1</span></div>
+              </div>
+            </sc-if>
+          </div>
+          <div tabindex="0" title="Pesquisar e executar (Ctrl+K)" style="width: 36px; height: 36px; border-radius: 8px; display: grid; place-items: center; background: var(--input); border: 1px solid var(--btnB); color: var(--muted); cursor: pointer; box-sizing: border-box;">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="6" cy="6" r="4.2"></circle><path d="M9.4 9.4 L12.6 12.6"></path></svg>
+          </div>
+        </sc-if>
+        <div tabindex="0" title="Notificações" style="width: 36px; height: 36px; border-radius: 8px; display: grid; place-items: center; color: var(--text2); cursor: pointer; position: relative;" style-hover="background: var(--hover)">
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M8 2 C5.5 2 4 4 4 6.5 L4 9 L2.8 11.4 L13.2 11.4 L12 9 L12 6.5 C12 4 10.5 2 8 2 Z"></path><path d="M6.5 13.4 C6.8 14.1 7.4 14.5 8 14.5 C8.6 14.5 9.2 14.1 9.5 13.4"></path></svg>
+          <span style="position: absolute; top: 5px; right: 6px; width: 7px; height: 7px; border-radius: 50%; background: var(--l0); border: 1.5px solid var(--panel);"></span>
+        </div>
+        <div onClick="{{ goSettings }}" tabindex="0" title="Definições" style="width: 36px; height: 36px; border-radius: 8px; display: grid; place-items: center; color: var(--text2); cursor: pointer; background: {{ setGearBg }};" style-hover="background: var(--hover)">
+          <span style="width: 12px; height: 12px; border-radius: 50%; border: 2.5px dotted currentColor; box-sizing: border-box;"></span>
+        </div>
+        <div style="display: flex; align-self: stretch; margin-right: -12px; flex-shrink: 0;">
+          <div style="width: 40px; display: grid; place-items: center; color: var(--text2); cursor: pointer;" style-hover="background: var(--hover)"><svg width="10" height="10" viewBox="0 0 10 10"><path d="M1 5 H9" style="stroke: currentColor; stroke-width: 1;"></path></svg></div>
+          <div style="width: 40px; display: grid; place-items: center; color: var(--text2); cursor: pointer;" style-hover="background: var(--hover)"><svg width="9" height="9" viewBox="0 0 9 9"><rect x="0.8" y="0.8" width="7.4" height="7.4" rx="0.6" style="fill: none; stroke: currentColor; stroke-width: 1;"></rect></svg></div>
+          <div style="width: 40px; display: grid; place-items: center; color: var(--text2); cursor: pointer;" style-hover="background: #E81123; color: #FFFFFF"><svg width="9" height="9" viewBox="0 0 9 9"><path d="M1 1 L8 8 M8 1 L1 8" style="stroke: currentColor; stroke-width: 1.1;"></path></svg></div>
+        </div>
+      </div>
+
+      <!-- corpo -->
+      <div style="flex: 1; display: flex; min-height: 0;">
+
+        <!-- SIDEBAR -->
+        <div style="width: {{ sbW }}px; flex-shrink: 0; border-right: 1px solid var(--border); background: var(--panel); display: flex; flex-direction: column; min-height: 0; overflow: hidden;">
+          <div style="padding: 10px 8px 4px; display: flex; flex-direction: column; gap: 2px;">
+            <div onClick="{{ goWorking }}" tabindex="0" style="display: flex; align-items: center; gap: 9px; height: 40px; padding: 0 10px; border-radius: 8px; font-size: 13px; font-weight: 600; color: var(--text); cursor: pointer; background: {{ wcBg }}; box-sizing: border-box;" style-hover="background: var(--hover)">
+              <span style="width: 7px; height: 7px; border-radius: 2px; background: var(--l2); flex-shrink: 0;"></span>
+              <span style="flex: 1;">Cópia de trabalho</span>
+              <span style="background: var(--badge); color: var(--badgeT); border-radius: 999px; font-size: 11px; font-weight: 700; padding: 1px 8px;">{{ wcCount }}</span>
+            </div>
+            <div onClick="{{ goHistory }}" tabindex="0" style="display: flex; align-items: center; gap: 9px; height: 40px; padding: 0 10px; border-radius: 8px; font-size: 13px; font-weight: 600; color: var(--text); cursor: pointer; background: {{ histBg }}; box-sizing: border-box;" style-hover="background: var(--hover)">
+              <span style="width: 7px; height: 7px; border-radius: 50%; background: var(--l0); flex-shrink: 0;"></span>
+              <span style="flex: 1;">Histórico</span>
+            </div>
+            <div onClick="{{ goStashes }}" tabindex="0" style="display: flex; align-items: center; gap: 9px; height: 40px; padding: 0 10px; border-radius: 8px; font-size: 13px; font-weight: 600; color: var(--text); cursor: pointer; background: {{ stBg }}; box-sizing: border-box;" style-hover="background: var(--hover)">
+              <span style="width: 7px; height: 7px; border-radius: 2px; background: var(--l1); transform: rotate(45deg); flex-shrink: 0;"></span>
+              <span style="flex: 1;">Stashes</span>
+              <span style="background: var(--badge); color: var(--badgeT); border-radius: 999px; font-size: 11px; font-weight: 700; padding: 1px 8px;">1</span>
+            </div>
+          </div>
+
+          <div style="padding: 12px 8px 4px; display: flex; align-items: center; gap: 4px;">
+            <span style="font-size: 10.5px; font-weight: 700; letter-spacing: 1.2px; color: var(--muted); padding-left: 10px; flex: 1;">BRANCHES · {{ branchTotal }}</span>
+            <div onClick="{{ toggleBrSearch }}" tabindex="0" title="Filtrar branches" style="width: 26px; height: 26px; border-radius: 7px; display: grid; place-items: center; color: {{ brLupaColor }}; cursor: pointer;" style-hover="background: var(--hover); color: var(--text)">
+              <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="6" cy="6" r="4.2"></circle><path d="M9.4 9.4 L12.6 12.6"></path></svg>
+            </div>
+            <div onClick="{{ newBranch }}" tabindex="0" title="Nova branch" style="width: 26px; height: 26px; border-radius: 7px; display: grid; place-items: center; color: var(--muted); cursor: pointer; font-size: 14px;" style-hover="background: var(--hover); color: var(--text)">+</div>
+          </div>
+          <sc-if value="{{ brSearchShown }}" hint-placeholder-val="{{ false }}">
+            <div style="padding: 0 12px 8px;">
+              <input value="{{ brQ }}" onChange="{{ onBrQ }}" placeholder="Filtrar branches…" style="width: 100%; box-sizing: border-box; height: 32px; background: var(--input); border: 1px solid var(--btnB); border-radius: 8px; padding: 0 10px; font-size: 12px; color: var(--text); outline: none; font-family: 'Inter', sans-serif;">
+            </div>
+          </sc-if>
+          <div style="flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; padding: 0 8px 8px; display: flex; flex-direction: column; gap: 1px;">
+            <sc-for list="{{ branchRows }}" as="b" hint-placeholder-count="8">
+              <sc-if value="{{ b.isFolder }}" hint-placeholder-val="{{ false }}">
+                <div onClick="{{ b.toggle }}" tabindex="0" style="display: flex; align-items: center; gap: 7px; height: 32px; padding: 0 10px; border-radius: 7px; cursor: pointer; box-sizing: border-box;" style-hover="background: var(--hover)">
+                  <span style="font-size: 8px; color: var(--muted); transform: rotate({{ b.caret }}deg); transition: transform 0.15s ease; display: inline-block;">▶</span>
+                  <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--text2); font-weight: 600; flex: 1;">{{ b.name }}/</span>
+                  <span style="font-size: 10.5px; color: var(--muted);">{{ b.count }}</span>
+                </div>
+              </sc-if>
+              <sc-if value="{{ b.isBranch }}" hint-placeholder-val="{{ true }}">
+                <div onClick="{{ b.focus }}" tabindex="0" title="{{ b.tip }}" style="display: flex; align-items: center; gap: 8px; height: 36px; padding: 0 10px 0 {{ b.pad }}px; border-radius: 8px; font-family: 'JetBrains Mono', monospace; font-size: 12.5px; color: {{ b.color }}; font-weight: {{ b.weight }}; cursor: pointer; background: {{ b.bg }}; box-sizing: border-box; position: relative;" style-hover="background: var(--hover)">
+                  <span style="display: {{ b.barDisp }}; position: absolute; left: 0; top: 6px; bottom: 6px; width: 3px; border-radius: 2px; background: var(--accent);"></span>
+                  <span style="width: 7px; height: 7px; border-radius: 50%; background: {{ b.dotBg }}; border: 1.5px solid {{ b.dotBd }}; box-shadow: {{ b.halo }}; box-sizing: border-box; flex-shrink: 0;"></span>
+                  <span style="flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ b.label }}</span>
+                  <span style="display: {{ b.favDisp }}; color: var(--l2); font-size: 11px;">★</span>
+                  <span style="display: {{ b.syncDisp }}; font-size: 10px; font-weight: 600; color: var(--muted); background: var(--badge); border-radius: 999px; padding: 1px 6px;">{{ b.sync }}</span>
+                  <span onClick="{{ b.checkout }}" tabindex="0" style="display: {{ b.coDisp }}; font-size: 10.5px; font-weight: 700; color: var(--accent); border: 1px solid var(--accent); border-radius: 6px; padding: 2px 8px; cursor: pointer;" style-hover="background: var(--sel)">Checkout</span>
+                </div>
+              </sc-if>
+            </sc-for>
+            <sc-if value="{{ brMore }}" hint-placeholder-val="{{ false }}">
+              <div style="padding: 8px 10px; font-size: 11.5px; color: var(--muted);">+ {{ brMoreN }} branches — refina o filtro ou abre em Ctrl+K</div>
+            </sc-if>
+            <div style="padding: 10px 10px 2px; display: flex; align-items: center; gap: 7px;">
+              <span style="font-size: 10.5px; font-weight: 700; letter-spacing: 1.2px; color: var(--muted); flex: 1;">REMOTES · TAGS</span>
+              <span style="font-size: 8px; color: var(--muted);">▶</span>
+            </div>
+          </div>
+
+          <div style="padding: 8px; border-top: 1px solid var(--bsoft); display: flex; gap: 4px;">
+            <sc-for list="{{ brScaleOpts }}" as="bs" hint-placeholder-count="3">
+              <div onClick="{{ bs.pick }}" tabindex="0" title="Simular nº de branches" style="flex: 1; text-align: center; padding: 5px 0; border-radius: 7px; border: 1.5px solid {{ bs.ring }}; font-size: 10.5px; font-weight: 700; color: var(--text2); cursor: pointer; font-family: 'JetBrains Mono', monospace;">{{ bs.label }}</div>
+            </sc-for>
+          </div>
+        </div>
+
+        <!-- HISTÓRICO -->
+        <sc-if value="{{ isHistory }}" hint-placeholder-val="{{ true }}">
+          <div style="flex: 1; min-width: 0; display: flex; flex-direction: {{ histDir }}; min-height: 0; animation: fadeUp 0.25s ease both;">
+            <div style="flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; border-right: {{ histBr }}; border-bottom: {{ histBb }};">
+              <div style="padding: 10px 14px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; flex-shrink: 0;">
+                <input placeholder="Filtrar histórico…" style="flex: 1; min-width: 0; height: 32px; background: var(--input); border: 1px solid var(--btnB); border-radius: 8px; padding: 0 12px; font-size: 12.5px; color: var(--text); outline: none; font-family: 'Inter', sans-serif; box-sizing: border-box;">
+                <span style="font-size: 11.5px; color: var(--muted); font-family: 'JetBrains Mono', monospace; white-space: nowrap;">248 commits</span>
+              </div>
+              <div style="flex: 1; overflow-y: auto; min-height: 0;">
+                <div style="position: relative;">
+                <div style="position: absolute; left: 10px; top: 0; pointer-events: none;">{{ histGraph }}</div>
+                <sc-for list="{{ commits }}" as="c" hint-placeholder-count="8">
+                  <div onClick="{{ c.select }}" tabindex="0" style="height: 40px; display: flex; align-items: center; gap: 10px; padding: 0 14px 0 76px; cursor: pointer; box-sizing: border-box; background: {{ c.bg }}; border-bottom: 1px solid var(--bsoft); position: relative;" style-hover="background: var(--hover)">
+                    <span style="display: {{ c.barDisp }}; position: absolute; left: 0; top: 5px; bottom: 5px; width: 3px; border-radius: 2px; background: var(--accent);"></span>
+                    <span style="flex: 1; min-width: 0; font-size: 13px; color: var(--text); font-weight: {{ c.w }}; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ c.msg }}</span>
+                    <sc-for list="{{ c.chips }}" as="ch" hint-placeholder-count="0">
+                      <span style="font-family: 'JetBrains Mono', monospace; font-size: 10px; padding: 2px 8px; border-radius: 999px; white-space: nowrap; background: {{ ch.bg }}; color: {{ ch.color }}; border: 1px solid {{ ch.bd }}; max-width: 130px; overflow: hidden; text-overflow: ellipsis;">{{ ch.label }}</span>
+                    </sc-for>
+                    <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted); flex-shrink: 0;">{{ c.hash }}</span>
+                    <span style="display: {{ timeDisp }}; font-size: 11px; color: var(--muted); width: 62px; text-align: right; flex-shrink: 0;">{{ c.time }}</span>
+                  </div>
+                </sc-for>
+                </div>
+              </div>
+            </div>
+
+            <!-- detalhe -->
+            <div style="width: {{ detW }}; height: {{ detH }}; flex-shrink: 0; display: flex; flex-direction: column; background: var(--panel); min-height: 0; min-width: 0;">
+              <div style="padding: 14px 16px 10px; border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 9px; flex-shrink: 0;">
+                <div style="display: flex; align-items: center; gap: 9px;">
+                  <div style="width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font-size: 11px; font-weight: 700; background: var(--auASb); color: var(--auAS); flex-shrink: 0;">AS</div>
+                  <div style="flex: 1; min-width: 0;">
+                    <div style="font-size: 12.5px; font-weight: 600;">Ana Souza</div>
+                    <div style="font-size: 11px; color: var(--muted);">há 2 horas · 12 Jul 2026</div>
+                  </div>
+                  <span style="font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: var(--l0); background: var(--l0bg); border: 1px solid var(--l0bd); padding: 2px 8px; border-radius: 6px;">f1d7a3</span>
+                </div>
+                <div style="font-size: 13.5px; line-height: 1.45; font-weight: 600; text-wrap: pretty;">A copa cresce: layout incremental do grafo</div>
+                <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                  <div onClick="{{ actBranch }}" tabindex="0" style="height: 36px; display: flex; align-items: center; padding: 0 12px; border-radius: 8px; background: var(--btn); border: 1px solid var(--btnB); font-size: 12px; font-weight: 600; color: var(--btnT); cursor: pointer; box-sizing: border-box;" style-hover="background: var(--hover)">Branch daqui</div>
+                  <div onClick="{{ actTag }}" tabindex="0" style="height: 36px; display: flex; align-items: center; padding: 0 12px; border-radius: 8px; background: var(--btn); border: 1px solid var(--btnB); font-size: 12px; font-weight: 600; color: var(--btnT); cursor: pointer; box-sizing: border-box;" style-hover="background: var(--hover)">Tag</div>
+                  <div onClick="{{ actRevert }}" tabindex="0" style="height: 36px; display: flex; align-items: center; padding: 0 12px; border-radius: 8px; background: var(--btn); border: 1px solid var(--btnB); font-size: 12px; font-weight: 600; color: var(--btnT); cursor: pointer; box-sizing: border-box;" style-hover="background: var(--hover)">Revert</div>
+                  <div onClick="{{ toggleMore }}" tabindex="0" title="Mais ações" style="height: 36px; width: 38px; display: grid; place-items: center; border-radius: 8px; background: var(--btn); border: 1px solid var(--btnB); font-size: 14px; color: var(--btnT); cursor: pointer; box-sizing: border-box; position: relative;" style-hover="background: var(--hover)">…
+                    <sc-if value="{{ moreOpen }}" hint-placeholder-val="{{ false }}">
+                      <div style="position: absolute; top: 34px; right: 0; z-index: 10; width: 190px; background: var(--win); border: 1px solid var(--border); border-radius: 10px; box-shadow: var(--shadow); padding: 5px; display: flex; flex-direction: column; animation: popIn 0.15s ease both;">
+                        <sc-for list="{{ moreItems }}" as="mi" hint-placeholder-count="4">
+                          <div style="display: {{ mi.divDisp }}; height: 1px; background: var(--border); margin: 4px 6px;"></div>
+                          <div onClick="{{ mi.run }}" tabindex="0" style="display: flex; align-items: center; height: 34px; padding: 0 10px; border-radius: 7px; font-size: 12.5px; font-weight: 500; color: {{ mi.color }}; cursor: pointer; box-sizing: border-box; text-align: left;" style-hover="background: var(--hover)">{{ mi.label }}</div>
+                        </sc-for>
+                      </div>
+                    </sc-if>
+                  </div>
+                </div>
+              </div>
+              <div style="flex: 1; min-height: 0; overflow-y: auto; padding: 8px 10px;">
+                <div style="padding: 4px 6px 6px; font-size: 10.5px; font-weight: 700; letter-spacing: 1.2px; color: var(--muted);">3 ARQUIVOS · <span style="color: var(--daT);">+64</span> <span style="color: var(--ddT);">−12</span></div>
+                <sc-for list="{{ detFiles }}" as="f" hint-placeholder-count="3">
+                  <div tabindex="0" style="display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 6px; border-radius: 7px; cursor: pointer; box-sizing: border-box;" style-hover="background: var(--hover)">
+                    <span style="width: 17px; height: 17px; border-radius: 4px; display: grid; place-items: center; font-family: 'JetBrains Mono', monospace; font-size: 8.5px; font-weight: 700; background: {{ f.tBg }}; color: {{ f.tColor }}; flex-shrink: 0;">{{ f.glyph }}</span>
+                    <span style="flex: 1; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: var(--text2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; direction: rtl; text-align: left;">{{ f.p }}</span>
+                    <span title="{{ f.sT }}" style="font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 700; color: {{ f.sColor }};">{{ f.s }}</span>
+                  </div>
+                </sc-for>
+                <div style="margin: 8px 0 0; border: 1px solid var(--border); border-radius: 9px; background: var(--panel2); padding: 6px 0; overflow-x: auto;">
+                  <sc-for list="{{ diffRows }}" as="l" hint-placeholder-count="8">
+                    <div style="display: flex; font-family: 'JetBrains Mono', monospace; font-size: 11px; line-height: 1.75; background: {{ l.bg }}; color: {{ l.color }};">
+                      <span style="width: 26px; flex-shrink: 0; text-align: right; padding-right: 5px; color: var(--muted); opacity: 0.7; user-select: none;">{{ l.ln1 }}</span>
+                      <span style="width: 26px; flex-shrink: 0; text-align: right; padding-right: 7px; color: var(--muted); opacity: 0.7; user-select: none; border-right: 1px solid var(--bsoft);">{{ l.ln2 }}</span>
+                      <span style="white-space: pre; padding-left: 9px;">{{ l.txt }}</span>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- WORKING COPY -->
+        <sc-if value="{{ isWorking }}" hint-placeholder-val="{{ false }}">
+          <div style="flex: 1; min-width: 0; display: flex; min-height: 0; animation: fadeUp 0.25s ease both;">
+            <div style="width: {{ wcListW }}px; flex-shrink: 0; border-right: 1px solid var(--border); display: flex; flex-direction: column; min-height: 0;">
+              <div style="flex: 1; min-height: 0; overflow-y: auto; padding: 8px;">
+                <div style="display: flex; align-items: center; height: 30px; padding: 0 8px;">
+                  <span style="font-size: 10.5px; font-weight: 700; letter-spacing: 1.2px; color: var(--muted); flex: 1;">NÃO PREPARADAS · {{ wcUnN }}</span>
+                  <div onClick="{{ stageAll }}" tabindex="0" style="height: 26px; display: flex; align-items: center; padding: 0 9px; font-size: 11.5px; color: var(--l0); cursor: pointer; border-radius: 6px; font-weight: 700;" style-hover="background: var(--hover)">Preparar tudo</div>
+                  <div onClick="{{ openDiscard }}" tabindex="0" style="height: 26px; display: flex; align-items: center; padding: 0 9px; font-size: 11.5px; color: var(--danger); cursor: pointer; border-radius: 6px; font-weight: 700;" style-hover="background: var(--hover)">Descartar…</div>
+                </div>
+                <sc-for list="{{ wcUnstaged }}" as="f" hint-placeholder-count="3">
+                  <div onClick="{{ f.select }}" tabindex="0" style="display: flex; align-items: center; gap: 9px; height: 36px; padding: 0 8px; border-radius: 8px; cursor: pointer; background: {{ f.bg }}; box-sizing: border-box; border: {{ f.conflictBd }};" style-hover="background: var(--hover)">
+                    <div onClick="{{ f.toggle }}" tabindex="0" title="{{ f.chkTip }}" style="width: 18px; height: 18px; border-radius: 5px; border: 1.5px solid {{ f.chkBd }}; background: {{ f.chkBg }}; box-sizing: border-box; flex-shrink: 0; display: grid; place-items: center; font-size: 10px; color: var(--muted);">{{ f.chkGlyph }}</div>
+                    <span style="width: 18px; height: 18px; border-radius: 4px; display: grid; place-items: center; font-family: 'JetBrains Mono', monospace; font-size: 9px; font-weight: 700; background: {{ f.tBg }}; color: {{ f.tColor }}; flex-shrink: 0;">{{ f.glyph }}</span>
+                    <div style="flex: 1; min-width: 0;">
+                      <div style="font-size: 12.5px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ f.name }}</div>
+                      <div style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ f.dir }}</div>
+                    </div>
+                    <span style="display: {{ f.confDisp }}; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 999px; background: var(--ddB); color: var(--ddT); white-space: nowrap;">conflito</span>
+                    <span title="{{ f.sT }}" style="font-family: 'JetBrains Mono', monospace; font-size: 10.5px; font-weight: 700; color: {{ f.sColor }};">{{ f.s }}</span>
+                  </div>
+                </sc-for>
+                <sc-if value="{{ wcManyOn }}" hint-placeholder-val="{{ false }}">
+                  <div style="padding: 8px 10px; font-size: 11.5px; color: var(--muted); border: 1px dashed var(--btnB); border-radius: 8px; margin: 4px 0;">+ 493 ficheiros (lista virtualizada — só as ~14 rows visíveis renderizam)</div>
+                </sc-if>
+                <div style="display: flex; align-items: center; height: 30px; padding: 0 8px; margin-top: 8px;">
+                  <span style="font-size: 10.5px; font-weight: 700; letter-spacing: 1.2px; color: var(--muted); flex: 1;">PREPARADAS · {{ wcStN }}</span>
+                </div>
+                <sc-for list="{{ wcStaged }}" as="f" hint-placeholder-count="2">
+                  <div onClick="{{ f.select }}" tabindex="0" style="display: flex; align-items: center; gap: 9px; height: 36px; padding: 0 8px; border-radius: 8px; cursor: pointer; background: {{ f.bg }}; box-sizing: border-box;" style-hover="background: var(--hover)">
+                    <div onClick="{{ f.toggle }}" tabindex="0" title="Despreparar" style="width: 18px; height: 18px; border-radius: 5px; background: var(--accent); flex-shrink: 0; display: grid; place-items: center; color: var(--accentT); font-size: 11px; font-weight: 800;">✓</div>
+                    <span style="width: 18px; height: 18px; border-radius: 4px; display: grid; place-items: center; font-family: 'JetBrains Mono', monospace; font-size: 9px; font-weight: 700; background: {{ f.tBg }}; color: {{ f.tColor }}; flex-shrink: 0;">{{ f.glyph }}</span>
+                    <div style="flex: 1; min-width: 0;">
+                      <div style="font-size: 12.5px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ f.name }}</div>
+                      <div style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ f.dir }}</div>
+                    </div>
+                    <span title="{{ f.sT }}" style="font-family: 'JetBrains Mono', monospace; font-size: 10.5px; font-weight: 700; color: {{ f.sColor }};">{{ f.s }}</span>
+                  </div>
+                </sc-for>
+              </div>
+              <div style="padding: 10px; border-top: 1px solid var(--border); background: var(--panel); display: flex; flex-direction: column; gap: 8px; flex-shrink: 0;">
+                <textarea value="{{ msg }}" onChange="{{ onMsg }}" placeholder="Mensagem do commit…" style="height: 52px; resize: none; background: var(--input); border: 1px solid var(--btnB); border-radius: 9px; padding: 9px 11px; font-size: 12.5px; color: var(--text); outline: none; font-family: 'Inter', sans-serif; box-sizing: border-box;"></textarea>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <div onClick="{{ flipAmend }}" tabindex="0" style="display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--text2); cursor: pointer; padding: 4px 6px; border-radius: 6px;" style-hover="background: var(--hover)">
+                    <span style="width: 14px; height: 14px; border-radius: 4px; border: 1.5px solid {{ amendBd }}; background: {{ amendBg }}; box-sizing: border-box; display: grid; place-items: center; color: var(--accentT); font-size: 9px; font-weight: 800;">{{ amendGlyph }}</span>
+                    Amend
+                  </div>
+                  <div style="flex: 1;"></div>
+                  <div onClick="{{ doCommit }}" tabindex="0" style="height: 36px; display: flex; align-items: center; gap: 7px; padding: 0 18px; border-radius: 9px; background: {{ commitBg }}; color: {{ commitFg }}; font-size: 13px; font-weight: 700; cursor: {{ commitCur }}; box-sizing: border-box;">Commit em main <span style="font-family: 'JetBrains Mono', monospace; font-weight: 500; opacity: 0.8;">Ctrl+↵</span></div>
+                </div>
+              </div>
+            </div>
+            <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; min-height: 0;">
+              <div style="height: 42px; padding: 0 14px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 9px; flex-shrink: 0;">
+                <span style="width: 18px; height: 18px; border-radius: 4px; display: grid; place-items: center; font-family: 'JetBrains Mono', monospace; font-size: 9px; font-weight: 700; background: var(--l1bg); color: var(--l1);">TS</span>
+                <span style="font-family: 'JetBrains Mono', monospace; font-size: 12.5px;">{{ wcSelName }}</span>
+                <span style="font-family: 'JetBrains Mono', monospace; font-size: 10.5px; font-weight: 700; color: var(--stMT);">M</span>
+                <div style="flex: 1;"></div>
+                <div style="display: flex; gap: 4px;">
+                  <div onClick="{{ wcSt1 }}" tabindex="0" style="height: 26px; display: flex; align-items: center; padding: 0 9px; border-radius: 7px; border: 1.5px solid {{ wcSt1Ring }}; font-size: 11px; font-weight: 700; color: var(--text2); cursor: pointer; box-sizing: border-box; font-family: 'JetBrains Mono', monospace;">1 arq.</div>
+                  <div onClick="{{ wcSt500 }}" tabindex="0" style="height: 26px; display: flex; align-items: center; padding: 0 9px; border-radius: 7px; border: 1.5px solid {{ wcSt500Ring }}; font-size: 11px; font-weight: 700; color: var(--text2); cursor: pointer; box-sizing: border-box; font-family: 'JetBrains Mono', monospace;">500 arq.</div>
+                  <div onClick="{{ wcStConf }}" tabindex="0" style="height: 26px; display: flex; align-items: center; padding: 0 9px; border-radius: 7px; border: 1.5px solid {{ wcStConfRing }}; font-size: 11px; font-weight: 700; color: var(--text2); cursor: pointer; box-sizing: border-box; font-family: 'JetBrains Mono', monospace;">conflito</div>
+                </div>
+              </div>
+              <sc-if value="{{ wcConflictOn }}" hint-placeholder-val="{{ false }}">
+                <div style="margin: 10px 14px 0; padding: 10px 14px; border: 1px solid var(--ddT); border-radius: 10px; background: var(--ddB); display: flex; align-items: center; gap: 10px; flex-shrink: 0;">
+                  <span style="font-size: 12.5px; color: var(--ddT); font-weight: 600; flex: 1;">Merge em curso com 1 conflito — resolve o ficheiro e commita, ou aborta.</span>
+                  <div tabindex="0" style="height: 28px; display: flex; align-items: center; padding: 0 11px; border-radius: 7px; background: var(--btn); border: 1px solid var(--btnB); font-size: 11.5px; font-weight: 700; color: var(--btnT); cursor: pointer; box-sizing: border-box;">Abortar merge</div>
+                </div>
+              </sc-if>
+              <div style="flex: 1; overflow: auto; padding: 8px 0; background: var(--panel2); min-height: 0;">
+                <sc-for list="{{ diffRows }}" as="l" hint-placeholder-count="8">
+                  <div style="display: flex; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; line-height: 1.8; background: {{ l.bg }}; color: {{ l.color }};">
+                    <span style="width: 32px; flex-shrink: 0; text-align: right; padding-right: 6px; color: var(--muted); opacity: 0.7; user-select: none;">{{ l.ln1 }}</span>
+                    <span style="width: 32px; flex-shrink: 0; text-align: right; padding-right: 8px; color: var(--muted); opacity: 0.7; user-select: none; border-right: 1px solid var(--bsoft);">{{ l.ln2 }}</span>
+                    <span style="white-space: pre; padding-left: 11px;">{{ l.txt }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- ADICIONAR REPOSITÓRIO (página) -->
+        <sc-if value="{{ isPicker }}" hint-placeholder-val="{{ false }}">
+          <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; min-height: 0; animation: fadeUp 0.25s ease both;">
+            <div style="padding: 14px 20px 0; display: flex; align-items: center; gap: 10px; flex-shrink: 0;">
+              <span style="font-size: 15px; font-weight: 700; flex: 1;">Adicionar repositório</span>
+              <div style="display: inline-flex; gap: 4px; padding: 4px; border-radius: 10px; background: var(--panel2); border: 1px solid var(--border);">
+                <sc-for list="{{ pkTabs }}" as="pt" hint-placeholder-count="3">
+                  <div onClick="{{ pt.pick }}" tabindex="0" style="height: 30px; display: flex; align-items: center; padding: 0 14px; border-radius: 7px; font-size: 12.5px; font-weight: 600; color: {{ pt.color }}; background: {{ pt.bg }}; cursor: pointer; box-sizing: border-box;">{{ pt.label }}</div>
+                </sc-for>
+              </div>
+            </div>
+            <sc-if value="{{ pkIsLocal }}" hint-placeholder-val="{{ true }}">
+              <div style="flex: 1; min-height: 0; overflow-y: auto; padding: 14px 20px;">
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                  <input placeholder="Filtrar em ~/dev…" style="flex: 1; height: 36px; background: var(--input); border: 1px solid var(--btnB); border-radius: 8px; padding: 0 12px; font-size: 12.5px; color: var(--text); outline: none; font-family: 'Inter', sans-serif; box-sizing: border-box;">
+                  <div onClick="{{ pkBrowse }}" tabindex="0" style="height: 36px; display: flex; align-items: center; padding: 0 13px; border-radius: 8px; background: var(--btn); border: 1px solid var(--btnB); font-size: 12.5px; font-weight: 600; color: var(--btnT); cursor: pointer; box-sizing: border-box;" style-hover="background: var(--hover)">Escolher pasta…</div>
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px;">
+                  <sc-for list="{{ pkRepos }}" as="pr" hint-placeholder-count="4">
+                    <div style="border: 1px solid var(--border); border-radius: 11px; background: var(--panel); padding: 12px 14px; display: flex; flex-direction: column; gap: 7px;">
+                      <div style="display: flex; align-items: center; gap: 8px;">
+                        <span style="width: 8px; height: 8px; border-radius: 50%; background: {{ pr.dot }}; flex-shrink: 0;"></span>
+                        <span style="font-family: 'JetBrains Mono', monospace; font-size: 12.5px; font-weight: 600; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ pr.name }}</span>
+                      </div>
+                      <div style="font-size: 11px; color: var(--muted); font-family: 'JetBrains Mono', monospace;">~/dev/{{ pr.name }} · {{ pr.meta }}</div>
+                      <div onClick="{{ pr.open }}" tabindex="0" style="height: 32px; display: grid; place-items: center; border-radius: 8px; background: {{ pr.btnBg }}; border: 1px solid var(--btnB); color: {{ pr.btnFg }}; font-size: 12px; font-weight: 700; cursor: {{ pr.cur }}; box-sizing: border-box;">{{ pr.btnLabel }}</div>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+            </sc-if>
+            <sc-if value="{{ pkIsClone }}" hint-placeholder-val="{{ false }}">
+              <div style="flex: 1; padding: 20px; display: flex; flex-direction: column; gap: 10px; max-width: 520px;">
+                <div style="font-size: 12px; font-weight: 600; color: var(--text2);">URL do repositório</div>
+                <input placeholder="https://github.com/utilizador/repo.git" style="height: 36px; background: var(--input); border: 1px solid var(--btnB); border-radius: 8px; padding: 0 12px; font-size: 12.5px; color: var(--text); outline: none; font-family: 'JetBrains Mono', monospace; box-sizing: border-box;">
+                <div style="font-size: 12px; font-weight: 600; color: var(--text2); margin-top: 4px;">Pasta de destino</div>
+                <input value="~/dev" style="height: 36px; background: var(--input); border: 1px solid var(--btnB); border-radius: 8px; padding: 0 12px; font-size: 12.5px; color: var(--text); outline: none; font-family: 'JetBrains Mono', monospace; box-sizing: border-box;">
+                <div onClick="{{ pkClone }}" tabindex="0" style="height: 38px; display: grid; place-items: center; border-radius: 9px; background: var(--accent); color: var(--accentT); font-size: 13px; font-weight: 700; cursor: pointer; margin-top: 6px; box-sizing: border-box;">Clonar</div>
+              </div>
+            </sc-if>
+            <sc-if value="{{ pkIsNew }}" hint-placeholder-val="{{ false }}">
+              <div style="flex: 1; padding: 20px; display: flex; flex-direction: column; gap: 10px; max-width: 520px;">
+                <div style="font-size: 12px; font-weight: 600; color: var(--text2);">Nome do repositório</div>
+                <input placeholder="minha-floresta" style="height: 36px; background: var(--input); border: 1px solid var(--btnB); border-radius: 8px; padding: 0 12px; font-size: 12.5px; color: var(--text); outline: none; font-family: 'JetBrains Mono', monospace; box-sizing: border-box;">
+                <div style="font-size: 12px; font-weight: 600; color: var(--text2); margin-top: 4px;">Criar em</div>
+                <input value="~/dev" style="height: 36px; background: var(--input); border: 1px solid var(--btnB); border-radius: 8px; padding: 0 12px; font-size: 12.5px; color: var(--text); outline: none; font-family: 'JetBrains Mono', monospace; box-sizing: border-box;">
+                <div onClick="{{ pkCreate }}" tabindex="0" style="height: 38px; display: grid; place-items: center; border-radius: 9px; background: var(--accent); color: var(--accentT); font-size: 13px; font-weight: 700; cursor: pointer; margin-top: 6px; box-sizing: border-box;">Criar e plantar</div>
+              </div>
+            </sc-if>
+          </div>
+        </sc-if>
+
+        <!-- STASHES -->
+        <sc-if value="{{ isStashes }}" hint-placeholder-val="{{ false }}">
+          <div style="flex: 1; padding: 20px; overflow-y: auto; animation: fadeUp 0.25s ease both;">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 14px;">
+              <span style="font-size: 15px; font-weight: 700; flex: 1;">Stashes</span>
+              <div tabindex="0" style="height: 32px; display: flex; align-items: center; padding: 0 13px; border-radius: 8px; background: var(--accent); color: var(--accentT); font-size: 12.5px; font-weight: 700; cursor: pointer; box-sizing: border-box;">+ Guardar stash</div>
+            </div>
+            <div style="max-width: 560px; border: 1px solid var(--border); border-radius: 12px; background: var(--panel); padding: 14px 16px; display: flex; flex-direction: column; gap: 8px;">
+              <div style="font-size: 13px; font-weight: 600;">WIP em main: experimento das lanes</div>
+              <div style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted);">3 ficheiros · há 5 dias</div>
+              <div style="display: flex; gap: 6px; margin-top: 4px;">
+                <div tabindex="0" style="height: 36px; display: flex; align-items: center; padding: 0 14px; border-radius: 8px; background: var(--accent); color: var(--accentT); font-size: 12.5px; font-weight: 700; cursor: pointer; box-sizing: border-box;">Aplicar</div>
+                <div tabindex="0" style="height: 36px; display: flex; align-items: center; padding: 0 14px; border-radius: 8px; background: var(--btn); border: 1px solid var(--btnB); color: var(--btnT); font-size: 12.5px; font-weight: 600; cursor: pointer; box-sizing: border-box;">Pop</div>
+                <div onClick="{{ openDiscard }}" tabindex="0" style="height: 36px; display: flex; align-items: center; padding: 0 14px; border-radius: 8px; background: transparent; border: 1.5px solid var(--danger); color: var(--danger); font-size: 12.5px; font-weight: 700; cursor: pointer; box-sizing: border-box;">Apagar…</div>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- DEFINIÇÕES -->
+        <sc-if value="{{ isSettings }}" hint-placeholder-val="{{ false }}">
+          <div style="flex: 1; min-width: 0; display: flex; min-height: 0; animation: fadeUp 0.25s ease both;">
+            <div style="width: 168px; flex-shrink: 0; border-right: 1px solid var(--border); background: var(--panel2); padding: 12px 8px; display: flex; flex-direction: column; gap: 2px;">
+              <sc-for list="{{ setNav }}" as="sn" hint-placeholder-count="7">
+                <div tabindex="0" style="display: flex; align-items: center; height: 32px; padding: 0 11px; border-radius: 8px; font-size: 12.5px; font-weight: {{ sn.w }}; color: {{ sn.color }}; cursor: pointer; background: {{ sn.bg }}; box-sizing: border-box;" style-hover="background: var(--hover)">{{ sn.name }}<span style="display: {{ sn.soonDisp }}; margin-left: auto; font-size: 9.5px; color: var(--muted); border: 1px solid var(--btnB); border-radius: 999px; padding: 1px 6px;">breve</span></div>
+              </sc-for>
+            </div>
+            <div style="flex: 1; padding: 20px 24px; overflow-y: auto;">
+              <div style="font-size: 15px; font-weight: 700; margin-bottom: 4px;">Aparência</div>
+              <div style="font-size: 12px; color: var(--muted); margin-bottom: 16px;">Tema, estilo de árvore e densidade — o resto vive em secções próprias, sem duplicados.</div>
+              <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <sc-for list="{{ themeOptions }}" as="to" hint-placeholder-count="4">
+                  <div onClick="{{ to.pick }}" tabindex="0" style="display: flex; align-items: center; gap: 9px; height: 40px; padding: 0 14px; border-radius: 10px; border: 2px solid {{ to.ring }}; background: var(--panel); cursor: pointer; box-sizing: border-box;">
+                    <span style="width: 16px; height: 16px; border-radius: 50%; background: {{ to.swatch }}; border: 1px solid var(--bsoft);"></span>
+                    <span style="font-size: 12.5px; font-weight: 600;">{{ to.name }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+      </div>
+
+      <!-- ONBOARDING overlay -->
+      <sc-if value="{{ obOn }}" hint-placeholder-val="{{ false }}">
+        <div style="position: absolute; inset: 0; z-index: 20; background: var(--desk); display: grid; place-items: center; animation: fadeIn 0.25s ease both;">
+          <div style="width: 420px; max-width: 86%; background: var(--win); border: 1px solid var(--winB); border-radius: 16px; box-shadow: var(--shadow); padding: 28px; display: flex; flex-direction: column; gap: 16px; animation: popIn 0.3s cubic-bezier(0.2, 0.9, 0.3, 1) both;">
+            <div style="display: flex; align-items: baseline; font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 22px;"><span>git</span><span style="display: inline-block; margin: 0 2px;">{{ logoOb }}</span><span>ylva</span></div>
+            <div style="font-size: 13px; color: var(--text2); line-height: 1.6;">Três coisas para saberes:<br>· <b>Working Copy</b> — prepara e commita<br>· a <b>árvore</b> é o teu histórico<br>· <b>Ctrl+K</b> encontra e executa tudo</div>
+            <div onClick="{{ obClose }}" tabindex="0" style="height: 40px; display: grid; place-items: center; border-radius: 10px; background: var(--accent); color: var(--accentT); font-size: 13.5px; font-weight: 700; cursor: pointer;">Continuar localmente</div>
+            <div style="display: flex; gap: 6px;">
+              <div tabindex="0" style="flex: 1; height: 32px; display: grid; place-items: center; border-radius: 8px; border: 1px solid var(--btnB); font-size: 11.5px; color: var(--muted); cursor: default; box-sizing: border-box;">GitHub · em breve</div>
+              <div tabindex="0" style="flex: 1; height: 32px; display: grid; place-items: center; border-radius: 8px; border: 1px solid var(--btnB); font-size: 11.5px; color: var(--muted); cursor: default; box-sizing: border-box;">GitLab · em breve</div>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- MODAL SYNC -->
+      <sc-if value="{{ syncOn }}" hint-placeholder-val="{{ false }}">
+        <div onClick="{{ syncClose }}" style="position: absolute; inset: 0; z-index: 30; background: rgba(0,0,0,0.4); display: grid; place-items: center; animation: fadeIn 0.15s ease both;">
+          <div onClick="{{ eat }}" style="width: 400px; max-width: 88%; background: var(--win); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow); overflow: hidden; animation: popIn 0.2s cubic-bezier(0.2, 0.9, 0.3, 1) both;">
+            <div style="padding: 14px 18px 10px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--border);">
+              <span style="font-size: 14px; font-weight: 700; flex: 1;">{{ syncTitle }}</span>
+              <div onClick="{{ syncClose }}" tabindex="0" style="width: 26px; height: 26px; border-radius: 7px; display: grid; place-items: center; color: var(--muted); cursor: pointer;" style-hover="background: var(--hover)">✕</div>
+            </div>
+            <div style="padding: 8px 18px; display: flex; gap: 4px; flex-wrap: wrap; border-bottom: 1px solid var(--bsoft);">
+              <sc-for list="{{ syncStates }}" as="ss" hint-placeholder-count="8">
+                <div onClick="{{ ss.pick }}" tabindex="0" style="padding: 4px 9px; border-radius: 999px; border: 1.5px solid {{ ss.ring }}; font-size: 10px; font-weight: 700; color: var(--text2); cursor: pointer; font-family: 'JetBrains Mono', monospace;">{{ ss.label }}</div>
+              </sc-for>
+            </div>
+            <div style="padding: 16px 18px; display: flex; flex-direction: column; gap: 10px;">
+              <div style="display: flex; align-items: flex-start; gap: 10px;">
+                <span style="width: 10px; height: 10px; border-radius: 50%; background: {{ syncDot }}; margin-top: 4px; flex-shrink: 0; animation: {{ syncDotAnim }};"></span>
+                <div style="font-size: 13px; line-height: 1.55; color: var(--text); text-wrap: pretty;">{{ syncBody }}</div>
+              </div>
+              <sc-for list="{{ syncRows }}" as="sr" hint-placeholder-count="2">
+                <div style="display: flex; align-items: center; gap: 9px; padding: 7px 10px; border: 1px solid var(--bsoft); border-radius: 8px; background: var(--panel);">
+                  <span style="font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: var(--muted);">{{ sr.hash }}</span>
+                  <span style="font-size: 12px; color: var(--text); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ sr.msg }}</span>
+                </div>
+              </sc-for>
+            </div>
+            <div style="padding: 12px 18px 16px; display: flex; gap: 8px; justify-content: flex-end;">
+              <div onClick="{{ syncClose }}" tabindex="0" style="height: 34px; display: flex; align-items: center; padding: 0 14px; border-radius: 8px; background: var(--btn); border: 1px solid var(--btnB); font-size: 12.5px; font-weight: 600; color: var(--btnT); cursor: pointer; box-sizing: border-box;">Cancelar</div>
+              <div onClick="{{ syncPrimary }}" tabindex="0" style="height: 34px; display: flex; align-items: center; padding: 0 16px; border-radius: 8px; background: {{ syncBtnBg }}; color: {{ syncBtnFg }}; font-size: 12.5px; font-weight: 700; cursor: pointer; box-sizing: border-box; opacity: {{ syncBtnOp }};">{{ syncBtnLabel }}</div>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- CONFIRMAÇÃO DESTRUTIVA -->
+      <sc-if value="{{ confirmOn }}" hint-placeholder-val="{{ false }}">
+        <div onClick="{{ confirmClose }}" style="position: absolute; inset: 0; z-index: 40; background: rgba(0,0,0,0.4); display: grid; place-items: center; animation: fadeIn 0.15s ease both;">
+          <div onClick="{{ eat }}" style="width: 360px; max-width: 86%; background: var(--win); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow); padding: 20px; display: flex; flex-direction: column; gap: 12px; animation: popIn 0.2s cubic-bezier(0.2, 0.9, 0.3, 1) both;">
+            <div style="font-size: 14px; font-weight: 700;">Descartar alterações?</div>
+            <div style="font-size: 12.5px; color: var(--text2); line-height: 1.55;">Isto apaga as alterações não preparadas de <b>3 ficheiros</b>. Não é reversível.</div>
+            <div style="display: flex; gap: 8px; justify-content: flex-end; margin-top: 4px;">
+              <div onClick="{{ confirmClose }}" tabindex="0" style="height: 34px; display: flex; align-items: center; padding: 0 14px; border-radius: 8px; background: var(--btn); border: 1px solid var(--btnB); font-size: 12.5px; font-weight: 700; color: var(--btnT); cursor: pointer; box-sizing: border-box;">Cancelar</div>
+              <div onClick="{{ confirmDo }}" tabindex="0" style="height: 34px; display: flex; align-items: center; padding: 0 16px; border-radius: 8px; background: var(--danger); color: var(--dangerT); font-size: 12.5px; font-weight: 700; cursor: pointer; box-sizing: border-box;">Descartar</div>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- toast -->
+      <sc-if value="{{ toastOn }}" hint-placeholder-val="{{ false }}">
+        <div style="position: absolute; right: 12px; bottom: 12px; z-index: 50; background: var(--win); border: 1px solid var(--border); border-left: 3px solid var(--l0); border-radius: 10px; box-shadow: var(--shadow); padding: 10px 14px; font-size: 12.5px; color: var(--text); animation: popIn 0.2s ease both; max-width: 280px;">{{ toastMsg }}</div>
+      </sc-if>
+    </div>
+    </div>
+    </div>
+    <div style="font-size: 12px; color: #767C74; font-family: 'JetBrains Mono', monospace;">botões 36px · rows importantes 40px · grafo real com forks e merge · header &lt;1100px agrupa Sync · detalhe passa para baixo a 900×560 · Tab + Enter em tudo, foco visível</div>
+  </div>
+
+  <!-- 7-10 · listas finais -->
+  <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; max-width: 1240px;">
+    <div style="background: #FFFFFF; border: 1px solid #DDDDD5; border-radius: 12px; padding: 18px 20px;">
+      <div style="font-family: 'Space Grotesk', sans-serif; font-size: 17px; font-weight: 600; margin-bottom: 10px;">7 · O que mudou</div>
+      <div style="font-size: 12.5px; color: #363C37; line-height: 1.8;">
+        <b>Mantido:</b> header com sync, sidebar com navegação, Ctrl+K, temas, árvore, detalhe do commit.<br>
+        <b>Movido:</b> Commit → cópia de trabalho (única ação primária); Branch/Tag/Revert → detalhe do commit; Checkout → botão explícito na row da branch; Definições → só header + Ctrl+K.<br>
+        <b>Combinado:</b> toasts + notificações num só stack; Fetch/Pull/Push num grupo de sync com estado partilhado.<br>
+        <b>Removido:</b> barra inferior permanente; barra de abas de repositórios (o seletor com abertos/registados/recentes preserva o contexto numa linha só); pesquisa de branches sempre visível (lupa, ou automática com muitas branches); entrada Definições da sidebar; "Saltar" do onboarding; duplo clique como único caminho de checkout.<br>
+        <b>Menu secundário ("…" e Ctrl+K):</b> cherry-pick, rebase, reset, renomear, apagar branch, terminal.
+      </div>
+    </div>
+    <div style="background: #FFFFFF; border: 1px solid #DDDDD5; border-radius: 12px; padding: 18px 20px;">
+      <div style="font-family: 'Space Grotesk', sans-serif; font-size: 17px; font-weight: 600; margin-bottom: 10px;">8 · Tokens principais</div>
+      <div style="font-size: 12.5px; color: #363C37; line-height: 1.8; font-family: 'JetBrains Mono', monospace;">
+        espaçamento: 4 · 8 · 12 · 16 · 20 · 24<br>
+        alvos: botão 36px · row importante 40px · secundário mín. 32px<br>
+        tipo: corpo 13 · secundário 12.5 · meta 11–12 · mono 11–12.5<br>
+        títulos: Space Grotesk 600 · corpo: Inter · código: JetBrains Mono<br>
+        raio: 7–10 controlos · 12–14 cartões/modais<br>
+        cores: tokens existentes dos 4 temas (--l0/1/2, --accent, --danger)
+      </div>
+    </div>
+    <div style="background: #FFFFFF; border: 1px solid #DDDDD5; border-radius: 12px; padding: 18px 20px;">
+      <div style="font-family: 'Space Grotesk', sans-serif; font-size: 17px; font-weight: 600; margin-bottom: 10px;">9 · Acessibilidade</div>
+      <div style="font-size: 12.5px; color: #363C37; line-height: 1.8;">
+        No produto real: <code>button</code> nativos + ARIA (menus com <code>role="menu"</code>, <code>aria-expanded</code>/<code>aria-haspopup</code>, setas ↑↓, Escape fecha e devolve o foco, clique fora fecha) + Enter/Espaço (o protótipo usa tabindex só para a prova visual) · o grafo do histórico é hardcoded para os 8 commits de exemplo — a implementação gera lanes/curvas da topologia real · foco visível de 2px na cor do accent · botões 36px, rows importantes 40px, secundárias ≥32px · checkout por botão (não só duplo clique) · destrutivas com confirmação e Cancelar focado por omissão · <code>prefers-reduced-motion</code> desliga tudo · contraste AA nos labels (usar os --muted já corrigidos) · toasts com aria-live no produto real.
+      </div>
+    </div>
+    <div style="background: #FFFFFF; border: 1px solid #DDDDD5; border-radius: 12px; padding: 18px 20px;">
+      <div style="font-family: 'Space Grotesk', sans-serif; font-size: 17px; font-weight: 600; margin-bottom: 10px;">10 · Riscos a testar com utilizadores</div>
+      <div style="font-size: 12.5px; color: #363C37; line-height: 1.8;">
+        1. Sem barra inferior, os utilizadores atuais encontram Merge/Stash/Tag? (medir tempo até à 1ª utilização via "…"/Ctrl+K)<br>
+        2. Checkout: sempre visível na branch selecionada (como aqui); nas restantes por hover/foco — validar a descoberta<br>
+        3. O detalhe em baixo a 900×560 é preferível a esconder o detalhe?<br>
+        4. 200 branches: pesquisa + pastas chegam, ou é preciso um ecrã dedicado?<br>
+        5. O grupo de sync no header lê-se como um só sistema?<br>
+        6. Sem abas, quem alterna entre 2 repos a cada minuto sente atrito? (o seletor guarda o estado de cada repo aberto; medir a frequência de troca)
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = {
+    size: '1440', themeKey: 'claro', view: 'history', sel: 0,
+    brQ: '', brScale: 20, folds: {}, hovBr: 'develop',
+    wcState: '1', staged: ['src/theme/tokens.css'], unstaged: ['src/graph/layout.ts', 'src/components/CommitGraphSvg.tsx', 'README.md'],
+    wcSelPath: 'src/graph/layout.ts', msg: '', amend: false,
+    syncOn: false, syncKind: 'pull', syncState: 'normal',
+    confirmOn: false, moreOpen: false, obOn: false, toast: null,
+  };
+
+  SIZES = { '1440': [1440, 900], '1200': [1200, 800], '1024': [1024, 640], '900': [900, 560] };
+
+  THEMES = {
+    claro: {
+      name: 'Clássico', swatch: '#FFFFFF',
+      vars: { '--desk': 'radial-gradient(120% 90% at 50% 0%, #F7F7F3 0%, #E8E8E3 70%)', '--win': '#FFFFFF', '--winB': 'rgba(0,0,0,0.12)', '--shadow': '0 24px 70px rgba(0,0,0,0.16)', '--panel': '#FAFAF7', '--panel2': '#F5F5F1', '--border': '#E7E7E0', '--bsoft': 'rgba(0,0,0,0.05)', '--text': '#191C1A', '--text2': '#59605A', '--muted': '#767C74', '--danger': '#B14C4C', '--dangerT': '#FFFFFF', '--sel': 'rgba(59,122,87,0.09)', '--hover': 'rgba(25,28,26,0.045)', '--btn': '#FFFFFF', '--btnB': '#DDDDD5', '--btnT': '#363C37', '--badge': '#EDEDE7', '--badgeT': '#59605A', '--input': '#FFFFFF', '--accent': '#3B7A57', '--accentT': '#FFFFFF', '--l0': '#3B7A57', '--l0bg': 'rgba(59,122,87,0.11)', '--l0bd': 'rgba(59,122,87,0.30)', '--l1': '#4E76A8', '--l1bg': 'rgba(78,118,168,0.11)', '--l1bd': 'rgba(78,118,168,0.30)', '--l2': '#B08540', '--l2bg': 'rgba(176,133,64,0.13)', '--l2bd': 'rgba(176,133,64,0.32)', '--daT': '#2F6B4F', '--ddT': '#A34D4D', '--daB': 'rgba(59,122,87,0.10)', '--ddB': 'rgba(179,80,80,0.10)', '--dhB': 'rgba(78,118,168,0.10)', '--dhT': '#40628C', '--dcT': '#6F766E', '--stMT': '#8A6A33', '--auAS': '#3B7A57', '--auASb': 'rgba(59,122,87,0.14)' },
+    },
+    escuro: {
+      name: 'Batman', swatch: '#141618',
+      vars: { '--desk': 'radial-gradient(120% 90% at 50% 0%, #1B1D1F 0%, #0B0C0D 62%)', '--win': '#141618', '--winB': 'rgba(255,255,255,0.08)', '--shadow': '0 0 0 1px rgba(0,0,0,0.55), 0 24px 80px rgba(0,0,0,0.55)', '--panel': '#101214', '--panel2': '#0C0E10', '--border': '#272B2E', '--bsoft': 'rgba(255,255,255,0.05)', '--text': '#EAECEE', '--text2': '#A5ACB2', '--muted': '#7B838B', '--danger': '#C25555', '--dangerT': '#FFFFFF', '--sel': 'rgba(234,236,238,0.1)', '--hover': 'rgba(234,236,238,0.05)', '--btn': '#1B1E21', '--btnB': '#2D3134', '--btnT': '#C8CDD2', '--badge': '#262A2E', '--badgeT': '#AEB5BB', '--input': '#181B1D', '--accent': '#EAECEE', '--accentT': '#111315', '--l0': '#82C99B', '--l0bg': 'rgba(130,201,155,0.12)', '--l0bd': 'rgba(130,201,155,0.28)', '--l1': '#7FA6D9', '--l1bg': 'rgba(127,166,217,0.12)', '--l1bd': 'rgba(127,166,217,0.28)', '--l2': '#D9A96B', '--l2bg': 'rgba(217,169,107,0.13)', '--l2bd': 'rgba(217,169,107,0.30)', '--daT': '#A9DDBC', '--ddT': '#E4A3A3', '--daB': 'rgba(130,201,155,0.10)', '--ddB': 'rgba(228,122,122,0.10)', '--dhB': 'rgba(127,166,217,0.08)', '--dhT': '#7FA6D9', '--dcT': '#8C9399', '--stMT': '#DCBE93', '--auAS': '#82C99B', '--auASb': 'rgba(130,201,155,0.15)' },
+    },
+    gitclassic: {
+      name: 'Git Classic', swatch: '#0D1117',
+      vars: { '--desk': 'radial-gradient(120% 90% at 50% 0%, #10151B 0%, #010409 62%)', '--win': '#0D1117', '--winB': 'rgba(255,255,255,0.08)', '--shadow': '0 0 0 1px rgba(0,0,0,0.6), 0 24px 80px rgba(0,0,0,0.6)', '--panel': '#090C10', '--panel2': '#06080B', '--border': '#21262D', '--bsoft': 'rgba(255,255,255,0.045)', '--text': '#E6EDF3', '--text2': '#9DA7B1', '--muted': '#7D8590', '--danger': '#DA3633', '--dangerT': '#FFFFFF', '--sel': 'rgba(63,185,80,0.12)', '--hover': 'rgba(230,237,243,0.05)', '--btn': '#161B22', '--btnB': '#30363D', '--btnT': '#C9D1D9', '--badge': '#21262D', '--badgeT': '#9DA7B1', '--input': '#0D1117', '--accent': '#3FB950', '--accentT': '#04160A', '--l0': '#3FB950', '--l0bg': 'rgba(63,185,80,0.13)', '--l0bd': 'rgba(63,185,80,0.34)', '--l1': '#58A6FF', '--l1bg': 'rgba(88,166,255,0.13)', '--l1bd': 'rgba(88,166,255,0.32)', '--l2': '#F0883E', '--l2bg': 'rgba(240,136,62,0.13)', '--l2bd': 'rgba(240,136,62,0.32)', '--daT': '#56D364', '--ddT': '#F85149', '--daB': 'rgba(86,211,100,0.11)', '--ddB': 'rgba(248,81,73,0.11)', '--dhB': 'rgba(88,166,255,0.09)', '--dhT': '#58A6FF', '--dcT': '#8B949E', '--stMT': '#F0A35E', '--auAS': '#3FB950', '--auASb': 'rgba(63,185,80,0.16)' },
+    },
+    nipon: {
+      name: 'Nipon', swatch: '#C96C93',
+      vars: { '--desk': 'radial-gradient(120% 90% at 50% 0%, #F8F2F1 0%, #ECE2E1 70%)', '--win': '#FFFFFF', '--winB': 'rgba(60,30,40,0.12)', '--shadow': '0 24px 70px rgba(90,50,65,0.16)', '--panel': '#FBF7F6', '--panel2': '#F6EFEE', '--border': '#EDE1E1', '--bsoft': 'rgba(90,50,65,0.05)', '--text': '#241D1E', '--text2': '#6B5D5F', '--muted': '#877479', '--danger': '#B24D60', '--dangerT': '#FFFFFF', '--sel': 'rgba(201,108,147,0.10)', '--hover': 'rgba(201,108,147,0.055)', '--btn': '#FFFFFF', '--btnB': '#E4D4D6', '--btnT': '#4A3C3F', '--badge': '#F2E6E8', '--badgeT': '#6B5D5F', '--input': '#FFFFFF', '--accent': '#C96C93', '--accentT': '#FFFFFF', '--l0': '#C96C93', '--l0bg': 'rgba(201,108,147,0.12)', '--l0bd': 'rgba(201,108,147,0.32)', '--l1': '#7E96C4', '--l1bg': 'rgba(126,150,196,0.12)', '--l1bd': 'rgba(126,150,196,0.30)', '--l2': '#C0A05E', '--l2bg': 'rgba(192,160,94,0.14)', '--l2bd': 'rgba(192,160,94,0.34)', '--daT': '#3F7B52', '--ddT': '#AD4C5E', '--daB': 'rgba(93,158,110,0.11)', '--ddB': 'rgba(190,86,100,0.10)', '--dhB': 'rgba(126,150,196,0.10)', '--dhT': '#5A76A8', '--dcT': '#7D6F71', '--stMT': '#8F7433', '--auAS': '#C96C93', '--auASb': 'rgba(201,108,147,0.14)' },
+    },
+  };
+
+  COMMITS = [
+    { msg: 'A copa cresce: layout incremental do grafo', hash: 'f1d7a3', time: '2 h', lane: 0, chips: [['main', 0], ['origin/main', 0]] },
+    { msg: 'Merge: feature/leaves → main', hash: '9c4b2e', time: '5 h', lane: 0, chips: [] },
+    { msg: 'Folhas a cair no fetch com gating de animações', hash: 'e3a8f1', time: 'ontem', lane: 1, chips: [['feature/leaves', 1]] },
+    { msg: 'Abre o ramo das folhas', hash: 'b7c9d4', time: 'ontem', lane: 1, chips: [] },
+    { msg: 'Parser de status trata entradas em conflito', hash: '4d9e21', time: '2 d', lane: 2, chips: [['fix/status', 2]] },
+    { msg: 'Diff com números de linha e paginação', hash: 'a8c1f0', time: '3 d', lane: 0, chips: [['v0.1.0', 2]] },
+    { msg: 'Tokens de motion e notificações unificadas', hash: '7b3e9d', time: '4 d', lane: 0, chips: [] },
+    { msg: 'Primeira folha', hash: 'a1f2c3', time: '5 d', lane: 0, chips: [] },
+  ];
+
+  DIFF = [
+    ['h', '@@ -42,7 +42,9 @@ export function laneEdges(rows: Row[]) {'],
+    ['c', '  const lanes = new Map<string, number>();'],
+    ['c', '  for (const row of rows) {'],
+    ['d', '-    const lane = nextFree(lanes);'],
+    ['a', '+    // a lane fica reservada até à row do fork'],
+    ['a', '+    const lane = reserveUntilFork(lanes, row);'],
+    ['a', '+    seen.add(row.hash);'],
+    ['c', '    edges.push(edge(row, lane));'],
+    ['c', '  }'],
+  ];
+
+  BRANCH_BASE = [
+    { n: 'main', cur: true, fav: true, up: 1, down: 2 },
+    { n: 'develop', fav: true, up: 0, down: 0 },
+    { n: 'feature/leaves', up: 2, down: 0 },
+    { n: 'feature/onboarding', up: 0, down: 0 },
+    { n: 'fix/status', up: 0, down: 1 },
+  ];
+
+  SYNC = {
+    normal: { chip: 'normal', title: { pull: 'Pull de origin/main', push: 'Push para origin/main', fetch: 'Fetch de origin' }, body: 'Vais integrar 2 commits de origin/main. Sem conflitos previstos (fast-forward).', dot: 'var(--l1)', rows: [{ hash: 'ab12f3', msg: 'Fix flaky parser test on Windows' }, { hash: 'c90d21', msg: 'Bump tauri to 2.6.4' }], btn: 'Pull · 2', tone: 'accent' },
+    noup: { chip: 'sem upstream', body: 'A branch feature/leaves não tem upstream. O push vai criar origin/feature/leaves e ligá-la.', dot: 'var(--l2)', rows: [], btn: 'Publicar branch', tone: 'accent' },
+    diverged: { chip: 'divergente', body: 'main e origin/main divergiram: 1 commit teu, 2 remotos. Escolhe rebase (recomendado) ou merge — os teus commits são reescritos no rebase.', dot: 'var(--l2)', rows: [{ hash: 'f1d7a3', msg: 'A copa cresce (teu)' }, { hash: 'ab12f3', msg: 'Fix flaky parser test (remoto)' }], btn: 'Pull com rebase', tone: 'accent' },
+    auth: { chip: 'erro auth', body: 'origin recusou as credenciais. Verifica o token no Windows Credential Manager ou usa SSH. O comando exato falhou com 403.', dot: 'var(--danger)', rows: [], btn: 'Tentar de novo', tone: 'btn' },
+    offline: { chip: 'sem rede', body: 'Não foi possível contactar origin (github.com). Estás offline? Os commits ficam locais e podes fazer push mais tarde.', dot: 'var(--danger)', rows: [], btn: 'Tentar de novo', tone: 'btn' },
+    conflict: { chip: 'conflito', body: 'O pull parou: 1 ficheiro em conflito (src/graph/layout.ts). Resolve na cópia de trabalho e continua, ou aborta para voltar ao estado anterior.', dot: 'var(--danger)', rows: [{ hash: 'U', msg: 'src/graph/layout.ts — em conflito' }], btn: 'Abrir cópia de trabalho', tone: 'accent' },
+    progress: { chip: 'em progresso', body: 'A integrar de origin/main… (2/2 objetos). A janela continua utilizável; a operação corre em segundo plano.', dot: 'var(--l1)', rows: [], btn: 'A integrar…', tone: 'disabled' },
+    success: { chip: 'sucesso', body: 'Pull concluído: 2 commits integrados, a árvore cresceu. main está em dia com origin/main.', dot: 'var(--l0)', rows: [], btn: 'Fechar', tone: 'accent' },
+  };
+
+  fileGlyph(path) {
+    const name = path.slice(path.lastIndexOf('/') + 1).toLowerCase();
+    const ext = name.includes('.') ? name.slice(name.lastIndexOf('.') + 1) : name;
+    const map = {
+      ts: ['TS', 'var(--l1bg)', 'var(--l1)'], tsx: ['TX', 'var(--l1bg)', 'var(--l1)'],
+      rs: ['RS', 'var(--l2bg)', 'var(--l2)'], css: ['#', 'var(--l2bg)', 'var(--l2)'],
+      md: ['M↓', 'var(--badge)', 'var(--badgeT)'], json: ['{}', 'var(--badge)', 'var(--badgeT)'],
+    };
+    const g = map[ext] || ['·', 'var(--badge)', 'var(--badgeT)'];
+    return { glyph: g[0], tBg: g[1], tColor: g[2] };
+  }
+
+  sMeta(s) {
+    const map = { M: ['Modificado', 'var(--stMT)'], A: ['Adicionado', 'var(--daT)'], D: ['Apagado', 'var(--ddT)'], U: ['Em conflito', 'var(--ddT)'] };
+    const m = map[s] || [s, 'var(--muted)'];
+    return { sT: m[0], sColor: m[1] };
+  }
+
+  // grafo real da árvore: lanes, fork e merge (rowH 40)
+  mkHistGraph(sel, dark) {
+    const el = React.createElement;
+    const X = (l) => 14 + l * 14;
+    const Y = (i) => i * 40 + 20;
+    const C = (l) => `var(--l${Math.min(l, 2)})`;
+    const path = (d, l, w) => el('path', { key: 'p' + d, d, fill: 'none', style: { stroke: C(l), strokeWidth: w || 2.6, strokeLinecap: 'round', opacity: 0.9 } });
+    const kids = [
+      path(`M${X(0)},${Y(0)} L${X(0)},${Y(7)}`, 0, 3.2),
+      path(`M${X(1)},${Y(2)} C${X(1)},${Y(1) + 14} ${X(0)},${Y(1) + 22} ${X(0)},${Y(1)}`, 1),
+      path(`M${X(1)},${Y(2)} L${X(1)},${Y(3)}`, 1),
+      path(`M${X(1)},${Y(3)} C${X(1)},${Y(4) + 6} ${X(0)},${Y(4) + 10} ${X(0)},${Y(5)}`, 1),
+      path(`M${X(2)},${Y(4)} C${X(2)},${Y(5) + 6} ${X(0)},${Y(5) + 14} ${X(0)},${Y(6)}`, 2),
+    ];
+    this.COMMITS.forEach((c, i) => {
+      kids.push(el('circle', {
+        key: 'n' + i, cx: X(c.lane), cy: Y(i), r: i === sel ? 6 : 5,
+        style: { fill: i === sel ? C(c.lane) : 'var(--win)', stroke: C(c.lane), strokeWidth: 2.6 },
+      }));
+      if (i === 1) { // merge: folhinha no nó
+        kids.push(el('g', { key: 'lf' + i, transform: `translate(${X(0) + 7}, ${Y(i) - 7}) rotate(-40) scale(0.65)` },
+          el('path', { d: 'M0,0 Q5,-4.5 10.5,-1 Q5.5,3.5 0,0 Z', style: { fill: 'var(--leaf, var(--l0))', opacity: 0.9 } })));
+      }
+    });
+    return el('svg', { viewBox: '0 0 52 320', width: 52, height: 320, style: { display: 'block', overflow: 'visible' } }, kids);
+  }
+
+  mkLogo(h, ink, leaf) {
+    const stroke = (d, w) => React.createElement('path', { key: 'p' + d, d, fill: 'none', style: { stroke: ink, strokeWidth: w, strokeLinecap: 'round' } });
+    const leafEl = (x, y, rot, s) => React.createElement('g', { key: `l${x}`, transform: `translate(${x}, ${y}) rotate(${rot}) scale(${s})` },
+      React.createElement('path', { d: 'M0,0 Q5,-4.5 10.5,-1 Q5.5,3.5 0,0 Z', style: { fill: leaf } }));
+    return React.createElement('svg', { viewBox: '0 0 46 62', width: Math.round(h * 46 / 62), height: h, style: { display: 'block', overflow: 'visible' } }, [
+      stroke('M34,12 C31,4 14,4 13,14 C12,24 33,32 33,44 C34,56 13,58 12,48', 7),
+      stroke('M13.5,13.5 C10,10.5 7.5,7.5 5,4.5', 4),
+      stroke('M28,51 C31.5,53.5 34,55.5 36.5,58', 4),
+      leafEl(9, 9, -60, 0.7), leafEl(36, 57, -25, 0.85),
+    ]);
+  }
+
+  mkThumb(kind) {
+    const el = React.createElement;
+    const bar = (styles) => el('div', { style: { background: '#E7E7E0', borderRadius: 2, ...styles } });
+    const kids = [
+      el('div', { key: 'h', style: { height: 14, background: '#FAFAF7', borderBottom: '1px solid #E7E7E0', display: 'flex', alignItems: 'center', gap: 3, padding: '0 6px' } },
+        el('span', { style: { width: 22, height: 5, background: '#191C1A', borderRadius: 2 } }),
+        el('span', { style: { flex: 1 } }),
+        ...(kind !== 'c' ? [el('span', { style: { width: 34, height: 6, background: '#3B7A57', borderRadius: 2 } })] : []),
+        el('span', { style: { width: kind === 'c' ? 50 : 26, height: 6, background: '#DDDDD5', borderRadius: 2 } })),
+      el('div', { key: 'b', style: { flex: 1, display: 'flex' } },
+        el('div', { style: { width: 34, background: '#F5F5F1', borderRight: '1px solid #E7E7E0', padding: 4, display: 'flex', flexDirection: 'column', gap: 3 } },
+          bar({ height: 5, width: 24 }), bar({ height: 5, width: 20 }), bar({ height: 5, width: 26 }), bar({ height: 3, width: 16, marginTop: 4 }), bar({ height: 4, width: 24 }), bar({ height: 4, width: 22 })),
+        el('div', { style: { flex: 1, padding: 5, display: 'flex', flexDirection: 'column', gap: 3 } },
+          ...(kind === 'a' ? [el('div', { style: { display: 'flex', gap: 3 } }, el('span', { style: { width: 30, height: 8, background: '#3B7A57', borderRadius: 2 } }), el('span', { style: { width: 20, height: 8, background: '#DDDDD5', borderRadius: 2 } }))] : []),
+          bar({ height: 5 }), bar({ height: 5, width: '85%' }), bar({ height: 5, width: '92%' }), bar({ height: 5, width: '78%' }),
+          ...(kind === 'c' ? [el('div', { style: { margin: '4px 8px', height: 22, border: '1.5px solid #3B7A57', borderRadius: 4, background: '#FFFFFF', display: 'flex', alignItems: 'center', padding: '0 6px' } }, el('span', { style: { width: '60%', height: 5, background: '#C6CFC1', borderRadius: 2 } }))] : []))),
+      ...(kind === 'b' ? [el('div', { key: 'f', style: { height: 12, background: '#FAFAF7', borderTop: '1px solid #E7E7E0', display: 'flex', gap: 3, alignItems: 'center', padding: '0 6px' } },
+        ...[26, 20, 20, 16, 16, 16].map((w, i) => el('span', { key: i, style: { width: w, height: 6, background: i === 0 ? '#3B7A57' : '#DDDDD5', borderRadius: 2 } })))] : []),
+    ];
+    return el('div', { style: { height: 130, display: 'flex', flexDirection: 'column', background: '#FFFFFF' } }, kids);
+  }
+
+  toast(msg) {
+    clearTimeout(this._tt);
+    this.setState({ toast: msg });
+    this._tt = setTimeout(() => this.setState({ toast: null }), 2400);
+  }
+
+  componentWillUnmount() { clearTimeout(this._tt); }
+
+  buildBranches(st) {
+    const scale = st.brScale;
+    let list = [...this.BRANCH_BASE];
+    if (scale >= 20) {
+      for (let i = 0; i < 8; i++) list.push({ n: `feature/ramo-${i + 1}`, up: 0, down: 0 });
+      for (let i = 0; i < 4; i++) list.push({ n: `fix/bug-${100 + i}`, up: 0, down: 0 });
+      for (let i = 0; i < 3; i++) list.push({ n: `release/0.${i + 1}.x`, up: 0, down: 0 });
+    }
+    const total = scale === 200 ? 200 : list.length;
+    const q = st.brQ.trim().toLowerCase();
+    if (q) list = list.filter((b) => b.n.toLowerCase().includes(q));
+    const folders = {};
+    const loose = [];
+    list.forEach((b) => {
+      const ix = b.n.indexOf('/');
+      if (ix > 0) {
+        const f = b.n.slice(0, ix);
+        (folders[f] = folders[f] || []).push(b);
+      } else loose.push(b);
+    });
+    const rows = [];
+    const pushBranch = (b, pad) => {
+      const label = pad > 10 ? b.n.slice(b.n.indexOf('/') + 1) : b.n;
+      const sync = [b.up ? `↑${b.up}` : '', b.down ? `↓${b.down}` : ''].filter(Boolean).join(' ');
+      // selecionada: botão sempre visível; restantes ganham-no em hover/foco na implementação real
+      const hov = this.state.hovBr === b.n;
+      rows.push({
+        isBranch: true, isFolder: false,
+        label, pad, tip: b.cur ? 'Branch atual' : 'Clique: ver na árvore · Checkout pelo botão',
+        color: b.cur ? 'var(--text)' : 'var(--text2)', weight: b.cur ? 700 : 400,
+        dotBg: b.cur ? 'var(--l0)' : 'transparent', dotBd: 'var(--l0bd)',
+        halo: b.cur ? '0 0 0 3px var(--l0bg)' : 'none',
+        barDisp: b.cur ? 'block' : 'none',
+        bg: b.cur ? 'var(--sel)' : 'transparent',
+        favDisp: b.fav ? 'inline' : 'none',
+        sync, syncDisp: sync && !hov ? 'inline-block' : 'none',
+        coDisp: !b.cur && hov ? 'inline-flex' : 'none',
+        focus: () => { this.setState({ view: 'history', hovBr: this.state.hovBr === b.n ? null : b.n }); },
+        checkout: (e) => { e.stopPropagation(); this.toast(`Checkout de ${b.n} (simulado)`); },
+      });
+    };
+    loose.forEach((b) => pushBranch(b, 10));
+    Object.keys(folders).forEach((f) => {
+      const open = !st.folds[f];
+      rows.push({
+        isFolder: true, isBranch: false, name: f, count: folders[f].length,
+        caret: open ? 90 : 0,
+        toggle: () => this.setState((s) => ({ folds: { ...s.folds, [f]: !s.folds[f] } })),
+      });
+      if (open) folders[f].forEach((b) => pushBranch(b, 24));
+    });
+    return { rows, total, more: scale === 200 && !q, moreN: 200 - list.length };
+  }
+
+  renderVals() {
+    const st = this.state;
+    const [W, H] = this.SIZES[st.size];
+    const theme = this.THEMES[st.themeKey];
+    const themeVars = Object.entries(theme.vars).map(([k, v]) => `${k}: ${v}`).join('; ');
+    const narrow = W < 1100;
+    const dark = st.themeKey === 'escuro' || st.themeKey === 'gitclassic';
+
+    const br = this.buildBranches(st);
+
+    let o = 0, n = 0;
+    const diffRows = this.DIFF.map(([t, txt]) => {
+      let ln1 = '', ln2 = '';
+      if (t === 'h') { const m = /@@ -(\d+),?\d* \+(\d+)/.exec(txt); if (m) { o = +m[1]; n = +m[2]; } }
+      else if (t === 'c') { ln1 = String(o++); ln2 = String(n++); }
+      else if (t === 'a') { ln2 = String(n++); }
+      else { ln1 = String(o++); }
+      const stl = { h: ['var(--dhB)', 'var(--dhT)'], c: ['transparent', 'var(--dcT)'], a: ['var(--daB)', 'var(--daT)'], d: ['var(--ddB)', 'var(--ddT)'] }[t];
+      return { txt, ln1, ln2, bg: stl[0], color: stl[1] };
+    });
+
+    const laneC = (l) => `var(--l${Math.min(l, 2)})`;
+    const commits = this.COMMITS.map((c, i) => ({
+      msg: c.msg, hash: c.hash, time: c.time,
+      w: i === st.sel ? 600 : 400,
+      bg: i === st.sel ? 'var(--sel)' : 'transparent',
+      barDisp: i === st.sel ? 'block' : 'none',
+      node: i === st.sel ? laneC(c.lane) : 'var(--win)',
+      nodeBd: laneC(c.lane),
+      chips: c.chips.map(([label, l]) => ({ label, bg: `var(--l${l}bg)`, color: `var(--l${l})`, bd: `var(--l${l}bd)` })),
+      select: () => this.setState({ sel: i, moreOpen: false }),
+    }));
+
+    const wcFile = (p, s, staged) => ({
+      ...this.fileGlyph(p), ...this.sMeta(s), s,
+      name: p.slice(p.lastIndexOf('/') + 1), dir: p.slice(0, Math.max(0, p.lastIndexOf('/'))) || '/',
+      bg: st.wcSelPath === p ? 'var(--sel)' : 'transparent',
+      chkBd: 'var(--btnB)', chkBg: 'transparent', chkGlyph: '', chkTip: staged ? 'Despreparar' : 'Preparar',
+      confDisp: s === 'U' ? 'inline-block' : 'none',
+      conflictBd: s === 'U' ? '1px solid var(--ddT)' : 'none',
+      select: () => this.setState({ wcSelPath: p }),
+      toggle: (e) => { e.stopPropagation(); this.toast(staged ? 'Despreparado (simulado)' : 'Preparado (simulado)'); },
+    });
+    const conflictOn = st.wcState === 'conf';
+    const unstagedPaths = conflictOn ? ['src/graph/layout.ts'] : st.wcState === '1' ? ['src/graph/layout.ts'] : st.unstaged;
+    const wcUnstaged = unstagedPaths.map((p) => wcFile(p, conflictOn ? 'U' : 'M', false));
+    const wcStaged = conflictOn ? [] : st.staged.map((p) => wcFile(p, 'M', true));
+    const wcUnN = st.wcState === '500' ? 497 : wcUnstaged.length;
+    const canCommit = wcStaged.length > 0 && !conflictOn;
+
+    const sync = this.SYNC[st.syncState];
+    const syncTitle = st.syncKind === 'push' ? 'Push para origin/main' : st.syncKind === 'fetch' ? 'Fetch de origin' : (sync.title ? sync.title.pull : 'Pull de origin/main');
+
+    return {
+      // doc
+      directions: [
+        { name: 'A · Ações contextuais', badgeDisp: 'inline-block', ring: '#3B7A57', thumb: this.mkThumb('a'),
+          desc: 'Header só com sync + pesquisa. Cada ação vive onde o objeto está: Commit na cópia de trabalho, Checkout na branch, Revert no commit. Raras no "…" e Ctrl+K. Sem barra inferior.',
+          pro: 'Um local por ação; recupera 54px verticais; aprende-se pelo contexto', con: 'Merge/Stash/Tag ficam a 1 clique de distância extra (menu ou paleta)' },
+        { name: 'B · ActionBar avançada', badgeDisp: 'none', ring: '#DDDDD5', thumb: this.mkThumb('b'),
+          desc: 'Barra inferior mantida mas recolhível e personalizável — o utilizador escolhe as ações fixas. Header simplificado.',
+          pro: 'Zero reaprendizagem; power users fixam o seu fluxo', con: 'Mantém a duplicação por omissão; personalização = trabalho passado ao utilizador; pior a 900×560' },
+        { name: 'C · Command-first', badgeDisp: 'none', ring: '#DDDDD5', thumb: this.mkThumb('c'),
+          desc: 'Quase nada visível: Ctrl+K é o centro de operações; menus e atalhos para o resto. Interface máxima para o conteúdo.',
+          pro: 'O mais rápido para avançados; densidade mínima', con: 'Descoberta fraca para intermédios/novos; "onde está o Pull?" não tem resposta visível' },
+      ],
+      compareRows: [
+        ['Facilidade de aprendizagem', 'Alta', 'Média', 'Baixa', 0],
+        ['Rapidez (avançados)', 'Alta (atalhos + Ctrl+K)', 'Alta', 'Muito alta', 2],
+        ['Descoberta de funcionalidades', 'Alta (no contexto)', 'Média (barra genérica)', 'Baixa', 0],
+        ['Densidade visual', 'Média-baixa', 'Alta', 'Mínima', 2],
+        ['Escalabilidade (200 branches)', 'Boa (pesquisa/pastas)', 'Igual à atual', 'Boa', 0],
+        ['Acessibilidade', 'Boa (alvos 32px+)', 'Difícil (barra comprimida)', 'Boa', 0],
+        ['900×560', 'Boa (+54px úteis)', 'Fraca', 'Ótima', 2],
+        ['Consistência entre ecrãs', 'Alta (padrão contextual)', 'Média', 'Alta', 0],
+      ].map(([k, a, b, c, win]) => ({
+        k, a, b, c,
+        ca: win === 0 ? '#2F6B4F' : '#59605A', wa: win === 0 ? 700 : 400,
+        cb: '#59605A', wb: 400,
+        cc: win === 2 ? '#2F6B4F' : '#59605A', wc: win === 2 ? 700 : 400,
+      })),
+      matrix: [
+        ['Commit', 'Cópia de trabalho (botão primário)', 'Ctrl+K', 'Ctrl+↵', 'Sempre nesse ecrã', 'Só em main (opcional)', 1],
+        ['Pull', 'Header · grupo sync', 'Ctrl+K', 'Ctrl+⇧L', 'Sempre', 'Se divergente', 1],
+        ['Push', 'Header · grupo sync', 'Ctrl+K', 'Ctrl+P', 'Sempre', 'Se force', 1],
+        ['Fetch', 'Header · grupo sync', 'Ctrl+K', 'Ctrl+R', 'Sempre', 'Não', 1],
+        ['Nova branch', 'Sidebar · + em BRANCHES', 'Ctrl+K · detalhe do commit', 'Ctrl+B', 'Sempre', 'Não', 2],
+        ['Checkout', 'Botão na row da branch', 'Ctrl+K', '—', 'Hover/foco na branch', 'Se WC suja', 2],
+        ['Merge', 'Menu "…" da branch', 'Ctrl+K', '—', 'Branch ≠ atual', 'Sim', 3],
+        ['Rebase', 'Menu "…" da branch', 'Ctrl+K', '—', 'Branch ≠ atual', 'Sim', 5],
+        ['Cherry-pick', 'Menu "…" do commit', 'Ctrl+K', '—', 'Commit selecionado', 'Não', 5],
+        ['Revert', 'Detalhe do commit', 'Ctrl+K', '—', 'Commit selecionado', 'Sim', 3],
+        ['Reset', 'Menu "…" do commit', 'Ctrl+K', '—', 'Commit selecionado', 'Sim, sempre', 4],
+        ['Stash', 'Ecrã Stashes · + no WC', 'Ctrl+K', 'Ctrl+S', 'WC com alterações', 'Não', 2],
+        ['Tag', 'Detalhe do commit', 'Ctrl+K', '—', 'Commit selecionado', 'Não', 3],
+        ['Descartar alterações', 'Cópia de trabalho (link discreto)', '—', '—', 'Com alterações', 'Sim, sempre', 4],
+        ['Abrir terminal', 'Ctrl+K', 'Menu "…" do repo', '—', '—', 'Não', 5],
+        ['Definições', 'Header (ícone)', 'Ctrl+K', '—', 'Sempre', 'Não', 1],
+        ['Trocar/fechar repo', 'Seletor de repo no header (▾)', 'Ctrl+K', '—', 'Sempre', 'Último não fecha', 1],
+        ['Adicionar/clonar/criar repo', 'Botão + → página Adicionar (Local·Clonar·Criar)', 'Ctrl+K', '—', 'Sempre', 'Não', 2],
+      ].map(([name, main, alt, key, when, conf, cls]) => ({
+        name, main, alt, key, when, conf,
+        color: cls === 4 ? '#A34D4D' : '#191C1A',
+        confColor: conf.startsWith('Sim') ? '#A34D4D' : '#767C74',
+        confW: conf.startsWith('Sim') ? 700 : 400,
+      })),
+
+      // controlos
+      sizeOptions: Object.keys(this.SIZES).map((k) => ({
+        label: `${this.SIZES[k][0]}×${this.SIZES[k][1]}`,
+        ring: st.size === k ? '#3B7A57' : '#DDDDD5',
+        pick: () => this.setState({ size: k }),
+      })),
+      themeOptions: Object.keys(this.THEMES).map((k) => ({
+        name: this.THEMES[k].name, swatch: this.THEMES[k].swatch,
+        ring: st.themeKey === k ? '#3B7A57' : 'rgba(0,0,0,0.15)',
+        pick: () => this.setState({ themeKey: k }),
+      })),
+      screenTabs: [
+        ['history', 'Histórico'], ['working', 'Cópia de trabalho'], ['stashes', 'Stashes'], ['settings', 'Definições'], ['onboard', 'Onboarding'], ['sync', 'Pull/Push'],
+      ].map(([k, label]) => ({
+        label,
+        ring: (k === 'onboard' ? st.obOn : k === 'sync' ? st.syncOn : st.view === k && !st.obOn && !st.syncOn) ? '#3B7A57' : '#DDDDD5',
+        pick: () => {
+          if (k === 'onboard') this.setState({ obOn: !st.obOn, syncOn: false });
+          else if (k === 'sync') this.setState({ syncOn: true, syncKind: 'pull', obOn: false });
+          else this.setState({ view: k, obOn: false, syncOn: false });
+        },
+      })),
+
+      // janela
+      winW: W, winH: H, themeVars,
+      curRepo: st.curRepo || 'sylva-core',
+      repoMenuOpen: !!st.repoMenuOpen,
+      toggleRepoMenu: () => this.setState((s) => ({ repoMenuOpen: !s.repoMenuOpen, addMenuOpen: false })),
+      repoMenu: [
+        { isHead: true, isRepo: false, label: 'ABERTOS' },
+        { isHead: false, isRepo: true, label: 'sylva-core', branch: 'main', open: true },
+        { isHead: false, isRepo: true, label: 'verdant-app', branch: 'feature/onboarding', open: true },
+        { isHead: true, isRepo: false, label: 'REGISTADOS' },
+        { isHead: false, isRepo: true, label: 'pinheiro-cli', branch: 'main' },
+        { isHead: true, isRepo: false, label: 'RECENTES' },
+        { isHead: false, isRepo: true, label: 'floresta-docs', branch: 'main' },
+      ].map((r) => r.isHead ? r : {
+        ...r,
+        w: r.label === (st.curRepo || 'sylva-core') ? 700 : 500,
+        bg: r.label === (st.curRepo || 'sylva-core') ? 'var(--sel)' : 'transparent',
+        dot: r.open ? 'var(--l0)' : 'var(--btnB)',
+        pick: () => { this.setState({ curRepo: r.label, repoMenuOpen: false }); this.toast(`Mudou para ${r.label} — contexto preservado`); },
+      }),
+      goPicker: () => this.setState({ view: 'picker', repoMenuOpen: false }),
+      pickerBtnBg: st.view === 'picker' ? 'var(--sel)' : 'var(--btn)',
+      isPicker: st.view === 'picker',
+      pkTabs: [['local', 'Local'], ['clone', 'Clonar'], ['new', 'Criar']].map(([k, label]) => ({
+        label,
+        color: (st.pkMode || 'local') === k ? 'var(--text)' : 'var(--muted)',
+        bg: (st.pkMode || 'local') === k ? 'var(--win)' : 'transparent',
+        pick: () => this.setState({ pkMode: k }),
+      })),
+      pkIsLocal: (st.pkMode || 'local') === 'local',
+      pkIsClone: st.pkMode === 'clone',
+      pkIsNew: st.pkMode === 'new',
+      pkRepos: [
+        { name: 'sylva-core', meta: 'main · git', open: true },
+        { name: 'verdant-app', meta: 'feature/onboarding · git', open: true },
+        { name: 'pinheiro-cli', meta: 'main · git' },
+        { name: 'floresta-docs', meta: 'main · git' },
+        { name: 'raiz-scripts', meta: 'sem git — inicializar' },
+      ].map((r) => ({
+        ...r,
+        dot: r.open ? 'var(--l0)' : 'var(--btnB)',
+        btnLabel: r.open ? 'Já aberto' : r.meta.includes('sem git') ? 'Inicializar e abrir' : 'Abrir',
+        btnBg: r.open ? 'transparent' : 'var(--btn)',
+        btnFg: r.open ? 'var(--muted)' : 'var(--btnT)',
+        cur: r.open ? 'default' : 'pointer',
+        open: () => { if (!r.open) { this.setState({ curRepo: r.name, view: 'history' }); this.toast(`${r.name} aberto`); } },
+      })),
+      pkBrowse: () => this.toast('Escolher pasta… (simulado)'),
+      pkClone: () => this.toast('Clone iniciado (simulado)'),
+      pkCreate: () => { this.setState({ view: 'history' }); this.toast('Repositório criado e plantado 🌱 (simulado)'); },
+      syncWide: W >= 1100,
+      syncCompact: W < 1100,
+      syncMenuOpen: !!st.syncMenuOpen,
+      toggleSyncMenu: () => this.setState((s) => ({ syncMenuOpen: !s.syncMenuOpen })),
+      menuFetch: () => this.setState({ syncMenuOpen: false, syncOn: true, syncKind: 'fetch', syncState: 'progress' }),
+      menuPull: () => this.setState({ syncMenuOpen: false, syncOn: true, syncKind: 'pull', syncState: 'normal' }),
+      menuPush: () => this.setState({ syncMenuOpen: false, syncOn: true, syncKind: 'push', syncState: 'noup' }),
+      histGraph: this.mkHistGraph(st.sel, dark),
+      logoTiny: this.mkLogo(15, theme.vars['--text'], theme.vars['--l0']),
+      logoOb: this.mkLogo(24, theme.vars['--text'], theme.vars['--l0']),
+      sbW: W < 1024 ? 200 : 232,
+      timeDisp: W < 1200 ? 'none' : 'inline',
+      wcCount: st.wcState === '500' ? 500 : conflictOn ? 1 : unstagedPaths.length + st.staged.length,
+      wcBg: st.view === 'working' ? 'var(--sel)' : 'transparent',
+      histBg: st.view === 'history' ? 'var(--sel)' : 'transparent',
+      stBg: st.view === 'stashes' ? 'var(--sel)' : 'transparent',
+      setGearBg: st.view === 'settings' ? 'var(--sel)' : 'transparent',
+      goWorking: () => this.setState({ view: 'working' }),
+      goHistory: () => this.setState({ view: 'history' }),
+      goStashes: () => this.setState({ view: 'stashes' }),
+      goSettings: () => this.setState({ view: 'settings' }),
+      isHistory: st.view === 'history',
+      isWorking: st.view === 'working',
+      isStashes: st.view === 'stashes',
+      isSettings: st.view === 'settings',
+
+      // branches
+      brQ: st.brQ,
+      onBrQ: (e) => this.setState({ brQ: e.target.value }),
+      branchRows: br.rows,
+      branchTotal: br.total,
+      brMore: br.more, brMoreN: br.moreN,
+      newBranch: () => this.toast('Nova branch… (simulado)'),
+      brSearchShown: !!st.brSearchOn || st.brScale === 200 || !!st.brQ,
+      toggleBrSearch: () => this.setState((s) => ({ brSearchOn: !s.brSearchOn })),
+      brLupaColor: (st.brSearchOn || st.brScale === 200) ? 'var(--accent)' : 'var(--muted)',
+      brScaleOpts: [[5, '5'], [20, '20'], [200, '200']].map(([v, label]) => ({
+        label: label + ' br',
+        ring: st.brScale === v ? 'var(--accent)' : 'var(--btnB)',
+        pick: () => this.setState({ brScale: v }),
+      })),
+
+      // histórico
+      histDir: narrow ? 'column' : 'row',
+      histBr: narrow ? 'none' : '1px solid var(--border)',
+      histBb: narrow ? '1px solid var(--border)' : 'none',
+      detW: narrow ? 'auto' : (W < 1240 ? '320px' : '380px'),
+      detH: narrow ? '46%' : 'auto',
+      commits,
+      detFiles: [['src/graph/layout.ts', 'M'], ['src/components/CommitGraphSvg.tsx', 'M'], ['src/graph/layout.test.ts', 'A']].map(([p, s]) => ({ p, s, ...this.sMeta(s), ...this.fileGlyph(p) })),
+      diffRows,
+      actBranch: () => this.toast('Branch a partir de f1d7a3 (simulado)'),
+      actTag: () => this.toast('Tag em f1d7a3 (simulado)'),
+      actRevert: () => this.toast('Revert de f1d7a3 — pede confirmação no produto'),
+      toggleMore: () => this.setState((s) => ({ moreOpen: !s.moreOpen })),
+      moreOpen: st.moreOpen,
+      moreItems: [
+        ['Cherry-pick para main', 'var(--text)', false],
+        ['Rebase interativo daqui…', 'var(--text)', false],
+        ['Copiar hash', 'var(--text)', false],
+        ['Reset --hard para aqui…', 'var(--danger)', true],
+      ].map(([label, color, divider]) => ({ label, color, divDisp: divider ? 'block' : 'none', run: () => { this.setState({ moreOpen: false }); this.toast(label + (color.includes('danger') ? ' — confirmação obrigatória com impacto explícito' : ' (simulado)')); } })),
+
+      // working copy
+      wcListW: W < 1024 ? 300 : 340,
+      wcUnstaged, wcStaged,
+      wcUnN, wcStN: wcStaged.length,
+      wcManyOn: st.wcState === '500',
+      wcConflictOn: conflictOn,
+      wcSelName: st.wcSelPath.slice(st.wcSelPath.lastIndexOf('/') + 1),
+      stageAll: () => this.toast('Tudo preparado (simulado)'),
+      openDiscard: () => this.setState({ confirmOn: true }),
+      msg: st.msg,
+      onMsg: (e) => this.setState({ msg: e.target.value }),
+      flipAmend: () => this.setState((s) => ({ amend: !s.amend })),
+      amendBd: st.amend ? 'var(--accent)' : 'var(--btnB)',
+      amendBg: st.amend ? 'var(--accent)' : 'transparent',
+      amendGlyph: st.amend ? '✓' : '',
+      commitBg: canCommit ? 'var(--accent)' : 'var(--btn)',
+      commitFg: canCommit ? 'var(--accentT)' : 'var(--muted)',
+      commitCur: canCommit ? 'pointer' : 'default',
+      doCommit: () => { if (canCommit) this.toast(st.amend ? 'Amend feito — a folha voltou a crescer' : 'Commit criado — caiu uma folha 🌿'); },
+      wcSt1: () => this.setState({ wcState: '1' }),
+      wcSt500: () => this.setState({ wcState: '500' }),
+      wcStConf: () => this.setState({ wcState: 'conf' }),
+      wcSt1Ring: st.wcState === '1' ? 'var(--accent)' : 'var(--btnB)',
+      wcSt500Ring: st.wcState === '500' ? 'var(--accent)' : 'var(--btnB)',
+      wcStConfRing: st.wcState === 'conf' ? 'var(--accent)' : 'var(--btnB)',
+
+      // settings
+      setNav: [['Aparência', true, false], ['Árvore', false, false], ['Densidade', false, false], ['Atalhos', false, false], ['Idioma', false, true], ['Notificações', false, false], ['Sobre', false, false]].map(([name, on, soon]) => ({
+        name, w: on ? 700 : 500,
+        color: on ? 'var(--text)' : 'var(--text2)',
+        bg: on ? 'var(--sel)' : 'transparent',
+        soonDisp: soon ? 'inline-block' : 'none',
+      })),
+
+      // onboarding
+      obOn: st.obOn,
+      obClose: () => this.setState({ obOn: false }),
+
+      // sync modal
+      syncOn: st.syncOn,
+      openSyncPull: () => this.setState({ syncOn: true, syncKind: 'pull', syncState: 'normal' }),
+      openSyncPush: () => this.setState({ syncOn: true, syncKind: 'push', syncState: 'noup' }),
+      openSyncFetch: () => this.setState({ syncOn: true, syncKind: 'fetch', syncState: 'progress' }),
+      syncClose: () => this.setState({ syncOn: false }),
+      eat: (e) => e.stopPropagation(),
+      syncTitle,
+      syncStates: Object.keys(this.SYNC).map((k) => ({
+        label: this.SYNC[k].chip,
+        ring: st.syncState === k ? 'var(--accent)' : 'var(--btnB)',
+        pick: () => this.setState({ syncState: k }),
+      })),
+      syncBody: sync.body,
+      syncDot: sync.dot,
+      syncDotAnim: st.syncState === 'progress' ? 'spin 1s linear infinite' : 'none',
+      syncRows: sync.rows,
+      syncBtnLabel: sync.btn,
+      syncBtnBg: sync.tone === 'accent' ? 'var(--accent)' : 'var(--btn)',
+      syncBtnFg: sync.tone === 'accent' ? 'var(--accentT)' : 'var(--btnT)',
+      syncBtnOp: sync.tone === 'disabled' ? 0.55 : 1,
+      syncPrimary: () => {
+        if (sync.tone === 'disabled') return;
+        if (st.syncState === 'success' || st.syncState === 'normal') { this.setState({ syncOn: false }); this.toast('Operação concluída (simulado)'); }
+        else this.setState({ syncState: 'progress' });
+      },
+
+      // confirm + toast
+      confirmOn: st.confirmOn,
+      confirmClose: () => this.setState({ confirmOn: false }),
+      confirmDo: () => { this.setState({ confirmOn: false }); this.toast('Alterações descartadas'); },
+      toastOn: !!st.toast,
+      toastMsg: st.toast || '',
+    };
+  }
+}
+</script>
+</body>
+</html>
