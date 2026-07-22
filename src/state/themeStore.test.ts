@@ -11,8 +11,8 @@ describe("themeStore.savePrefs", () => {
     useThemeStore.getState().savePrefs({ accentIdx: 3 });
     expect(useThemeStore.getState().accentIdx).toBe(3);
 
-    useThemeStore.getState().savePrefs({ theme: "claro" });
-    expect(useThemeStore.getState().theme).toBe("claro");
+    useThemeStore.getState().savePrefs({ theme: "escuro" });
+    expect(useThemeStore.getState().theme).toBe("escuro");
     expect(useThemeStore.getState().accentIdx).toBe(0);
   });
 
@@ -23,7 +23,7 @@ describe("themeStore.savePrefs", () => {
 
   it("does not reset the accent when saving the SAME theme", () => {
     useThemeStore.getState().savePrefs({ accentIdx: 1 });
-    useThemeStore.getState().savePrefs({ theme: "escuro" });
+    useThemeStore.getState().savePrefs({ theme: "claro" });
     expect(useThemeStore.getState().accentIdx).toBe(1);
   });
 
@@ -31,7 +31,7 @@ describe("themeStore.savePrefs", () => {
     useThemeStore.getState().savePrefs({ theme: "gitclassic", anims: false, pullMode: "rebase", confirmDiscard: false });
     useThemeStore.getState().resetPrefs();
     const s = useThemeStore.getState();
-    expect(s.theme).toBe("escuro");
+    expect(s.theme).toBe("claro");
     expect(s.anims).toBe(true);
     expect(s.pullMode).toBe("ff");
     expect(s.confirmDiscard).toBe(true);

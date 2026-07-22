@@ -31,7 +31,7 @@ export const enConfig: Record<ConfigKey, MessageValue> = {
   "theme.accent.nipon.3": "Gold",
 
   // fonts
-  "theme.font.inter.name": "Inter",
+  "theme.font.inter.name": "Instrument Sans",
   "theme.font.inter.desc": "GitSylva default",
   "theme.font.sistema.name": "System",
   "theme.font.sistema.desc": "Segoe UI / San Francisco",

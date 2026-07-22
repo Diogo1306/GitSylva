@@ -3,7 +3,7 @@ import type { MessageValue } from "../../types";
 // Labels for shared config data modules that several areas render through
 // helpers: theme/tree/accent/font/branch names (theme/themes.ts), keyboard
 // shortcut labels (state/shortcutsStore.ts) and pull-mode hints (lib/pullModes.ts).
-// Proper nouns (Batman, Nipon, Sakura, Neon, Inter…) intentionally read the same
+// Proper nouns (Batman, Nipon, Sakura, Neon, Instrument Sans…) intentionally read the same
 // in both languages.
 export const ptConfig = {
   // theme names / hints
@@ -35,7 +35,7 @@ export const ptConfig = {
   "theme.accent.nipon.3": "Dourado",
 
   // fonts
-  "theme.font.inter.name": "Inter",
+  "theme.font.inter.name": "Instrument Sans",
   "theme.font.inter.desc": "Padrão do GitSylva",
   "theme.font.sistema.name": "Sistema",
   "theme.font.sistema.desc": "Segoe UI / San Francisco",
