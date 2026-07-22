@@ -37,8 +37,12 @@ type ThemeState = {
   resetPrefs: () => void;
 };
 
+// V2 default theme is the light "classic" (claro). Only applies to new
+// users: anyone with an existing "gitsylva-prefs" entry keeps their stored
+// theme unchanged (persist's rehydrate overlays these defaults, it never
+// resets an already-persisted key).
 const DEFAULTS: ThemePrefsSlice = {
-  theme: "escuro",
+  theme: "claro",
   treeStyle: "normal",
   branchColor: "auto",
   accentIdx: 0,

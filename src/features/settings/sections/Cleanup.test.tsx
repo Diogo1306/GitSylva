@@ -59,7 +59,7 @@ describe("Cleanup: reset confirmation copy", () => {
 describe("Cleanup: reset behavior matches the confirm copy", () => {
   it("restores theme, density, layout, animations and pull mode to defaults", () => {
     useThemeStore.getState().savePrefs({
-      theme: "claro",
+      theme: "escuro",
       density: "compacta",
       repoLayout: "rail",
       historyLayout: "baixo",
@@ -71,7 +71,7 @@ describe("Cleanup: reset behavior matches the confirm copy", () => {
     fireEvent.click(screen.getByRole("button", { name: "Repor" }));
 
     const s = useThemeStore.getState();
-    expect(s.theme).toBe("escuro");
+    expect(s.theme).toBe("claro");
     expect(s.density).toBe("conforto");
     expect(s.repoLayout).toBe("tabs");
     expect(s.historyLayout).toBe("lado");
@@ -88,10 +88,10 @@ describe("Cleanup: reset behavior matches the confirm copy", () => {
   });
 
   it("cancelling leaves every preference untouched", () => {
-    useThemeStore.getState().savePrefs({ theme: "claro" });
+    useThemeStore.getState().savePrefs({ theme: "escuro" });
     openConfirm();
     fireEvent.click(screen.getByRole("button", { name: "Cancelar" }));
-    expect(useThemeStore.getState().theme).toBe("claro");
+    expect(useThemeStore.getState().theme).toBe("escuro");
   });
 });
 
