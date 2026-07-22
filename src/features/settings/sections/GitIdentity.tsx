@@ -8,7 +8,7 @@ import { FormField } from "../../../components/ui/FormField";
 import { SectionTitle, Hint } from "./_shared";
 import { useT } from "../../../i18n";
 
-const fieldLabelStyle = { fontSize: 12.5, fontWeight: 600, color: "var(--text2)" } as const;
+const fieldLabelStyle = { fontSize: "var(--fs-btn)", fontWeight: "var(--fw-semibold)", color: "var(--text2)" } as const;
 
 export function GitIdentity() {
   const t = useT();

@@ -2,11 +2,12 @@ import { useEffect, useState } from "react";
 import { check, type Update } from "@tauri-apps/plugin-updater";
 import { relaunch } from "@tauri-apps/plugin-process";
 import { Button } from "../../../components/ui/Button";
+import { Card } from "../../../components/ui/Card";
 import { SectionTitle, Hint } from "./_shared";
 import { errMsg } from "../../../lib/errors";
 import { useT } from "../../../i18n";
 
-const mono = "'JetBrains Mono', monospace";
+const mono = "var(--font-mono)";
 
 type CheckState =
   | { kind: "idle" }
@@ -55,9 +56,9 @@ export function About() {
   return (
     <div id="set-sobre" style={{ display: "flex", flexDirection: "column", gap: 12, scrollMarginTop: 20 }}>
       <SectionTitle>{t("settings.about.title")}</SectionTitle>
-      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+      <Card style={{ display: "flex", alignItems: "center", gap: 12 }}>
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 13.5, fontWeight: 500 }}>
+          <div style={{ fontSize: "var(--fs-base)", fontWeight: "var(--fw-medium)" }}>
             GitSylva{" "}
             <span style={{ fontFamily: mono, fontSize: 12.5, color: "var(--text2)" }}>v{version || "…"}</span>
           </div>
@@ -72,10 +73,10 @@ export function About() {
             {state.kind === "checking" ? t("settings.about.checking") : state.kind === "installing" ? t("settings.about.installing") : t("settings.about.checkUpdates")}
           </Button>
         )}
-      </div>
+      </Card>
       {state.kind === "latest" && <Hint>{t("settings.about.upToDate")}</Hint>}
       {state.kind === "installing" && <Hint>{t("settings.about.downloading")}</Hint>}
-      {state.kind === "error" && <div style={{ fontSize: 12.5, color: "var(--ddT)" }}>{state.message}</div>}
+      {state.kind === "error" && <div style={{ fontSize: "var(--fs-btn)", color: "var(--ddT)" }}>{state.message}</div>}
     </div>
   );
 }
