@@ -53,6 +53,29 @@ describe("graphRows", () => {
     expect(rows[0].parentRows).toEqual([]);
   });
 
+  it("records the lane of an out-of-window first parent in contLanes", () => {
+    const commits = [c("c", ["missing"])];
+    const rows = graphRows(commits);
+    expect(rows[0].contLanes).toEqual([rows[0].lane]);
+  });
+
+  it("records the claimed lane of an out-of-window merge parent in contLanes", () => {
+    // m's first parent (a) is loaded; its second parent is not, so it claims
+    // a fresh lane whose continuation must be flagged.
+    const commits = [c("m", ["a", "missing"]), c("a", ["root"]), c("root", [])];
+    const rows = graphRows(commits);
+    const m = rows[0];
+    expect(m.merge).toBe(true);
+    expect(m.contLanes.length).toBe(1);
+    expect(m.contLanes[0]).not.toBe(m.lane);
+  });
+
+  it("leaves contLanes empty when every parent is in the window", () => {
+    const commits = [c("m", ["a", "b"]), c("b", ["root"]), c("a", ["root"]), c("root", [])];
+    const rows = graphRows(commits);
+    rows.forEach((r) => expect(r.contLanes).toEqual([]));
+  });
+
   it("a fork keeps the child's lane reserved down to the fork row", () => {
     // f branches from root (which main's line also reaches); a NEW tip (t)
     // appearing between them must NOT be given f's lane — the renderer draws
