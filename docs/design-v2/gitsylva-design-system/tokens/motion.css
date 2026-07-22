@@ -1,0 +1,22 @@
+/* GitSylva motion — animate only transform & opacity */
+:root {
+  --dur-micro: 130ms;   /* hover / press */
+  --dur-ui: 200ms;      /* control transitions */
+  --dur-panel: 300ms;   /* panels / screens */
+  --dur-screen: 450ms;
+  --ease-pop: cubic-bezier(0.2, 0.9, 0.3, 1);  /* entrances */
+  --ease-out: cubic-bezier(0.4, 0, 0.7, 0.2);  /* exits */
+  --ease-std: ease;
+  --lift: -1.5px;       /* button hover translateY */
+}
+
+@keyframes gs-pop { from { opacity: 0; transform: scale(0.965) translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes gs-fade-up { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: none; } }
+@keyframes gs-notif-in { from { opacity: 0; transform: translateX(28px) scale(0.97); } to { opacity: 1; transform: none; } }
+@keyframes gs-notif-out { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateX(36px) scale(0.94); } }
+@keyframes gs-spin { to { transform: rotate(360deg); } }
+@keyframes gs-leaf-pop { 0% { transform: scale(0) rotate(-50deg); } 70% { transform: scale(1.15) rotate(3deg); } 100% { transform: scale(1) rotate(0deg); } }
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --dur-panel: 120ms; --dur-screen: 120ms; }
+}

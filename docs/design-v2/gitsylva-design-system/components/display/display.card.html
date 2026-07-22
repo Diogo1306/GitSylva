@@ -1,0 +1,25 @@
+<!-- @dsCard group="Components" viewport="700x170" subtitle="Labels & identity" name="Display — Badge, Chip, Status, Avatar" -->
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="../../styles.css">
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>body{margin:0;font-family:var(--font-sans);background:var(--win);color:var(--text);padding:18px;box-sizing:border-box}.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}</style>
+</head><body><div id="root"></div>
+<script src="../../_ds_bundle.js"></script>
+<script type="text/babel" data-presets="react">
+  function findNS(need){ for(const k of Object.keys(window)){ const v=window[k]; if(v&&typeof v==='object'&&need.every(n=>n in v)) return v; } return window; }
+  const NS = findNS(["Badge","Chip","StatusBadge","Avatar","Card"]);
+  const { Badge, Chip, StatusBadge, Avatar, Card } = NS;
+  
+  ReactDOM.createRoot(document.getElementById('root')).render(
+    <div style={{display:'flex',flexDirection:'column',gap:14}}>
+      <div className="row">
+        <Badge tone="accent">1</Badge><Badge>2</Badge>
+        <Chip label="main" lane={0}/><Chip label="feature/graph" lane={1}/><Chip label="fix/parser" lane={2}/><Chip label="v0.4.0" tag/>
+      </div>
+      <div className="row">
+        <StatusBadge status="A"/><StatusBadge status="M"/><StatusBadge status="D"/>
+        <Avatar initials="AS" tone="AS"/><Avatar initials="MD" tone="MD"/><Avatar initials="LF" tone="LF"/>
+      </div>
+    </div>);
+</script></body></html>
