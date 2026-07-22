@@ -2,10 +2,9 @@ import { useAppStore } from "../../state/appStore";
 import { useConflictState, useConflictActions } from "../../state/queries";
 import { toast } from "../../state/toastStore";
 import { Button } from "../../components/ui/Button";
+import { Card } from "../../components/ui/Card";
 import { useT } from "../../i18n";
 import type { ConflictKind } from "../../lib/types";
-
-const mono = "'JetBrains Mono', monospace";
 
 const KIND_LABEL: Record<ConflictKind, string> = {
   merge: "Merge",
@@ -37,7 +36,7 @@ export function ConflictBanner() {
   if (!kind && data.files.length === 0) return null;
   const remaining = data.files.length;
 
-  const smallBtn = { padding: "3px 9px", fontSize: 11.5 } as const;
+  const smallBtn = { padding: "var(--sp-1) var(--sp-4)", fontSize: "var(--fs-2xs)" } as const;
   // One resolution at a time, and a failure (e.g. file deleted meanwhile)
   // must reach the user instead of dying silently.
   const resolving = actions.resolve.isPending || actions.markResolved.isPending;
@@ -46,9 +45,9 @@ export function ConflictBanner() {
   };
 
   return (
-    <div style={{ margin: 12, border: "1px solid var(--ddT)", borderRadius: 12, background: "var(--ddB)", padding: 14, display: "flex", flexDirection: "column", gap: 10, animation: "popIn 0.2s ease both" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <span style={{ fontSize: 14, fontWeight: 700, color: "var(--ddT)", flex: 1 }}>
+    <Card pad={14} style={{ margin: 12, border: "1px solid var(--ddT)", background: "var(--ddB)", display: "flex", flexDirection: "column", gap: "var(--sp-5)", animation: "popIn 0.2s ease both" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "var(--sp-5)" }}>
+        <span style={{ fontSize: "var(--fs-md)", fontWeight: "var(--fw-bold)", color: "var(--ddT)", flex: 1 }}>
           {kind ? t("workingCopy.conflict.withConflicts", { kind: KIND_LABEL[kind] }) : t("workingCopy.conflict.unresolved")} · {t("workingCopy.conflict.remaining", { count: remaining })}
         </span>
         {kind && (
@@ -80,16 +79,16 @@ export function ConflictBanner() {
           </Button>
         )}
       </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "var(--sp-1)" }}>
         {data.files.map((f) => (
-          <div key={f} style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 6px", borderRadius: 8, background: "var(--panel)" }}>
-            <span style={{ flex: 1, fontFamily: mono, fontSize: 12, color: "var(--text2)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", direction: "rtl", textAlign: "left" }}>{f}</span>
+          <div key={f} style={{ display: "flex", alignItems: "center", gap: "var(--sp-3)", padding: "var(--sp-2) var(--sp-3)", borderRadius: "var(--r-btn)", background: "var(--panel)" }}>
+            <span style={{ flex: 1, fontFamily: "var(--font-mono)", fontSize: "var(--fs-xs)", color: "var(--text2)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", direction: "rtl", textAlign: "left" }}>{f}</span>
             <Button size="sm" style={smallBtn} onClick={() => !resolving && actions.resolve.mutate({ file: f, side: "ours" }, resolveOpts)}>{t("workingCopy.conflict.useOurs")}</Button>
             <Button size="sm" style={smallBtn} onClick={() => !resolving && actions.resolve.mutate({ file: f, side: "theirs" }, resolveOpts)}>{t("workingCopy.conflict.useTheirs")}</Button>
             <Button size="sm" style={smallBtn} onClick={() => !resolving && actions.markResolved.mutate(f, resolveOpts)}>{t("workingCopy.conflict.resolved")}</Button>
           </div>
         ))}
       </div>
-    </div>
+    </Card>
   );
 }
