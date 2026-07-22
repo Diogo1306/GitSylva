@@ -4,6 +4,7 @@ import { useOnboardStore } from "./state/onboardStore";
 import { useApplyTheme } from "./theme/useApplyTheme";
 import { detectLocale, useLocaleStore } from "./i18n";
 import { AppShell } from "./features/shell/AppShell";
+import { ForestBackdrop } from "./components/ForestBackdrop";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { Notifications } from "./components/Notifications";
 import { UpdatePrompt } from "./components/UpdatePrompt";
@@ -47,7 +48,16 @@ function Root() {
         </div>
       </Suspense>
     );
-  return <AppShell />;
+  return (
+    // AppShell itself is opaque (frameless Tauri window, no OS chrome around
+    // it), so this only reads as a visible backdrop wherever the shell
+    // doesn't fully cover it — but it's the correct place for "behind the
+    // window" ambient art, on the same --desk the rest of the app uses there.
+    <div style={{ position: "relative", height: "100%", background: "var(--desk)" }}>
+      <ForestBackdrop />
+      <AppShell />
+    </div>
+  );
 }
 
 export default function App() {
