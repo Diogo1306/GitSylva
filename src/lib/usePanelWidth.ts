@@ -1,9 +1,6 @@
 import { useRef, useState } from "react";
 
-// Draggable panel width persisted in localStorage — the design's resizable
-// dividers (sidebar 180–340, history detail 300–560, working copy 320–540).
-// `edge` is the panel edge that carries the handle: "right" for left-side
-// panels (drag right = grow), "left" for right-side panels (drag left = grow).
+// Draggable panel width persisted in localStorage. `edge` carries the handle: "right" for left-side panels (drag right grows), "left" for right-side panels.
 export function usePanelWidth(
   key: string,
   initial: number,
@@ -53,10 +50,7 @@ export function usePanelWidth(
   return { width, handleProps, edge };
 }
 
-// Vertical sibling: a draggable section HEIGHT. `edge` is where the handle
-// sits relative to the panel: "bottom" = handle below the content (working
-// copy's unstaged pane — drag down grows), "top" = handle above a bottom
-// panel (history's SourceTree layout — drag down SHRINKS it).
+// Vertical sibling: draggable section height. `edge` = handle side: "bottom" = below content (drag down grows), "top" = above a bottom panel (drag down shrinks).
 export function usePanelHeight(
   key: string,
   initial: number,

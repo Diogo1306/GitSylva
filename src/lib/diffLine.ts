@@ -1,8 +1,4 @@
-// Shared unified-diff line classification for the diff views.
-//
-// File headers are only `--- ` / `+++ ` lines whose target is a git path
-// (a/…, b/…, quoted, or /dev/null): a REMOVED content line that happens to
-// start with "--" (e.g. a CLI flag or a Markdown rule) must stay a removal.
+// Shared unified-diff line classification. File headers are only `--- `/`+++ ` lines whose target is a git path (a/…, b/…, quoted, /dev/null) — a removed content line starting with "--" must stay a removal.
 
 export type DiffLineKind = "hunk" | "meta" | "add" | "del" | "ctx";
 

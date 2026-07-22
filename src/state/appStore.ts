@@ -8,9 +8,7 @@ export type Modal = "branch" | "stash" | "tag" | "merge" | "pull" | "push" | "sh
 export type RepoGroup = { id: string; name: string; color: number; collapsed: boolean };
 
 type AppState = {
-  // All open repositories and the active one. `repo` mirrors the active repo so
-  // existing code that reads `s.repo` keeps working; multi-repo tabs (B2) build
-  // on `repos` / switchRepo / closeRepo.
+  // All open repos + the active one. `repo` mirrors the active repo so existing `s.repo` readers keep working.
   repos: RepoInfo[];
   repo: RepoInfo | null;
   // Optional grouping of the open repos (name + color), shown in the rail.
@@ -35,9 +33,7 @@ type AppState = {
   // Refresh an open repo's info in place (never changes which repo is active).
   updateRepo: (oldPath: string, repo: RepoInfo) => void;
   switchRepo: (path: string) => void;
-  // Unconditional close — no confirmation, no refusal. Used internally by
-  // requestCloseRepo/confirmCloseRepo and by startup cleanup of repos that
-  // no longer exist on disk (AppShell), where a prompt would be wrong.
+  // Unconditional close (no confirm). Used internally and by startup cleanup of repos missing on disk, where a prompt would be wrong.
   closeRepo: (path: string) => void;
   setRepoBusy: (path: string, busy: boolean) => void;
   // User-facing close: closes immediately unless the repo is busy, in which

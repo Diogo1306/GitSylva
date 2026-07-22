@@ -84,12 +84,7 @@ export function useLog(path: string, limit = 200) {
   });
 }
 
-// History filters (Task 11): the loaded log window carries no branch
-// reachability or per-commit changed files, so the branch/path filters ask
-// the backend for just the matching hashes. Disabled (no request at all)
-// when the corresponding filter isn't active. `placeholderData` keeps the
-// previous set visible while the limit grows ("Carregar mais"), the same
-// pattern as `useLog`.
+// Branch/path filters ask the backend for just the matching hashes; disabled when the filter is empty, placeholderData keeps the previous set during "load more" (like useLog).
 export function useBranchCommits(path: string, branch: string, limit: number) {
   return useQuery({
     queryKey: [...queryKeys.branchCommits(path, branch), limit],
@@ -108,10 +103,7 @@ export function usePathCommits(path: string, pathspec: string, limit: number) {
   });
 }
 
-// Diffs and commit details can be megabytes each. A short gcTime keeps the
-// last few in cache for instant back-and-forth, but stops a browsing session
-// from pinning dozens of huge strings for the default 5 minutes (memory
-// growth → WebView OOM risk).
+// Diffs/commit details can be megabytes; a short gcTime avoids pinning dozens of huge strings (WebView OOM risk).
 const HEAVY_GC_MS = 30_000;
 
 export function useDiff(path: string, file: string | null, staged: boolean, untracked = false, full = false) {
@@ -181,9 +173,7 @@ export function useBranchActions(path: string) {
   };
 }
 
-// History rewrite operations (reset/cherry-pick/rebase). They refresh on
-// settle (not just success): a conflicting cherry-pick/rebase leaves the repo
-// mid-operation and the UI must reflect that.
+// History rewrite ops (reset/cherry-pick/rebase): refresh on settle since a conflict leaves the repo mid-operation.
 export function useRewriteActions(path: string) {
   const qc = useQueryClient();
   const refresh = () => {
@@ -302,21 +292,8 @@ export function useIncoming(path: string, enabled: boolean) {
   return useQuery({ queryKey: ["incoming", path], queryFn: () => incoming(path), enabled });
 }
 
-// Busy-flag lifecycle for a network Git op (B9 close-repo confirmation).
-// fetch/pull/push are the operations worth warning about before closing a tab
-// — they hit the network and can run for seconds, unlike the near-instant
-// local ops (stage/commit/discard).
-//
-// The repo path is captured in onMutate's returned CONTEXT and read back from
-// that context at settle time — NEVER from the enclosing render's `path`.
-// These mutations carry no mutationKey, so TanStack Query v5 overwrites a
-// still-pending mutation's callbacks with the newest render's closures on
-// every render (MutationObserver.setOptions). Reading `path` at settle time
-// would therefore clear whichever repo is active *now*, orphaning the flag on
-// the original repo after a mid-op tab switch. The per-invocation context is
-// immune to that: it is fixed when onMutate runs (at click time) and handed to
-// onSettled regardless of which callback closure is current. Cleared in
-// onSettled so it fires on BOTH success and error.
+// Busy-flag lifecycle for network Git ops (fetch/pull/push), driving the B9 close-repo confirmation.
+// Path is captured in onMutate's context and read back at settle time, NEVER from the render's `path`: these keyless mutations get their callbacks overwritten each render (v5), so reading `path` at settle would clear whichever repo is active now after a mid-op tab switch.
 type BusyCtx = { busyPath: string };
 
 export function markRepoBusy(path: string): BusyCtx {
