@@ -1,7 +1,7 @@
 import { SelectableRow } from "../../components/ui/SelectableRow";
 import { useT } from "../../i18n";
 
-const mono = "'JetBrains Mono', monospace";
+const mono = "var(--font-mono)";
 
 // One remote-branch row (single click shows the tip, double click checks out
 // a local tracking branch); shared by flat entries and folder members, which
@@ -47,7 +47,7 @@ export function RemoteRow({
       style={{
         gap: 9,
         padding: `5px 10px 5px ${padLeft}px`,
-        fontSize: 12.5,
+        fontSize: "var(--fs-btn)",
         fontFamily: mono,
         color: "var(--muted)",
         boxShadow: selected ? "inset 3px 0 0 var(--accent)" : undefined,

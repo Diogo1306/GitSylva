@@ -5,7 +5,7 @@ import { useT } from "../../i18n";
 export function BranchSearchBox({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   const t = useT();
   return (
-    <div style={{ padding: "0 10px 8px" }}>
+    <div style={{ padding: "0 var(--sp-4) var(--sp-3)" }}>
       <FormField label={t("shell.branch.searchLabel")} hideLabel>
         <Input
           type="search"
@@ -13,7 +13,7 @@ export function BranchSearchBox({ value, onChange }: { value: string; onChange: 
           onChange={(e) => onChange(e.target.value)}
           placeholder={t("shell.branch.searchPlaceholder")}
           mono
-          style={{ width: "100%", fontSize: 12.5, padding: "6px 10px" }}
+          style={{ width: "100%", fontSize: "var(--fs-btn)", padding: "var(--sp-2) var(--sp-4)" }}
         />
       </FormField>
     </div>

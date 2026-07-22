@@ -156,7 +156,7 @@ export function Sidebar() {
           flexShrink: 0,
           borderRight: "1px solid var(--border)",
           background: "var(--panel)",
-          padding: "14px 6px",
+          padding: "var(--sp-6) var(--sp-2)",
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
@@ -174,7 +174,7 @@ export function Sidebar() {
           style={{
             width: 32,
             height: 32,
-            borderRadius: 8,
+            borderRadius: "var(--r-btn)",
             display: "grid",
             placeItems: "center",
             background: "var(--btn)",
@@ -182,7 +182,7 @@ export function Sidebar() {
             color: "var(--btnT)",
             cursor: "pointer",
             padding: 0,
-            fontSize: 13,
+            fontSize: "var(--fs-sm)",
             fontFamily: "inherit",
           }}
         >
@@ -199,14 +199,14 @@ export function Sidebar() {
         flexShrink: 0,
         borderRight: "1px solid var(--border)",
         background: "var(--panel)",
-        padding: "14px 10px",
+        padding: "var(--sp-6) var(--sp-4)",
         overflowY: "auto",
         // Long branch names ellipsize — a horizontal scrollbar at the bottom
         // of the panel was pure noise (R5.1).
         overflowX: "hidden",
         display: "flex",
         flexDirection: "column",
-        gap: 20,
+        gap: "var(--sp-8)",
         boxSizing: "border-box",
         position: "relative",
       }}
@@ -224,7 +224,7 @@ export function Sidebar() {
           style={{
             width: 32,
             height: 32,
-            borderRadius: 8,
+            borderRadius: "var(--r-btn)",
             display: "grid",
             placeItems: "center",
             background: "transparent",
@@ -232,7 +232,7 @@ export function Sidebar() {
             color: "var(--muted)",
             cursor: "pointer",
             padding: 0,
-            fontSize: 13,
+            fontSize: "var(--fs-sm)",
             fontFamily: "inherit",
           }}
         >

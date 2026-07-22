@@ -218,7 +218,9 @@ export const ptShell = {
   // ── Sidebar ────────────────────────────────────────────────────────────────
   "shell.sidebar.workspace": "ESPAÇO DE TRABALHO",
   "shell.sidebar.recents": "RECENTES",
+  "shell.sidebar.branches": "BRANCHES",
   "shell.sidebar.remotes": "REMOTOS",
+  "shell.sidebar.tags": "TAGS",
   "shell.sidebar.expand": "Expandir barra lateral",
   "shell.sidebar.collapse": "Colapsar barra lateral",
 

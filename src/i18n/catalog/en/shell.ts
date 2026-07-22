@@ -217,7 +217,9 @@ export const enShell: Record<ShellKey, MessageValue> = {
   // ── Sidebar ────────────────────────────────────────────────────────────────
   "shell.sidebar.workspace": "WORKSPACE",
   "shell.sidebar.recents": "RECENT",
+  "shell.sidebar.branches": "BRANCHES",
   "shell.sidebar.remotes": "REMOTES",
+  "shell.sidebar.tags": "TAGS",
   "shell.sidebar.expand": "Expand sidebar",
   "shell.sidebar.collapse": "Collapse sidebar",
 

@@ -1,5 +1,6 @@
 import type { Dispatch, KeyboardEvent, SetStateAction } from "react";
 import { activateOnKeyDown } from "../../components/ui/keys";
+import { Badge } from "../../components/ui/misc";
 import type { BranchGroup } from "../../lib/branchFolders";
 import type { BranchInfo } from "../../lib/types";
 import { useT } from "../../i18n";
@@ -7,7 +8,7 @@ import { SectionLabel } from "./SectionLabel";
 import { BranchSearchBox } from "./BranchSearchBox";
 import { BranchRow, BRANCH_ROW_CLASS } from "./BranchRow";
 
-const mono = "'JetBrains Mono', monospace";
+const mono = "var(--font-mono)";
 
 // ArrowDown/ArrowUp move focus to the next/previous visible row within the
 // branches section (local branch rows + folder-toggle headers) — a roving
@@ -99,20 +100,23 @@ export function BranchList({
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 2 }} onKeyDown={onBranchListKeyDown}>
-      <div style={{ display: "flex", alignItems: "center", padding: "0 10px 6px" }}>
-        <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: "1.2px", color: "var(--muted)", flex: 1 }}>BRANCHES</div>
-        <button
-          type="button"
-          onClick={onCreateBranch}
-          onKeyDown={activateOnKeyDown}
-          title={t("shell.branch.title")}
-          aria-label={t("shell.branch.title")}
-          className="gs-row"
-          style={{ width: 32, height: 32, borderRadius: 8, display: "grid", placeItems: "center", color: "var(--muted)", fontSize: 14, background: "transparent", border: "none", padding: 0, cursor: "pointer", fontFamily: "inherit" }}
-        >
-          +
-        </button>
-      </div>
+      <SectionLabel
+        action={
+          <button
+            type="button"
+            onClick={onCreateBranch}
+            onKeyDown={activateOnKeyDown}
+            title={t("shell.branch.title")}
+            aria-label={t("shell.branch.title")}
+            className="gs-row"
+            style={{ width: 32, height: 32, borderRadius: "var(--r-btn)", display: "grid", placeItems: "center", color: "var(--muted)", fontSize: 14, background: "transparent", border: "none", padding: 0, cursor: "pointer", fontFamily: "inherit" }}
+          >
+            +
+          </button>
+        }
+      >
+        {t("shell.sidebar.branches")}
+      </SectionLabel>
       <BranchSearchBox value={branchQuery} onChange={setBranchQuery} />
       {/* Task 10: recently checked-out branches, most-recent first — a
           quick-access shortcut on top of the folder grouping below.
@@ -142,7 +146,7 @@ export function BranchList({
               className={`gs-row ${BRANCH_ROW_CLASS}`}
               title={t("shell.folder.toggleTitle", { action: folderOpen(g) ? t("shell.collapse") : t("shell.expand"), name: g.name })}
               aria-expanded={folderOpen(g)}
-              style={{ display: "flex", alignItems: "center", gap: 9, padding: "6px 10px", borderRadius: 8, fontSize: 13, fontFamily: mono, color: "var(--text2)", cursor: "pointer", background: "transparent", border: "none", width: "100%", textAlign: "left" }}
+              style={{ display: "flex", alignItems: "center", gap: 9, padding: "6px 10px", borderRadius: "var(--r-btn)", fontSize: "var(--fs-sm)", fontFamily: mono, color: "var(--text2)", cursor: "pointer", background: "transparent", border: "none", width: "100%", textAlign: "left" }}
             >
               <span style={{ fontSize: 9, color: "var(--muted)", transform: `rotate(${folderOpen(g) ? 90 : 0}deg)`, transition: "transform 0.15s", display: "inline-block", width: 6, flexShrink: 0 }}>▶</span>
               <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{g.name}</span>
@@ -158,13 +162,13 @@ export function BranchList({
                 return (
                   <>
                     {up > 0 && (
-                      <span title={t("shell.folder.aheadTitle", { count: up })} style={{ fontFamily: mono, fontSize: 10, fontWeight: 700, background: "var(--accent)", color: "var(--accentT)", borderRadius: 999, padding: "0 6px", flexShrink: 0 }}>
-                        ↑{up}
+                      <span title={t("shell.folder.aheadTitle", { count: up })} style={{ flexShrink: 0 }}>
+                        <Badge accent>↑{up}</Badge>
                       </span>
                     )}
                     {down > 0 && (
-                      <span title={t("shell.folder.behindTitle", { count: down })} style={{ fontFamily: mono, fontSize: 10, fontWeight: 700, background: "var(--badge)", color: "var(--badgeT)", borderRadius: 999, padding: "0 6px", flexShrink: 0 }}>
-                        ↓{down}
+                      <span title={t("shell.folder.behindTitle", { count: down })} style={{ flexShrink: 0 }}>
+                        <Badge>↓{down}</Badge>
                       </span>
                     )}
                   </>
@@ -180,10 +184,10 @@ export function BranchList({
         ),
       )}
       {filtering && localGroups.length === 0 && (
-        <div style={{ padding: "6px 10px", fontSize: 12, color: "var(--muted)", fontFamily: mono }}>{t("shell.branch.noMatches")}</div>
+        <div style={{ padding: "6px 10px", fontSize: "var(--fs-xs)", color: "var(--muted)", fontFamily: mono }}>{t("shell.branch.noMatches")}</div>
       )}
       {!filtering && localBranches.length === 0 && (
-        <div style={{ padding: "6px 10px", fontSize: 12, color: "var(--muted)", fontFamily: mono }}>{currentBranchName}</div>
+        <div style={{ padding: "6px 10px", fontSize: "var(--fs-xs)", color: "var(--muted)", fontFamily: mono }}>{currentBranchName}</div>
       )}
     </div>
   );
