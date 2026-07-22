@@ -38,6 +38,27 @@ function buildGraph(
   range?: { start: number; end: number },
 ): ReactElement[] {
   const els: ReactElement[] = [];
+  // One reusable vertical fade mask, applied to continuation stubs below.
+  // objectBoundingBox units mean it fades top->bottom over the MASKED
+  // ELEMENT's own bounding box, regardless of lane color or Y position —
+  // no per-stub gradient math needed.
+  els.push(
+    h(
+      "defs",
+      { key: "gs-fade-defs" },
+      h(
+        "linearGradient",
+        { id: "gsFadeGrad", x1: 0, y1: 0, x2: 0, y2: 1 },
+        h("stop", { key: "s0", offset: "0%", stopColor: "#fff", stopOpacity: 1 }),
+        h("stop", { key: "s1", offset: "100%", stopColor: "#fff", stopOpacity: 0 }),
+      ),
+      h(
+        "mask",
+        { id: "gsFadeDown", maskContentUnits: "objectBoundingBox" },
+        h("rect", { x: 0, y: 0, width: 1, height: 1, fill: "url(#gsFadeGrad)" }),
+      ),
+    ),
+  );
   // Only commits that weren't on screen last render play their entrance, and
   // only within the first ANIM_ROWS rows (the rest is below the fold).
   const fresh = (hash: string, i: number) => anims && i < ANIM_ROWS && !seenHashes.has(hash);
@@ -59,11 +80,20 @@ function buildGraph(
     return d;
   };
 
-  const pathEl = (key: string, d: string, lane: number, delay: number, on: boolean, w?: number) =>
+  const pathEl = (
+    key: string,
+    d: string,
+    lane: number,
+    delay: number,
+    on: boolean,
+    w?: number,
+    extra?: Record<string, unknown>,
+  ) =>
     h("path", {
       key,
       d,
       fill: "none",
+      ...extra,
       ...(on ? { pathLength: 1 } : {}),
       style: {
         stroke:
@@ -107,9 +137,15 @@ function buildGraph(
       const x2 = laneX(pc.lane);
       const y2 = p * rowH + rowH / 2;
       const lane = x1 === x2 ? c.lane : Math.max(c.lane, pc.lane);
+      const edgeAttr = { "data-edge": `${hash}>${pHash}` };
       if (x1 === x2) {
-        els.push(pathEl(`e-${hash}-${pHash}`, vine(x1, y1, y2, i), lane, delay, on));
+        els.push(pathEl(`e-${hash}-${pHash}`, vine(x1, y1, y2, i), lane, delay, on, undefined, edgeAttr));
       } else if (c.merge) {
+        // Guard: normal topo-ordered data always has the parent row below
+        // the child (p > i, so y2 > y1). If it isn't, this edge is
+        // malformed/degenerate — skip rather than draw a disconnected
+        // segment (latent defensive fix, not reachable with current data).
+        if (p <= i) return;
         els.push(
           pathEl(
             `e-${hash}-${pHash}-a`,
@@ -117,11 +153,15 @@ function buildGraph(
             lane,
             delay,
             on,
+            undefined,
+            edgeAttr,
           ),
         );
-        if (y2 > y1 + rowH) els.push(pathEl(`e-${hash}-${pHash}-b`, vine(x2, y1 + rowH, y2, i + 1), lane, delay + 0.1, on));
+        if (y2 > y1 + rowH)
+          els.push(pathEl(`e-${hash}-${pHash}-b`, vine(x2, y1 + rowH, y2, i + 1), lane, delay + 0.1, on, undefined, edgeAttr));
       } else {
-        if (y2 - rowH > y1) els.push(pathEl(`e-${hash}-${pHash}-a`, vine(x1, y1, y2 - rowH, i), lane, delay, on));
+        if (p <= i) return;
+        if (y2 - rowH > y1) els.push(pathEl(`e-${hash}-${pHash}-a`, vine(x1, y1, y2 - rowH, i), lane, delay, on, undefined, edgeAttr));
         els.push(
           pathEl(
             `e-${hash}-${pHash}-b`,
@@ -129,8 +169,43 @@ function buildGraph(
             lane,
             delay + 0.1,
             on,
+            undefined,
+            edgeAttr,
           ),
         );
+      }
+    });
+  });
+
+  // Continuation stubs: a commit whose parent falls outside the loaded
+  // window (see contLanes in graph/layout.ts) still shows a fading vine so
+  // the line reads as "continues below, not loaded" instead of just
+  // stopping. Only commits with a non-empty contLanes pay any cost here.
+  rows.forEach((c, i) => {
+    if (!inRange(i)) return;
+    if (c.contLanes.length === 0) return;
+    const hash = c.commit.hash;
+    const on = fresh(hash, i);
+    const x1 = laneX(c.lane);
+    const y1 = i * rowH + rowH / 2;
+    const delay = Math.min(i * 0.045, 0.6);
+    c.contLanes.forEach((contLane) => {
+      const key = `cont-${hash}-${contLane}`;
+      const extra = { "data-cont": hash, mask: "url(#gsFadeDown)" };
+      if (contLane === c.lane) {
+        // First-parent truncation, the common case: a straight downward
+        // vine stub in the commit's own lane.
+        const y2 = y1 + rowH * 0.9;
+        els.push(pathEl(key, vine(x1, y1, y2, i), contLane, delay, on, undefined, extra));
+      } else {
+        // A merge's out-of-window parent in a claimed lane: a short curve
+        // toward that lane, then a short downward stub. Subtle, uses the
+        // same "branch" lane-color rule as a normal merge/branch edge.
+        const x2 = laneX(contLane);
+        const yMid = y1 + rowH * 0.6;
+        const yEnd = y1 + rowH * 0.9;
+        const d = `M${x1},${y1} C${x1 + 4},${y1 + rowH * 0.3} ${x2 - 5},${yMid - rowH * 0.25} ${x2},${yMid} L${x2},${yEnd}`;
+        els.push(pathEl(key, d, Math.max(c.lane, contLane), delay, on, undefined, extra));
       }
     });
   });

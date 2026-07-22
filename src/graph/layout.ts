@@ -8,6 +8,12 @@ export type GraphCommit = {
   lane: number;
   parentRows: number[];
   merge: boolean;
+  // Lanes whose parent line continues BEYOND the loaded window: a parent that
+  // exists in git history but wasn't fetched into `commits`. The renderer
+  // draws a fading continuation stub for each of these instead of letting
+  // the line just stop with no indication (the root cause of "missing
+  // lines" — a windowed parent silently dropped from parentRows).
+  contLanes: number[];
 };
 
 export function graphRows(commits: Commit[]): GraphCommit[] {
@@ -39,8 +45,15 @@ export function graphRows(commits: Commit[]): GraphCommit[] {
     if (waiting.length === 0) lanes[lane] = null;
 
     const merge = commit.parents.length > 1;
+    // Lanes whose parent falls outside the loaded window (additive; never
+    // affects lane/merge computation, only which continuation stubs render).
+    const contLanes: number[] = [];
+    const pushCont = (l: number) => {
+      if (!contLanes.includes(l)) contLanes.push(l);
+    };
     commit.parents.forEach((parent, k) => {
       const existing = lanes.indexOf(parent);
+      const inWindow = indexOf.has(parent);
       if (k === 0) {
         // First parent continues in this lane. On a fork (parent already has
         // a lane elsewhere) THIS lane stays reserved down to the fork row —
@@ -49,15 +62,22 @@ export function graphRows(commits: Commit[]): GraphCommit[] {
         // claim the lane and sit on top of the drawn line. A merge whose
         // first parent already has a lane curves away at once instead.
         if (existing === -1 || !merge) lanes[lane] = parent;
+        if (!inWindow) pushCont(lane);
       } else if (existing === -1) {
-        claim(parent);
+        const claimed = claim(parent);
+        if (!inWindow) pushCont(claimed);
+      } else if (!inWindow) {
+        // Edge case: a later parent is already reserved in an out-of-window
+        // lane (another branch is already heading toward the same missing
+        // commit) — this merge's own line into it still needs a stub.
+        pushCont(existing);
       }
     });
 
     const parentRows = commit.parents
       .map((p) => indexOf.get(p))
       .filter((i): i is number => i !== undefined);
-    out.push({ commit, lane, parentRows, merge });
+    out.push({ commit, lane, parentRows, merge, contLanes });
   }
   return out;
 }
