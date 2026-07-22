@@ -5,8 +5,6 @@ import { activateOnKeyDown } from "../../components/ui/keys";
 import { useT } from "../../i18n";
 import type { RepoInfo } from "../../lib/types";
 
-const mono = "'JetBrains Mono', monospace";
-
 // Repo tabs: a real accessible tablist (role=tablist/tab, roving tabindex,
 // Left/Right/Home/End move focus, Enter/Space or click selects). Built by
 // hand — rather than the generic <Tabs> primitive — because the strip also
@@ -109,8 +107,8 @@ export function TabStrip({
           display: "flex",
           alignItems: "center",
           gap: 7,
-          padding: "5px 8px 5px 12px",
-          borderRadius: 8,
+          padding: "5px var(--sp-3) 5px var(--sp-5)",
+          borderRadius: "var(--r-btn)",
           border: `1px solid ${active ? "var(--btnB)" : "transparent"}`,
           background: active ? "var(--sel)" : undefined,
           minWidth: 0,
@@ -147,10 +145,10 @@ export function TabStrip({
           }}
         >
           <span style={{ width: 7, height: 7, borderRadius: "50%", background: `var(--l${i % 3})`, flexShrink: 0 }} />
-          <span style={{ fontSize: 12.5, fontWeight: active ? 600 : 400, color: active ? "var(--text)" : "var(--text2)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+          <span style={{ fontSize: "var(--fs-btn)", fontWeight: active ? "var(--fw-semibold)" : "var(--fw-regular)", color: active ? "var(--text)" : "var(--text2)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
             {name}
           </span>
-          <span className="gs-resp-tabbr" style={{ fontFamily: mono, fontSize: 10.5, color: "var(--muted)", whiteSpace: "nowrap" }}>
+          <span className="gs-resp-tabbr" style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-label)", color: "var(--muted)", whiteSpace: "nowrap" }}>
             {active ? repo.current_branch : r.current_branch}
           </span>
         </button>
@@ -159,8 +157,8 @@ export function TabStrip({
           onClick={() => onRequestCloseRepo(r.path)}
           title={t("common.close")}
           aria-label={t("shell.tab.close", { name })}
-          className="gs-row"
-          style={{ width: 16, height: 16, borderRadius: 5, display: "grid", placeItems: "center", color: "var(--muted)", fontSize: 10, flexShrink: 0, background: "transparent", border: "none", padding: 0, cursor: "pointer", fontFamily: "inherit" }}
+          className="gs-row gs-press-97"
+          style={{ width: 16, height: 16, borderRadius: "var(--r-xs)", display: "grid", placeItems: "center", color: "var(--muted)", fontSize: 10, flexShrink: 0, background: "transparent", border: "none", padding: 0, cursor: "pointer", fontFamily: "inherit" }}
         >
           ✕
         </button>
@@ -173,7 +171,7 @@ export function TabStrip({
       data-tauri-drag-region
       role="tablist"
       aria-label={t("shell.tabs.aria")}
-      style={{ height: 38, display: "flex", alignItems: "center", gap: 5, padding: "0 12px", borderTop: "1px solid var(--bsoft)", minWidth: 0, overflowX: "auto", overflowY: "hidden", scrollbarWidth: "thin", animation: "fadeUp 0.25s ease both" }}
+      style={{ height: 38, display: "flex", alignItems: "center", gap: 5, padding: "0 var(--sp-5)", borderTop: "1px solid var(--bsoft)", minWidth: 0, overflowX: "auto", overflowY: "hidden", scrollbarWidth: "thin", animation: "fadeUp 0.25s ease both" }}
     >
       {groups.map((g) => {
         const members = repos.filter((r) => groupOf[r.path] === g.id);
@@ -187,7 +185,7 @@ export function TabStrip({
               alignItems: "center",
               gap: 3,
               padding: 3,
-              borderRadius: 10,
+              borderRadius: "var(--r-lg)",
               border: `1px solid ${gc.bd}`,
               background: g.collapsed ? gc.bg : undefined,
               flexShrink: 0,
@@ -203,7 +201,8 @@ export function TabStrip({
               }}
               title={t("shell.group.toggleTooltip", { action: g.collapsed ? t("shell.expand") : t("shell.collapse") })}
               aria-expanded={!g.collapsed}
-              style={{ fontSize: 11.5, fontWeight: 700, padding: "3px 9px", borderRadius: 7, background: gc.bg, color: gc.fg, cursor: "pointer", whiteSpace: "nowrap", border: "none", fontFamily: "inherit" }}
+              className="gs-press-97"
+              style={{ fontSize: "var(--fs-2xs)", fontWeight: "var(--fw-bold)", padding: "3px 9px", borderRadius: "var(--r-md)", background: gc.bg, color: gc.fg, cursor: "pointer", whiteSpace: "nowrap", border: "none", fontFamily: "inherit" }}
             >
               {g.name} · {members.length}
             </button>
@@ -216,10 +215,10 @@ export function TabStrip({
         type="button"
         onClick={onOpenPicker}
         onKeyDown={activateOnKeyDown}
-        className="gs-lift"
+        className="gs-lift gs-press-97"
         title={t("shell.openRepo")}
         aria-label={t("shell.openRepo")}
-        style={{ width: 32, height: 32, borderRadius: 8, display: "grid", placeItems: "center", color: "var(--muted)", fontSize: 15, cursor: "pointer", flexShrink: 0, background: "transparent", border: "none", padding: 0, fontFamily: "inherit" }}
+        style={{ width: 32, height: 32, borderRadius: "var(--r-btn)", display: "grid", placeItems: "center", color: "var(--muted)", fontSize: 15, cursor: "pointer", flexShrink: 0, background: "transparent", border: "none", padding: 0, fontFamily: "inherit" }}
       >
         +
       </button>

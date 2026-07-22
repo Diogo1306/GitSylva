@@ -32,7 +32,7 @@ export function TrafficLights() {
     </button>
   );
   return (
-    <div className="gs-lights" style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+    <div className="gs-lights" style={{ display: "flex", gap: "var(--sp-3)", flexShrink: 0 }}>
       {light("#FF5F57", "✕", () => void winClose(), t("common.close"))}
       {light("#FEBC2E", "–", () => void winMinimize(), t("shell.win.minimize"))}
       {light("#28C840", "+", () => void winToggleMaximize(), t("shell.win.maximize"))}
@@ -57,7 +57,7 @@ export function WinControls() {
       title={title}
       aria-label={title}
       className={close ? "gs-winclose" : "gs-winbtn"}
-      style={{ width: 40, height: 30, display: "grid", placeItems: "center", cursor: "pointer", fontSize: 11, color: "var(--text2)", borderRadius: 6, border: "none", background: "transparent", padding: 0, fontFamily: "inherit" }}
+      style={{ width: 40, height: 30, display: "grid", placeItems: "center", cursor: "pointer", fontSize: 11, color: "var(--text2)", borderRadius: "var(--r-sm)", border: "none", background: "transparent", padding: 0, fontFamily: "inherit" }}
     >
       {glyph}
     </button>

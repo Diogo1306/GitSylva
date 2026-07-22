@@ -108,11 +108,11 @@ export function Titlebar({ rail = false }: { rail?: boolean }) {
     <div
       data-tauri-drag-region
       style={{
-        height: rail ? 50 : 40,
+        height: rail ? "var(--h-titlebar)" : 40,
         display: "flex",
         alignItems: "center",
-        gap: 14,
-        padding: "0 10px 0 16px",
+        gap: "var(--sp-6)",
+        padding: "0 var(--sp-4) 0 var(--sp-7)",
       }}
     >
       {isMac && <TrafficLights />}
