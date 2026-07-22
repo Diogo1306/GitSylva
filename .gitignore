@@ -36,6 +36,7 @@ docs/superpowers/
 .cursor/
 .aider*
 CLAUDE.md
+CLAUDE.local.md
 
 # Signing keys must never enter the repo (updater private key lives in ~/.tauri/)
 *.key
