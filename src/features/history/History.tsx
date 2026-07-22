@@ -221,6 +221,9 @@ export function History() {
   const [scrollEl, setScrollEl] = useState<HTMLDivElement | null>(null);
   const [viewH, setViewH] = useState(0);
   const [scrollTop, setScrollTop] = useState(0);
+  // Preload sentinel (the "load more" row): observed below so the next page
+  // loads BEFORE it scrolls into view.
+  const [sentinel, setSentinel] = useState<HTMLElement | null>(null);
   useEffect(() => {
     if (!scrollEl) return;
     // ResizeObserver fires once on observe — no synchronous measure needed.
@@ -252,7 +255,38 @@ export function History() {
       scrollEl.scrollTo({ top: top + rowH - scrollEl.clientHeight });
   });
 
-  if (isLoading) return <div style={{ padding: 16, color: "var(--muted)" }}>{t("history.loading")}</div>;
+  // ── Preload ahead ─────────────────────────────────────────────────────────
+  // Grow the window BEFORE the user reaches the bottom, so a lane's line is
+  // already connected to its parent by the time it scrolls into view — no
+  // truncation flash, no manual click needed. Appending older commits is
+  // stable (a row's lane depends only on rows above it), so a grow only
+  // completes truncated edges and adds rows below; it never reshuffles what is
+  // already on screen. The `isFetching` guard keeps it to one page at a time.
+  const growRef = useRef({ limit, isFetching, full: commits.length >= limit, filtering: hasActiveFilters(filters) });
+  useEffect(() => {
+    growRef.current = { limit, isFetching, full: commits.length >= limit, filtering: hasActiveFilters(filters) };
+  });
+  useEffect(() => {
+    if (!sentinel || !scrollEl) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (!entries.some((e) => e.isIntersecting)) return;
+        const g = growRef.current;
+        if (g.isFetching || !g.full || g.filtering || g.limit >= 2000) return;
+        setLimit((l) => Math.min(2000, l + 400));
+      },
+      { root: scrollEl, rootMargin: "1200px 0px" },
+    );
+    io.observe(sentinel);
+    return () => io.disconnect();
+  }, [sentinel, scrollEl]);
+
+  // Only the TRUE first load (no data yet) may replace the view. On "load
+  // more" the query key changes (limit is part of it), so react-query reports
+  // isLoading=true during the placeholder phase even though placeholderData is
+  // still serving the previous page — gating on that here blanked the whole
+  // list until the bigger page arrived (the "everything disappears" bug).
+  if (isLoading && commits.length === 0) return <div style={{ padding: 16, color: "var(--muted)" }}>{t("history.loading")}</div>;
   if (error) return <div style={{ padding: 16, color: "var(--ddT)" }}>{errMsg(error, t("history.readError"))}</div>;
   if (commits.length === 0) return <div style={{ padding: 16, color: "var(--muted)" }}>{t("history.noCommits")}</div>;
 
@@ -333,6 +367,7 @@ export function History() {
               {/* When the log filled the window, there are probably older commits. */}
               {!filtering && commits.length >= limit && (
                 <button
+                  ref={setSentinel}
                   type="button"
                   onClick={() => !isFetching && setLimit((l) => l + 200)}
                   className="gs-row"
