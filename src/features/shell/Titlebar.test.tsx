@@ -7,16 +7,18 @@ import { useShortcutsStore, DEFAULT_BINDINGS } from "../../state/shortcutsStore"
 import { comboHint } from "../../lib/platform";
 import type { RepoInfo } from "../../lib/types";
 
-// Semantic/keyboard migration (Task 3): the repo tab strip must expose real,
-// Tab-reachable role="tab" controls with roving tabindex and Left/Right arrow
-// navigation between open repos, while the strip stays inside the Tauri drag
-// region and the per-tab close control keeps working. The titlebar settings
-// button (kept after the Sidebar "Definições" dedup) must be a real, labeled,
-// keyboard-focusable >=32px button with a visible tooltip.
+// V2 titlebar: the repo picker is a dropdown (not tabs). Clicking the pill lists
+// the open repos and switches on select; `+` opens the picker; each row's `…`
+// exposes the close/group actions. The sync/search/settings tools stay real,
+// labeled, keyboard-focusable buttons with the platform-correct shortcut hints.
 
 vi.mock("../../lib/api", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../../lib/api")>();
-  return { ...actual, getStatus: vi.fn().mockResolvedValue([]) };
+  return {
+    ...actual,
+    getStatus: vi.fn().mockResolvedValue([]),
+    syncStatus: vi.fn().mockResolvedValue({ ahead: 0, behind: 0, upstream: null }),
+  };
 });
 
 const repoA: RepoInfo = { path: "/repo-a", current_branch: "main", head: "aaa", is_empty: false };
@@ -33,145 +35,77 @@ function renderTitlebar() {
 }
 
 beforeEach(() => {
-  useAppStore.setState({
-    repo: repoA,
-    repos: [repoA, repoB, repoC],
-    groups: [],
-    groupOf: {},
-  });
+  window.innerWidth = 1360;
+  useAppStore.setState({ repo: repoA, repos: [repoA, repoB, repoC], groups: [], groupOf: {}, view: "history", modal: null, pendingClose: null });
 });
 
 afterEach(() => {
   cleanup();
-  useAppStore.setState({ repo: null, repos: [], groups: [], groupOf: {} });
+  useAppStore.setState({ repo: null, repos: [], groups: [], groupOf: {}, modal: null });
   useShortcutsStore.getState().reset();
 });
 
-describe("Titlebar repo tab strip: keyboard", () => {
-  it("renders each open repo as a real, Tab-reachable role=tab button", () => {
+describe("Titlebar repo dropdown", () => {
+  it("shows the active repo and branch in the pill", () => {
     renderTitlebar();
-    const a = screen.getByRole("tab", { name: /repo-a/ });
-    const b = screen.getByRole("tab", { name: /repo-b/ });
-    expect(a.tagName).toBe("BUTTON");
-    expect(b.tagName).toBe("BUTTON");
+    const pill = screen.getByRole("button", { name: /repo-a/ });
+    expect(pill.textContent).toContain("repo-a");
+    expect(pill.textContent).toContain("main");
   });
 
-  it("wraps the repo tabs in a labeled role=tablist container", () => {
+  it("opens a menu of the open repos when the pill is clicked", () => {
     renderTitlebar();
-    const tablist = screen.getByRole("tablist", { name: "Repositórios abertos" });
-    // Every repo tab lives inside the tablist (WAI-ARIA tab pattern).
-    const tabsInList = within(tablist).getAllByRole("tab");
-    expect(tabsInList).toHaveLength(3);
-    for (const path of ["/repo-a", "/repo-b", "/repo-c"]) {
-      expect(within(tablist).getByRole("tab", { name: new RegExp(path.slice(1)) })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /repo-a/ }));
+    const menu = screen.getByRole("menu", { name: "Repositórios abertos" });
+    for (const path of ["repo-a", "repo-b", "repo-c"]) {
+      expect(within(menu).getByText(path)).toBeTruthy();
     }
   });
 
-  it("marks the active repo's tab with aria-selected=true and the rest false", () => {
+  it("switches the active repo when a menu row is clicked", () => {
     renderTitlebar();
-    expect(screen.getByRole("tab", { name: /repo-a/ }).getAttribute("aria-selected")).toBe("true");
-    expect(screen.getByRole("tab", { name: /repo-b/ }).getAttribute("aria-selected")).toBe("false");
-  });
-
-  it("gives the active tab roving tabindex 0 and the rest -1", () => {
-    renderTitlebar();
-    expect((screen.getByRole("tab", { name: /repo-a/ }) as HTMLButtonElement).tabIndex).toBe(0);
-    expect((screen.getByRole("tab", { name: /repo-b/ }) as HTMLButtonElement).tabIndex).toBe(-1);
-  });
-
-  it("ArrowRight/ArrowLeft move focus between repo tabs", () => {
-    renderTitlebar();
-    const a = screen.getByRole("tab", { name: /repo-a/ });
-    const b = screen.getByRole("tab", { name: /repo-b/ });
-    const c = screen.getByRole("tab", { name: /repo-c/ });
-    a.focus();
-    fireEvent.keyDown(a, { key: "ArrowRight" });
-    expect(document.activeElement).toBe(b);
-    fireEvent.keyDown(b, { key: "ArrowRight" });
-    expect(document.activeElement).toBe(c);
-    fireEvent.keyDown(c, { key: "ArrowLeft" });
-    expect(document.activeElement).toBe(b);
-    // Wraps around.
-    fireEvent.keyDown(a, { key: "ArrowLeft" });
-  });
-
-  it("Home/End jump to the first/last repo tab", () => {
-    renderTitlebar();
-    const a = screen.getByRole("tab", { name: /repo-a/ });
-    const c = screen.getByRole("tab", { name: /repo-c/ });
-    a.focus();
-    fireEvent.keyDown(a, { key: "End" });
-    expect(document.activeElement).toBe(c);
-    fireEvent.keyDown(c, { key: "Home" });
-    expect(document.activeElement).toBe(a);
-  });
-
-  it("clicking a tab switches the active repo", () => {
-    renderTitlebar();
-    fireEvent.click(screen.getByRole("tab", { name: /repo-b/ }));
+    fireEvent.click(screen.getByRole("button", { name: /repo-a/ }));
+    const menu = screen.getByRole("menu");
+    fireEvent.click(within(menu).getByText("repo-b"));
     expect(useAppStore.getState().repo?.path).toBe("/repo-b");
   });
 
-  it("Enter activates the focused tab (switches repo)", () => {
+  it("the + button opens the repo picker", () => {
     renderTitlebar();
-    const b = screen.getByRole("tab", { name: /repo-b/ });
-    b.focus();
-    fireEvent.keyDown(b, { key: "Enter" });
-    expect(useAppStore.getState().repo?.path).toBe("/repo-b");
+    fireEvent.click(screen.getByRole("button", { name: "Abrir repositório" }));
+    expect(useAppStore.getState().view).toBe("picker");
   });
 
-  it("keeps the tab strip inside a Tauri drag region", () => {
+  it("has a >=32px + button click target", () => {
     renderTitlebar();
-    const tab = screen.getByRole("tab", { name: /repo-a/ });
-    expect(tab.closest("[data-tauri-drag-region]")).toBeTruthy();
+    const btn = screen.getByRole("button", { name: "Abrir repositório" }) as HTMLElement;
+    expect(parseFloat(String(btn.style.width))).toBeGreaterThanOrEqual(32);
+    expect(parseFloat(String(btn.style.height))).toBeGreaterThanOrEqual(32);
   });
 
-  it("closing a tab via its close control removes it without switching the active repo", () => {
+  it("closes a repo from its options menu without switching the active repo", () => {
     renderTitlebar();
-    fireEvent.click(screen.getByRole("button", { name: /Fechar.*repo-b/i }));
+    fireEvent.click(screen.getByRole("button", { name: /repo-a/ }));
+    // Row order is repo-a, repo-b, repo-c; open repo-b's options.
+    const options = screen.getAllByRole("button", { name: "Opções do repositório" });
+    fireEvent.click(options[1]);
+    fireEvent.click(screen.getByText(/Fechar repo-b/i));
     expect(useAppStore.getState().repos.some((r) => r.path === "/repo-b")).toBe(false);
     expect(useAppStore.getState().repo?.path).toBe("/repo-a");
   });
-
-  it("does not disable the outline inline on a repo tab (focus ring must survive)", () => {
-    renderTitlebar();
-    expect((screen.getByRole("tab", { name: /repo-a/ }) as HTMLElement).style.outline).not.toBe("none");
-  });
 });
 
-// The roving-tabindex focus memory (which tab arrow-keys last landed on) must
-// live in the always-mounted Titlebar, not in TabStrip — Titlebar renders the
-// strip only in tab mode (`!rail`) and the rail/tabs layout is live-toggleable
-// (Settings → Aparência), so owning the state in TabStrip would reset it on
-// every layout flip. This asserts the state survives an unmount/remount of the
-// strip driven by the `rail` prop.
-describe("Titlebar repo tab strip: focus survives a rail<->tabs layout toggle", () => {
-  it("keeps the roving-focus target when the strip unmounts (rail) and remounts (tabs)", () => {
-    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    const ui = (rail: boolean) => (
-      <QueryClientProvider client={qc}>
-        <Titlebar rail={rail} />
-      </QueryClientProvider>
-    );
-    const { rerender } = render(ui(false));
+describe("Titlebar sync tools", () => {
+  it("Pull opens the pull modal", () => {
+    renderTitlebar();
+    fireEvent.click(screen.getByRole("button", { name: "Pull de origin" }));
+    expect(useAppStore.getState().modal).toBe("pull");
+  });
 
-    // Move the roving focus off the active tab (repo-a) onto repo-b.
-    const a = screen.getByRole("tab", { name: /repo-a/ });
-    a.focus();
-    fireEvent.keyDown(a, { key: "ArrowRight" });
-    expect((screen.getByRole("tab", { name: /repo-b/ }) as HTMLButtonElement).tabIndex).toBe(0);
-    expect((screen.getByRole("tab", { name: /repo-a/ }) as HTMLButtonElement).tabIndex).toBe(-1);
-
-    // Flip to rail mode: the tab strip unmounts entirely.
-    rerender(ui(true));
-    expect(screen.queryByRole("tablist")).toBeNull();
-
-    // Flip back to tab mode: the strip remounts. Because the focus memory lives
-    // in the always-mounted Titlebar, repo-b is still the roving-focus target —
-    // it did NOT reset to the active repo (repo-a).
-    rerender(ui(false));
-    expect((screen.getByRole("tab", { name: /repo-b/ }) as HTMLButtonElement).tabIndex).toBe(0);
-    expect((screen.getByRole("tab", { name: /repo-a/ }) as HTMLButtonElement).tabIndex).toBe(-1);
+  it("Push opens the push modal", () => {
+    renderTitlebar();
+    fireEvent.click(screen.getByRole("button", { name: "Push para origin" }));
+    expect(useAppStore.getState().modal).toBe("push");
   });
 });
 
@@ -187,10 +121,8 @@ describe("Titlebar settings button", () => {
   it("has a >=32px click target", () => {
     renderTitlebar();
     const btn = screen.getByRole("button", { name: "Definições" }) as HTMLElement;
-    const width = parseFloat(String(btn.style.width));
-    const height = parseFloat(String(btn.style.height));
-    expect(width).toBeGreaterThanOrEqual(32);
-    expect(height).toBeGreaterThanOrEqual(32);
+    expect(parseFloat(String(btn.style.width))).toBeGreaterThanOrEqual(32);
+    expect(parseFloat(String(btn.style.height))).toBeGreaterThanOrEqual(32);
   });
 
   it("opens the Definições view on click", () => {
@@ -200,42 +132,29 @@ describe("Titlebar settings button", () => {
   });
 });
 
-// Task 6 ("Layout na janela mínima"): a couple of the titlebar's remaining
-// under-32px icon buttons flagged by the audit, bumped alongside it.
-describe("Titlebar: hit targets (Task 6)", () => {
+describe("Titlebar: hit targets", () => {
   it("the terminal button clears a 32px click target", () => {
     renderTitlebar();
     const btn = screen.getByRole("button", { name: "Abrir terminal" }) as HTMLElement;
     expect(parseFloat(String(btn.style.width))).toBeGreaterThanOrEqual(32);
     expect(parseFloat(String(btn.style.height))).toBeGreaterThanOrEqual(32);
   });
-
-  it("the 'Abrir repositório' tab-bar button clears a 32px click target", () => {
-    renderTitlebar();
-    const btn = screen.getByRole("button", { name: "Abrir repositório" }) as HTMLElement;
-    expect(parseFloat(String(btn.style.width))).toBeGreaterThanOrEqual(32);
-    expect(parseFloat(String(btn.style.height))).toBeGreaterThanOrEqual(32);
-  });
 });
 
-// Task 14: Fetch and search/palette hints, pulled from shortcutsStore via
-// comboHint, shown through the Tooltip primitive on hover AND keyboard focus.
-describe("Titlebar: shortcut hint tooltips (Task 14)", () => {
+describe("Titlebar: shortcut hint tooltips", () => {
   it("shows the Fetch shortcut hint via the Tooltip primitive on keyboard focus", () => {
     renderTitlebar();
     const fetchBtn = screen.getByRole("button", { name: "Fetch de origin" });
     expect(screen.queryByRole("tooltip")).toBeNull();
     fireEvent.focus(fetchBtn);
-    const tooltip = screen.getByRole("tooltip");
-    expect(tooltip.textContent).toContain(comboHint(DEFAULT_BINDINGS.fetch));
+    expect(screen.getByRole("tooltip").textContent).toContain(comboHint(DEFAULT_BINDINGS.fetch));
   });
 
   it("shows the search/palette shortcut hint via the Tooltip primitive on keyboard focus", () => {
     renderTitlebar();
     const searchBtn = screen.getByRole("button", { name: /Pesquisar/ });
     fireEvent.focus(searchBtn);
-    const tooltip = screen.getByRole("tooltip");
-    expect(tooltip.textContent).toContain(comboHint(DEFAULT_BINDINGS.palette));
+    expect(screen.getByRole("tooltip").textContent).toContain(comboHint(DEFAULT_BINDINGS.palette));
   });
 
   it("reflects a rebound Fetch shortcut live (pulled from shortcutsStore, not hardcoded)", () => {

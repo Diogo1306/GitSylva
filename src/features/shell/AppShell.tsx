@@ -5,7 +5,6 @@ import { useThemeStore } from "../../state/themeStore";
 import { Titlebar } from "./Titlebar";
 import { Sidebar } from "./Sidebar";
 import { RepoRail } from "./RepoRail";
-import { ActionBar } from "./ActionBar";
 import { CommandPalette } from "./CommandPalette";
 import { Modals } from "./Modals";
 import { ErrorBoundary } from "../../components/ErrorBoundary";
@@ -159,7 +158,7 @@ export function AppShell() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", background: "var(--win)", color: "var(--text)", overflow: "hidden" }}>
-      <Titlebar rail={rail} />
+      <Titlebar />
       <div style={{ flex: 1, display: "flex", minHeight: 0 }}>
         {rail && <RepoRail />}
         <Sidebar />
@@ -181,8 +180,6 @@ export function AppShell() {
           </div>
         </div>
       </div>
-      {/* R5.10: back by user request — Pull/Push/Commit live down here again. */}
-      <ActionBar />
       <CommandPalette />
       <Modals />
       <EphemeralLeaves />

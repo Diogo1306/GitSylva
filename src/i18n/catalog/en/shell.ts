@@ -51,11 +51,6 @@ export const enShell: Record<ShellKey, MessageValue> = {
   "shell.error.mergeConflictWC": "merge conflict — see the Working copy",
   "shell.error.rebaseConflictWC": "rebase conflict — see the Working copy",
 
-  // ── ActionBar ──────────────────────────────────────────────────────────────
-  "shell.actionBar.aria": "Actions",
-  "shell.actionBar.commitsToPush": "commits to push",
-  "shell.actionBar.commitsToPull": "commits to pull",
-
   // ── AppShell ───────────────────────────────────────────────────────────────
   "shell.fetch.doneTitle": "Fetch complete",
   "shell.repoGone": "Repository {path} no longer exists on disk — tab closed",
@@ -249,6 +244,11 @@ export const enShell: Record<ShellKey, MessageValue> = {
   "shell.tab.rightClickGroups": "{path} · right-click for groups",
   "shell.tab.close": "Close {name}",
   "shell.tabs.aria": "Open repositories",
+  "shell.repoSel.tooltip": "Current repository — click to switch (open · recent)",
+  "shell.repoSel.open": "OPEN",
+  "shell.repoSel.recents": "RECENT",
+  "shell.repoSel.optionsAria": "Repository options",
+  "shell.repoSel.addRepo": "Add repository (Local · Clone · Create)",
   "shell.fetch.tooltip": "Fetch from origin",
   "shell.fetch.fetching": "Fetching…",
   "shell.discard.button": "↩ Discard",

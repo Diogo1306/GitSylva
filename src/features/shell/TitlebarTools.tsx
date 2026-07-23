@@ -1,46 +1,43 @@
 import { toast } from "../../state/toastStore";
 import { Tooltip } from "../../components/ui/Tooltip";
+import { Badge } from "../../components/ui/misc";
 import { activateOnKeyDown } from "../../components/ui/keys";
 import { useT } from "../../i18n";
 
 function Tool({
   onClick,
   title,
-  stub,
   children,
   bareLabel,
+  input,
   ...rest
 }: {
   onClick?: () => void;
   title: string;
-  stub?: boolean;
   children: React.ReactNode;
-  // Task 14: when wrapped in the custom Tooltip primitive (which already
-  // surfaces the label on hover/focus), skip the native title attribute so
-  // mouse users don't get two overlapping tooltips.
   bareLabel?: boolean;
+  // Search uses the input background to read as a field, per the V2 titlebar.
+  input?: boolean;
 } & React.HTMLAttributes<HTMLButtonElement>) {
-  const t = useT();
   return (
     <button
       type="button"
-      onClick={stub ? undefined : onClick}
-      onKeyDown={(e) => !stub && activateOnKeyDown(e)}
-      disabled={stub}
-      title={stub ? t("shell.soonTooltip", { label: title }) : bareLabel ? undefined : title}
+      onClick={onClick}
+      onKeyDown={activateOnKeyDown}
+      title={bareLabel ? undefined : title}
       aria-label={title}
-      className={stub ? "gs-stub" : "gs-lift gs-press-97"}
+      className="gs-lift gs-press-97"
       style={{
         display: "flex",
         alignItems: "center",
         gap: "var(--sp-2)",
         padding: "var(--sp-2) 11px",
         borderRadius: "var(--r-btn)",
-        background: "var(--btn)",
+        background: input ? "var(--input)" : "var(--btn)",
         border: "1px solid var(--btnB)",
         fontSize: "var(--fs-btn)",
-        color: "var(--btnT)",
-        cursor: stub ? "default" : "pointer",
+        color: input ? "var(--muted)" : "var(--btnT)",
+        cursor: "pointer",
         whiteSpace: "nowrap",
         boxSizing: "border-box",
         fontFamily: "inherit",
@@ -52,128 +49,87 @@ function Tool({
   );
 }
 
+const iconBtn: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: 32,
+  height: 32,
+  borderRadius: "var(--r-btn)",
+  background: "var(--btn)",
+  border: "1px solid var(--btnB)",
+  color: "var(--btnT)",
+  cursor: "pointer",
+  padding: 0,
+  fontFamily: "inherit",
+};
+
+// V2 titlebar tools: sync (pull/push/fetch), search, terminal (stub), settings.
+// `compact` drops the button labels so the row still fits narrow windows.
 export function TitlebarTools({
   fetchPending,
   onFetch,
   fetchHint,
-  unstaged,
-  onDiscardClick,
+  ahead,
+  behind,
+  onPull,
+  onPush,
   paletteHint,
   onOpenPalette,
   onOpenSettings,
+  compact = false,
 }: {
   fetchPending: boolean;
   onFetch: () => void;
   fetchHint: string;
-  unstaged: number;
-  onDiscardClick: () => void;
+  ahead: number;
+  behind: number;
+  onPull: () => void;
+  onPush: () => void;
   paletteHint: string;
   onOpenPalette: () => void;
   onOpenSettings: () => void;
+  compact?: boolean;
 }) {
   const t = useT();
   return (
     <div style={{ display: "flex", gap: "var(--sp-2)", alignItems: "center", flexShrink: 0 }}>
+      <Tooltip content={t("shell.pull.title")}>
+        <Tool onClick={onPull} title={t("shell.pull.title")} bareLabel>
+          ↓{compact ? "" : " Pull"}
+          {behind > 0 && <Badge>{behind}</Badge>}
+        </Tool>
+      </Tooltip>
+      <Tooltip content={t("shell.push.title")}>
+        <Tool onClick={onPush} title={t("shell.push.title")} bareLabel>
+          ↑{compact ? "" : " Push"}
+          {ahead > 0 && <Badge accent>{ahead}</Badge>}
+        </Tool>
+      </Tooltip>
       <Tooltip content={t("shell.fetch.tooltip")} shortcut={fetchHint}>
         <Tool onClick={onFetch} title={t("shell.fetch.tooltip")} bareLabel>
           <span style={{ fontSize: 14, lineHeight: 1, display: "inline-block", animation: fetchPending ? "spin 0.8s linear infinite" : "none" }}>⟳</span>
-          {fetchPending ? t("shell.fetch.fetching") : "Fetch"}
+          {compact ? "" : fetchPending ? t("shell.fetch.fetching") : "Fetch"}
         </Tool>
       </Tooltip>
-      <Tool onClick={onDiscardClick} title={t("shell.discard.tooltip")}>
-        {t("shell.discard.button")}
-        {unstaged > 0 && (
-          <span
-            style={{
-              background: "var(--stMB)",
-              color: "var(--stMT)",
-              borderRadius: "var(--r-pill)",
-              fontSize: "var(--fs-label)",
-              fontWeight: "var(--fw-bold)",
-              padding: "1px 6px",
-            }}
-          >
-            {unstaged}
-          </span>
+      <Tooltip content={t("shell.search.label")} shortcut={paletteHint}>
+        {compact ? (
+          <button type="button" onClick={onOpenPalette} onKeyDown={activateOnKeyDown} aria-label={t("shell.search.aria", { hint: paletteHint })} className="gs-lift gs-press-97" style={{ ...iconBtn, background: "var(--input)", color: "var(--muted)" }}>
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"><circle cx="6" cy="6" r="4.2" /><path d="M9.4 9.4 L12.6 12.6" /></svg>
+          </button>
+        ) : (
+          <Tool onClick={onOpenPalette} title={t("shell.search.aria", { hint: paletteHint })} bareLabel input>
+            {t("shell.search.label")}
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, border: "1px solid var(--btnB)", borderRadius: "var(--r-xs)", padding: "1px 4px" }}>{paletteHint}</span>
+          </Tool>
         )}
-      </Tool>
-      <button
-        type="button"
-        onClick={() => toast(t("shell.terminal.soon"))}
-        onKeyDown={activateOnKeyDown}
-        className="gs-lift gs-press-97"
-        title={t("shell.terminal.open")}
-        aria-label={t("shell.terminal.open")}
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          width: 32,
-          height: 32,
-          borderRadius: "var(--r-btn)",
-          background: "var(--btn)",
-          border: "1px solid var(--btnB)",
-          color: "var(--btnT)",
-          fontFamily: "var(--font-mono)",
-          fontSize: 11,
-          cursor: "pointer",
-          padding: 0,
-        }}
-      >
+      </Tooltip>
+      <button type="button" onClick={() => toast(t("shell.terminal.soon"))} onKeyDown={activateOnKeyDown} className="gs-lift gs-press-97" title={t("shell.terminal.open")} aria-label={t("shell.terminal.open")} style={{ ...iconBtn, fontFamily: "var(--font-mono)", fontSize: 11 }}>
         &gt;_
       </button>
-      <Tooltip content={t("shell.search.label")} shortcut={paletteHint}>
-        <button
-          type="button"
-          onClick={onOpenPalette}
-          onKeyDown={activateOnKeyDown}
-          className="gs-lift gs-press-97"
-          aria-label={t("shell.search.aria", { hint: paletteHint })}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "var(--sp-2)",
-            padding: "var(--sp-2) 11px",
-            borderRadius: "var(--r-btn)",
-            background: "var(--input)",
-            border: "1px solid var(--btnB)",
-            fontSize: "var(--fs-btn)",
-            color: "var(--muted)",
-            whiteSpace: "nowrap",
-            cursor: "pointer",
-            fontFamily: "inherit",
-          }}
-        >
-          {t("shell.search.label")}
-          <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, border: "1px solid var(--btnB)", borderRadius: "var(--r-xs)", padding: "1px 4px" }}>
-            {paletteHint}
-          </span>
-        </button>
-      </Tooltip>
-      {/* Only Definições entry point left after the Sidebar dedup; 32px hit area. */}
       <Tooltip content={t("shell.nav.settings")}>
-        <button
-          type="button"
-          onClick={onOpenSettings}
-          onKeyDown={activateOnKeyDown}
-          aria-label={t("shell.nav.settings")}
-          className="gs-lift gs-press-97"
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            width: 32,
-            height: 32,
-            borderRadius: "var(--r-btn)",
-            background: "var(--btn)",
-            border: "1px solid var(--btnB)",
-            color: "var(--btnT)",
-            cursor: "pointer",
-            padding: 0,
-            fontFamily: "inherit",
-          }}
-        >
-          <span style={{ width: 11, height: 11, borderRadius: "50%", border: "2.5px dotted currentColor", boxSizing: "border-box" }} />
+        <button type="button" onClick={onOpenSettings} onKeyDown={activateOnKeyDown} aria-label={t("shell.nav.settings")} className="gs-lift gs-press-97" style={iconBtn}>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg>
         </button>
       </Tooltip>
     </div>

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, fireEvent, cleanup } from "@testing-library/react";
+import { render, screen, fireEvent, cleanup, within } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Titlebar } from "../features/shell/Titlebar";
 import { Sidebar } from "../features/shell/Sidebar";
@@ -8,10 +8,17 @@ import { useShortcutsStore } from "../state/shortcutsStore";
 import { listBranches } from "../lib/api";
 import type { RepoInfo, BranchInfo } from "../lib/types";
 
-// Flow 6 (Task 18): with two open repos, switching the active one via the tab
-// strip must update appStore.repo AND the other mounted views must re-fetch
+// Flow 6 (Task 18): with two open repos, switching the active one via the repo
+// dropdown must update appStore.repo AND the other mounted views must re-fetch
 // and show the NEW repo's own data — the regression this guards against is a
 // query staying keyed on the old path (stale data bleeding across repos).
+
+// Switch the active repo through the titlebar dropdown: open the pill, pick a row.
+function switchTo(name: string) {
+  const pill = screen.getAllByRole("button").find((b) => b.getAttribute("aria-haspopup") === "menu")!;
+  fireEvent.click(pill);
+  fireEvent.click(within(screen.getByRole("menu")).getByText(name));
+}
 
 const repoA: RepoInfo = { path: "/repo-a", current_branch: "main", head: "aaa", is_empty: false };
 const repoB: RepoInfo = { path: "/repo-b", current_branch: "develop", head: "bbb", is_empty: false };
@@ -57,7 +64,7 @@ afterEach(() => {
   useShortcutsStore.getState().reset();
 });
 
-describe("Repo switch: the tab strip updates the active repo and dependent views refetch its data", () => {
+describe("Repo switch: the repo dropdown updates the active repo and dependent views refetch its data", () => {
   it("shows repo A's own branches initially, not repo B's", async () => {
     renderShell();
     expect(await screen.findByRole("button", { name: "main" })).toBeTruthy();
@@ -66,11 +73,11 @@ describe("Repo switch: the tab strip updates the active repo and dependent views
     expect(screen.queryByRole("button", { name: "feature-b-only" })).toBeNull();
   });
 
-  it("switching tabs to repo B updates appStore.repo and the sidebar now shows repo B's branches, not repo A's", async () => {
+  it("switching to repo B updates appStore.repo and the sidebar now shows repo B's branches, not repo A's", async () => {
     renderShell();
     await screen.findByRole("button", { name: "main" });
 
-    fireEvent.click(screen.getByRole("tab", { name: /repo-b/ }));
+    switchTo("repo-b");
 
     expect(useAppStore.getState().repo?.path).toBe("/repo-b");
     expect(await screen.findByRole("button", { name: "develop" })).toBeTruthy();
@@ -83,10 +90,10 @@ describe("Repo switch: the tab strip updates the active repo and dependent views
   it("switching back to repo A restores its branches (round trip, not a one-way fluke)", async () => {
     renderShell();
     await screen.findByRole("button", { name: "main" });
-    fireEvent.click(screen.getByRole("tab", { name: /repo-b/ }));
+    switchTo("repo-b");
     await screen.findByRole("button", { name: "develop" });
 
-    fireEvent.click(screen.getByRole("tab", { name: /repo-a/ }));
+    switchTo("repo-a");
 
     expect(useAppStore.getState().repo?.path).toBe("/repo-a");
     expect(await screen.findByRole("button", { name: "main" })).toBeTruthy();

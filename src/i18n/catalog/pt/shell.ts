@@ -1,7 +1,7 @@
 import type { MessageValue } from "../../types";
 
-// App shell chrome: Titlebar, Sidebar, ActionBar, RepoRail, CommandPalette,
-// Modals, GroupEditModal, AppShell. Namespace: "shell.*".
+// App shell chrome: Titlebar, Sidebar, RepoRail, CommandPalette, Modals,
+// GroupEditModal, AppShell. Namespace: "shell.*".
 export const ptShell = {
   // ── generic / shared shell vocabulary ──────────────────────────────────────
   "shell.soonTooltip": "{label} · em breve",
@@ -51,11 +51,6 @@ export const ptShell = {
   "shell.error.mergeConflict": "conflito ou erro no merge",
   "shell.error.mergeConflictWC": "conflito no merge — vê a Cópia de trabalho",
   "shell.error.rebaseConflictWC": "conflito no rebase — vê a Cópia de trabalho",
-
-  // ── ActionBar ──────────────────────────────────────────────────────────────
-  "shell.actionBar.aria": "Ações",
-  "shell.actionBar.commitsToPush": "commits por enviar",
-  "shell.actionBar.commitsToPull": "commits por integrar",
 
   // ── AppShell ───────────────────────────────────────────────────────────────
   "shell.fetch.doneTitle": "Fetch concluído",
@@ -250,6 +245,11 @@ export const ptShell = {
   "shell.tab.rightClickGroups": "{path} · botão direito para grupos",
   "shell.tab.close": "Fechar {name}",
   "shell.tabs.aria": "Repositórios abertos",
+  "shell.repoSel.tooltip": "Repositório atual — clicar para trocar (abertos · recentes)",
+  "shell.repoSel.open": "ABERTOS",
+  "shell.repoSel.recents": "RECENTES",
+  "shell.repoSel.optionsAria": "Opções do repositório",
+  "shell.repoSel.addRepo": "Adicionar repositório (Local · Clonar · Criar)",
   "shell.fetch.tooltip": "Fetch de origin",
   "shell.fetch.fetching": "A obter…",
   "shell.discard.button": "↩ Descartar",
