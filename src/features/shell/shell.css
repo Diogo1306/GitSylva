@@ -45,12 +45,14 @@
   }
 }
 
-/* Windows window controls: subtle hover; close turns red per the spec. */
+/* Windows window controls: subtle hover; close turns red per the spec.
+   !important so the hover fill beats the button's inline transparent bg
+   (otherwise the close only whitened its glyph = invisible on a light titlebar). */
 .gs-winbtn:hover {
-  background: var(--hover);
+  background: var(--hover) !important;
 }
 .gs-winclose:hover {
-  background: #e81123;
+  background: #e81123 !important;
   color: #fff !important;
 }
 
