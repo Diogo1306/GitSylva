@@ -38,6 +38,35 @@ const TREES: Record<ThemeKey, [string, string, string]> = {
 // between the letters — the stage files share the 84×112 growth canvas.
 const cropToS = (svg: string) => svg.replace('viewBox="0 0 84 112"', 'viewBox="11 44 47 65"');
 
+// Draw the S by hand via the Web Animations API — the SVG's own CSS stroke-draw
+// gets clobbered in this build, so we script it: each stroke fills in (dashoffset
+// 1→0), then the nodes/leaves pop in. Guaranteed, independent of the CSS cascade.
+function drawSvg(container: HTMLElement | null) {
+  if (!container) return;
+  const strokes = container.querySelectorAll<SVGGeometryElement>("path[stroke]");
+  let last = 80;
+  strokes.forEach((p, i) => {
+    try {
+      p.style.strokeDasharray = "1";
+      p.style.strokeDashoffset = "1";
+      const delay = 80 + i * 130;
+      last = delay + 620;
+      p.animate([{ strokeDashoffset: 1 }, { strokeDashoffset: 0 }], { duration: 620, delay, easing: "cubic-bezier(0.2,0.9,0.3,1)", fill: "both" });
+    } catch { /* WAAPI unsupported: leave the stroke drawn */ }
+  });
+  container.querySelectorAll<SVGElement>("circle, ellipse").forEach((c, i) => {
+    try {
+      c.style.transformBox = "fill-box";
+      c.style.transformOrigin = "center";
+      c.animate([{ transform: "scale(0)", opacity: 0 }, { transform: "scale(1)", opacity: 1 }], { duration: 260, delay: last + i * 70, easing: "cubic-bezier(0.34,1.56,0.64,1)", fill: "both" });
+    } catch { /* leave the node visible */ }
+  });
+}
+
+// Stable ref: fires once when a tree SVG mounts (the splash S, and each stage —
+// which remounts by key), running the hand-drawn stroke animation.
+const drawRef = (el: HTMLElement | null) => { if (el) drawSvg(el); };
+
 // Always-on window bar (R5.18): a frameless window must be movable and
 // closable in EVERY onboarding phase, splash included — full-width drag strip
 // with the real minimize / maximize / close controls.
@@ -103,8 +132,9 @@ function Splash({ theme }: { theme: ThemeKey }) {
         {letter("g", "L", 0.88, 1.62)}
         {letter("i", "L", 0.78, 1.56)}
         {letter("t", "L", 0.68, 1.5, "r")}
-        {/* The kit's clean S (stage 0), self-drawing, themed — design v6. */}
+        {/* The kit's clean S (stage 0), hand-drawn via drawRef (WAAPI). */}
         <span
+          ref={drawRef}
           className="gs-treeanim"
           dangerouslySetInnerHTML={{ __html: cropToS(TREES[theme]?.[0] ?? s0Escuro) }}
           style={{ display: "inline-block", width: 46, height: 64, margin: "0 1px", alignSelf: "center", transform: "translateY(6px)", ["--gs-bg" as never]: "var(--win)" }}
@@ -185,6 +215,7 @@ export function Onboarding() {
           >
             <div
               key={`s-${ts.theme}-${stage}`}
+              ref={drawRef}
               className="gs-treeanim"
               dangerouslySetInnerHTML={{ __html: TREES[ts.theme]?.[stage] ?? s0Escuro }}
               style={{ width: "100%", height: "100%", transformOrigin: "bottom center", animation: "gsGrowIn 0.7s cubic-bezier(0.2,0.9,0.3,1) both", ["--gs-bg" as never]: "var(--win)" }}
