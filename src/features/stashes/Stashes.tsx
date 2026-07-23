@@ -7,9 +7,10 @@ import { Card } from "../../components/ui/Card";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { Button } from "../../components/ui/Button";
 import { errMsg } from "../../lib/errors";
-import { comboHint } from "../../lib/platform";
-import { useShortcutsStore } from "../../state/shortcutsStore";
 import { useT } from "../../i18n";
+
+// V2: action buttons on this screen (header CTA, apply/pop/discard) are 36px tall.
+const H36 = { height: 36 } as const;
 
 // The design's card meta line: "{n} arquivos · a, b, …".
 function StashMeta({ path, index }: { path: string; index: number }) {
@@ -40,7 +41,7 @@ export function Stashes() {
     <div style={{ flex: 1, padding: "var(--sp-10)", display: "flex", flexDirection: "column", gap: "var(--sp-6)", overflowY: "auto", animation: "fadeUp 0.3s ease both" }}>
       <div style={{ display: "flex", alignItems: "center", gap: "var(--sp-5)", maxWidth: 620 }}>
         <div style={{ fontSize: "var(--fs-lg)", fontWeight: "var(--fw-semibold)", color: "var(--text)", flex: 1 }}>{t("shell.nav.stashes")}</div>
-        <Button variant="primary" onClick={() => setModal("stash")}>{t("stashes.saveStash")}</Button>
+        <Button variant="primary" style={H36} onClick={() => setModal("stash")}>{t("stashes.createStash")}</Button>
       </div>
 
       {isLoading ? (
@@ -49,7 +50,7 @@ export function Stashes() {
         <div style={{ color: "var(--ddT)", fontSize: "var(--fs-sm)" }}>{errMsg(error, t("stashes.readError"))}</div>
       ) : stashes.length === 0 ? (
         <div style={{ maxWidth: 620 }}>
-          <EmptyState>{t("stashes.empty", { combo: comboHint(useShortcutsStore.getState().bindings.stash) })}</EmptyState>
+          <EmptyState actionLabel={t("stashes.emptyAction")} onAction={() => setModal("stash")}>{t("stashes.empty")}</EmptyState>
         </div>
       ) : (
         stashes.map((s) => (
@@ -64,6 +65,7 @@ export function Stashes() {
             <div style={{ display: "flex", gap: "var(--sp-3)", marginTop: "var(--sp-1)" }}>
               <Button
                 variant="primary"
+                style={H36}
                 disabled={busy}
                 onClick={() =>
                   apply.mutate(s.index, {
@@ -76,6 +78,7 @@ export function Stashes() {
               </Button>
               <Button
                 variant="secondary"
+                style={H36}
                 disabled={busy}
                 title={t("stashes.popTitle")}
                 onClick={() =>
@@ -87,7 +90,7 @@ export function Stashes() {
               >
                 {pop.isPending ? t("stashes.applying") : t("stashes.applyRemove")}
               </Button>
-              <Button variant="secondary" onClick={() => setConfirmDrop(s.index)}>
+              <Button variant="secondary" style={H36} onClick={() => setConfirmDrop(s.index)}>
                 {t("stashes.discard")}
               </Button>
             </div>

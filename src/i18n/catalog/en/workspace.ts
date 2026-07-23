@@ -195,9 +195,10 @@ export const enWorkspace: Record<WorkspaceKey, MessageValue> = {
   // Stashes
   // ═══════════════════════════════════════════════════════════════════════════
   "stashes.filesCount": { one: "{count} file", other: "{count} files" },
-  "stashes.saveStash": "Save stash",
+  "stashes.createStash": "Create stash",
   "stashes.readError": "could not read the stashes",
-  "stashes.empty": 'No stashes. Use "Save stash" above (or {combo}) to stash work in progress.',
+  "stashes.empty": "No stashes yet.",
+  "stashes.emptyAction": "Save changes to a stash",
   "stashes.applied": "Stash applied",
   "stashes.applyError": "could not apply",
   "stashes.applying": "Applying…",

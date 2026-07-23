@@ -196,9 +196,10 @@ export const ptWorkspace = {
   // Stashes
   // ═══════════════════════════════════════════════════════════════════════════
   "stashes.filesCount": { one: "{count} ficheiro", other: "{count} ficheiros" },
-  "stashes.saveStash": "Guardar stash",
+  "stashes.createStash": "Criar stash",
   "stashes.readError": "não foi possível ler os stashes",
-  "stashes.empty": 'Sem stashes. Use "Guardar stash" acima (ou {combo}) para guardar alterações em curso.',
+  "stashes.empty": "Ainda não existem stashes.",
+  "stashes.emptyAction": "Guardar alterações num stash",
   "stashes.applied": "Stash aplicado",
   "stashes.applyError": "não foi possível aplicar",
   "stashes.applying": "A aplicar…",
