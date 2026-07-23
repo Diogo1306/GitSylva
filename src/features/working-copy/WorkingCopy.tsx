@@ -25,6 +25,7 @@ export type Sel = { path: string; staged: boolean } | null;
 export function WorkingCopy() {
   const t = useT();
   const repo = useAppStore((s) => s.repo)!;
+  const setModal = useAppStore((s) => s.setModal);
   const { data, isLoading, error } = useStatus(repo.path);
   const actions = useStageActions(repo.path);
   const hunk = useHunkActions(repo.path);
@@ -281,6 +282,7 @@ export function WorkingCopy() {
             if (useThemeStore.getState().confirmDiscard) setConfirmDiscardAll(true);
             else discardAll();
           }}
+          onStash={() => setModal("stash")}
           onToggle={stageEntry}
           onSelect={select}
           onContext={(x, y, file) => setFileMenu({ x, y, file })}
