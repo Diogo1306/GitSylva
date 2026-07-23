@@ -6,7 +6,7 @@ import type { MessageValue } from "../../types";
 export const ptSettings = {
   // ── nav + screen chrome (Settings.tsx) ─────────────────────────────────────
   "settings.nav.appearance": "Aparência",
-  "settings.nav.accounts": "Contas",
+  "settings.nav.accounts": "Contas & Acesso",
   "settings.nav.git": "Git",
   "settings.nav.gitEditor": "Git · Editor",
   "settings.nav.commits": "Commits",
@@ -25,8 +25,6 @@ export const ptSettings = {
   "settings.replayOnboarding": "Rever ecrã de boas-vindas",
 
   // stub sections
-  "settings.accounts.title": "CONTAS & ACESSO",
-  "settings.accounts.body": "Ligar GitHub / GitLab / Bitbucket (OAuth) e gerir contas locais chega quando o backend suportar autenticação.",
   "settings.gitEditor.title": "GIT · EDITOR & OPÇÕES",
   "settings.gitEditor.body": "Editor externo e outras opções de git por repositório chegam numa próxima fase.",
   "settings.ssh.title": "CHAVES SSH",
@@ -70,6 +68,14 @@ export const ptSettings = {
   "settings.appearance.exported": "Tema exportado",
   "settings.appearance.imported": "Tema importado",
   "settings.appearance.invalidFile": "Ficheiro de tema inválido",
+
+  // ── Accounts section ───────────────────────────────────────────────────────
+  "settings.accounts.title": "CONTAS & ACESSO",
+  "settings.accounts.hint": "Ligar contas GitHub, GitLab ou Bitbucket chega numa fase futura — a autenticação ainda não está implementada.",
+  "settings.accounts.notConnected": "Não ligado",
+  "settings.accounts.connect": "Ligar…",
+  "settings.accounts.connectAria": "Ligar conta {provider}",
+  "settings.accounts.connectSoon": "Ligar contas chega numa fase futura",
 
   // ── About section ──────────────────────────────────────────────────────────
   "settings.about.title": "SOBRE",
