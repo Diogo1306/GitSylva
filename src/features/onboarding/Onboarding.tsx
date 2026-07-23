@@ -176,15 +176,20 @@ export function Onboarding() {
         {/* Left: the kit's growing tree, stage by stage (design v6): only the
             S at login, the trunk extends at setup, full crown when planted. */}
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, flexShrink: 0, minWidth: 310 }}>
+          {/* Outer PERSISTS across stages (key = theme) so its height/width
+              transition animates the GROWTH; inner REMOUNTS per stage (key
+              includes stage) so each stage's strokes self-draw again. Both. */}
           <div
-            // Keyed by theme only (NOT stage): the element must PERSIST across
-            // stages so the height/width transition animates the growth instead
-            // of the row remounting and snapping to the new size.
             key={`tree-${ts.theme}`}
-            className="gs-treeanim"
-            dangerouslySetInnerHTML={{ __html: TREES[ts.theme]?.[stage] ?? s0Escuro }}
-            style={{ height: TREE_H[stage], width: Math.round((TREE_H[stage] * 84) / 112), transition: "height 0.9s cubic-bezier(0.2,0.9,0.3,1), width 0.9s cubic-bezier(0.2,0.9,0.3,1)", ["--gs-bg" as never]: "var(--win)" }}
-          />
+            style={{ height: TREE_H[stage], width: Math.round((TREE_H[stage] * 84) / 112), transition: "height 0.9s cubic-bezier(0.2,0.9,0.3,1), width 0.9s cubic-bezier(0.2,0.9,0.3,1)" }}
+          >
+            <div
+              key={`s-${ts.theme}-${stage}`}
+              className="gs-treeanim"
+              dangerouslySetInnerHTML={{ __html: TREES[ts.theme]?.[stage] ?? s0Escuro }}
+              style={{ width: "100%", height: "100%", ["--gs-bg" as never]: "var(--win)" }}
+            />
+          </div>
           <div style={{ marginTop: 4 }}>
             <Wordmark size={20} />
           </div>
