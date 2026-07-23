@@ -1,12 +1,18 @@
 <p align="center">
-  <img src="docs/design/logos/gitsylva-logo-s.png" height="140" alt="GitSylva" />
+  <img src="docs/gitsylva-s.svg" height="140" alt="GitSylva" />
 </p>
 
-# GitSylva
+<h1 align="center">GitSylva</h1>
 
-**A git client where your history grows like a tree.**
+<p align="center"><strong>A git client where your history grows like a tree.</strong></p>
 
-GitSylva is a fast, animated desktop git client for Windows. The commit graph is drawn as a living tree with oak leaves, cherry blossoms, palm trees, or plain classic nodes if that's your thing, on top of a full-featured, keyboard-friendly git workflow.
+<p align="center">
+  <a href="https://github.com/Diogo1306/GitSylva/releases/latest">Download</a> ·
+  <a href="#features">Features</a> ·
+  <a href="site/index.html">Website</a>
+</p>
+
+GitSylva is a fast, animated desktop git client for Windows. The commit graph is drawn as a living tree — with oak leaves, cherry blossoms, palm trees, or plain classic nodes if that's your thing — on top of a full-featured, keyboard-friendly git workflow.
 
 ![GitSylva](docs/screenshot.png)
 
@@ -23,11 +29,15 @@ Grab the installer from the [latest release](https://github.com/Diogo1306/GitSyl
 - **Working copy**: stage and unstage per file or per hunk, unified or side-by-side diffs, blame view, per-file-type icons, huge diffs paginated and capped so nothing ever freezes.
 - **Branches, stashes, tags**: slashed branch names (`feature/x`) group into collapsible folders, stashes preview their files, merge/rebase/cherry-pick with a persistent conflict banner.
 - **Multi-repository**: tabs across the top or a VS Code-style rail, with color-coded, renamable repo groups.
-- **Themes**: dark, light, nipon and git-classic; tree styles, branch palettes, accent colors and fonts, all exportable to a JSON file.
+- **Themes**: four full themes — Classic (light), Batman (graphite dark), Git Classic (vivid) and Nipon (sakura). Tree styles, branch palettes, accent colors and fonts, all exportable to a JSON file.
 - **Command palette**: `Ctrl+K` searches commits, branches, files, repositories and git actions in one place. Every shortcut is rebindable.
 - **Stability first**: all git operations run off the UI thread with per-repo write locking, crash/panic capture to a local log, and release-build telemetry (`window.__gsPerf()`).
 
-The UI is currently in Portuguese; full English localization is on the roadmap.
+Available in **English and Portuguese**, auto-detected from your OS locale and switchable in Settings.
+
+## Website
+
+A self-contained landing page lives in [`site/`](site/) (open `site/index.html`, or `npx serve site`). See [`site/README.md`](site/README.md) for deployment notes.
 
 ## Development
 
