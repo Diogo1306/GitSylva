@@ -97,7 +97,12 @@ export function Titlebar() {
         compact={bp.width < 1100}
       />
 
-      {!isMac && <WinControls />}
+      {/* Flush to the top-right corner (cancel the titlebar's right padding), full height. */}
+      {!isMac && (
+        <div style={{ alignSelf: "stretch", display: "flex", marginRight: "calc(-1 * var(--sp-4))" }}>
+          <WinControls />
+        </div>
+      )}
 
       {pendingClose && (
         <ConfirmDialog
