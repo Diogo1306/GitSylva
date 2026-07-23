@@ -302,10 +302,12 @@ button:focus-visible {
   animation-duration: 0.001ms !important;
   animation-iteration-count: 1 !important;
 }
+/* OS reduced-motion is respected UNLESS the user explicitly turned animations
+   ON in the app (data-anims="on") — the in-app toggle is the deliberate choice. */
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
+  :root:not([data-anims="on"]) *,
+  :root:not([data-anims="on"]) *::before,
+  :root:not([data-anims="on"]) *::after {
     animation-duration: 0.001ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;

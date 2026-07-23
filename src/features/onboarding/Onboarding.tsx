@@ -107,7 +107,7 @@ function Splash({ theme }: { theme: ThemeKey }) {
         <span
           className="gs-treeanim"
           dangerouslySetInnerHTML={{ __html: cropToS(TREES[theme]?.[0] ?? s0Escuro) }}
-          style={{ display: "inline-block", width: 68, height: 94, margin: "0 4px", alignSelf: "center", transform: "translateY(5px)", ["--gs-bg" as never]: "var(--win)" }}
+          style={{ display: "inline-block", width: 46, height: 64, margin: "0 1px", alignSelf: "center", transform: "translateY(6px)", ["--gs-bg" as never]: "var(--win)" }}
         />
         {letter("y", "R", 0.68, 1.5, "l")}
         {letter("l", "R", 0.78, 1.56)}
