@@ -30,6 +30,11 @@ pub async fn push_cmd(path: String) -> Result<(), GitError> {
     crate::git::run_mutating("push", path.clone(), move || push(path)).await
 }
 
+#[tauri::command(rename = "push_branches")]
+pub async fn push_branches_cmd(path: String, branches: Vec<String>) -> Result<(), GitError> {
+    crate::git::run_mutating("push_branches", path.clone(), move || push_branches(path, branches)).await
+}
+
 #[tauri::command(rename = "outgoing")]
 pub async fn outgoing_cmd(path: String) -> Result<Vec<Commit>, GitError> {
     crate::git::run_blocking("outgoing", move || outgoing(path)).await
@@ -87,6 +92,21 @@ pub fn push(path: String) -> Result<(), GitError> {
     } else {
         run_git(&path, &["push", "-u", "origin", "HEAD"]).map(|_| ())
     }
+}
+
+/// Pushes each selected local branch to origin, in order, stopping at the
+/// first failure. Sets the upstream per-branch when it has none yet — mirrors
+/// `push`'s upstream handling but keyed on the pushed branch, not HEAD.
+pub fn push_branches(path: String, branches: Vec<String>) -> Result<(), GitError> {
+    for branch in &branches {
+        let has_upstream = run_git(&path, &["rev-parse", "--abbrev-ref", &format!("{branch}@{{u}}")]).is_ok();
+        if has_upstream {
+            run_git(&path, &["push", "origin", branch]).map(|_| ())?;
+        } else {
+            run_git(&path, &["push", "-u", "origin", branch]).map(|_| ())?;
+        }
+    }
+    Ok(())
 }
 
 /// How far the current branch is ahead/behind its upstream. No upstream -> zeros.
@@ -180,6 +200,49 @@ mod tests {
         assert_eq!(outgoing(down_s.clone()).unwrap().len(), 1);
         push(down_s.clone()).unwrap();
         assert_eq!(run_git(&bare_s, &["rev-list", "--count", "main"]).unwrap().trim(), "3");
+    }
+
+    #[test]
+    fn push_branches_sends_each_branch_and_sets_upstream() {
+        let base = std::env::temp_dir().join(format!("gitsylva-push-branches-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&base);
+        fs::create_dir_all(&base).unwrap();
+
+        let bare = base.join("remote.git");
+        fs::create_dir_all(&bare).unwrap();
+        let bare_s = slug(&bare);
+        run_git(&bare_s, &["init", "--bare", "-b", "main"]).unwrap();
+
+        let repo = base.join("repo");
+        fs::create_dir_all(&repo).unwrap();
+        let repo_s = repo.to_string_lossy().to_string();
+        run_git(&repo_s, &["init", "-b", "main"]).unwrap();
+        run_git(&repo_s, &["config", "user.email", "t@t.com"]).unwrap();
+        run_git(&repo_s, &["config", "user.name", "T"]).unwrap();
+        fs::write(repo.join("a.txt"), "one\n").unwrap();
+        run_git(&repo_s, &["add", "-A"]).unwrap();
+        run_git(&repo_s, &["commit", "-m", "one"]).unwrap();
+        run_git(&repo_s, &["remote", "add", "origin", &bare_s]).unwrap();
+
+        // A second local branch, never pushed, so it has no upstream yet.
+        run_git(&repo_s, &["checkout", "-b", "feature"]).unwrap();
+        fs::write(repo.join("b.txt"), "two\n").unwrap();
+        run_git(&repo_s, &["add", "-A"]).unwrap();
+        run_git(&repo_s, &["commit", "-m", "two"]).unwrap();
+        run_git(&repo_s, &["checkout", "main"]).unwrap();
+
+        push_branches(repo_s.clone(), vec!["main".into(), "feature".into()]).unwrap();
+
+        // Both branches landed on the bare remote.
+        let refs = run_git(&bare_s, &["branch"]).unwrap();
+        assert!(refs.contains("main"));
+        assert!(refs.contains("feature"));
+
+        // Upstream got set for both, since neither had one before the push.
+        let up_main = run_git(&repo_s, &["rev-parse", "--abbrev-ref", "main@{u}"]).unwrap();
+        assert_eq!(up_main.trim(), "origin/main");
+        let up_feature = run_git(&repo_s, &["rev-parse", "--abbrev-ref", "feature@{u}"]).unwrap();
+        assert_eq!(up_feature.trim(), "origin/feature");
     }
 
     #[test]

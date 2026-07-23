@@ -182,6 +182,10 @@ export function push(path: string): Promise<void> {
   return invoke("push", { path });
 }
 
+export function pushBranches(path: string, branches: string[]): Promise<void> {
+  return invoke("push_branches", { path, branches });
+}
+
 export function outgoing(path: string): Promise<Commit[]> {
   return invoke<Commit[]>("outgoing", { path });
 }

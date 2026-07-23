@@ -199,6 +199,7 @@ export const enShell: Record<ShellKey, MessageValue> = {
   },
   "shell.push.nothingToSend": "Nothing to send — {branch} is up to date with {upstream}.",
   "shell.push.nothingEmpty": "Nothing to send.",
+  "shell.push.branchesHeading": "Branches to push",
   "shell.push.doneTitle": "Push complete",
   "shell.push.doneSub": { one: "origin · {count} commit · {branch}", other: "origin · {count} commits · {branch}" },
   "shell.push.pushing": "Pushing…",

@@ -200,6 +200,7 @@ export const ptShell = {
   },
   "shell.push.nothingToSend": "Nada para enviar — {branch} está atualizado com {upstream}.",
   "shell.push.nothingEmpty": "Nada para enviar.",
+  "shell.push.branchesHeading": "Branches a enviar",
   "shell.push.doneTitle": "Push concluído",
   "shell.push.doneSub": { one: "origin · {count} commit · {branch}", other: "origin · {count} commits · {branch}" },
   "shell.push.pushing": "A enviar…",

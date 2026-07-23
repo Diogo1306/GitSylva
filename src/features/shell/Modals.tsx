@@ -345,10 +345,28 @@ function PushModal({ onClose }: { onClose: () => void }) {
   const repo = useAppStore((s) => s.repo)!;
   const sync = useSyncActions(repo.path);
   const { data: status } = useSyncStatus(repo.path);
+  const { data: branchesData } = useBranches(repo.path);
   const out = useOutgoing(repo.path, true);
   const [failure, setFailure] = useState<SyncFailure | null>(null);
+  // Default selection: only the current branch. The user opts in to any others.
+  const [selected, setSelected] = useState<Set<string>>(() => new Set([repo.current_branch]));
   const commits = out.data ?? [];
   const upstream = status?.upstream ?? `origin/${repo.current_branch}`;
+  const localBranches = (branchesData ?? []).filter((b) => !b.is_remote);
+  const toggle = (name: string) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(name)) next.delete(name);
+      else next.add(name);
+      return next;
+    });
+  const selectedAhead = localBranches.filter((b) => selected.has(b.name)).reduce((sum, b) => sum + b.ahead, 0);
+  // Pushing only the current branch (the default): report the outgoing preview
+  // count, already loaded via useOutgoing — more reliable than the branch list.
+  const isCurrentOnly = selected.size === 1 && selected.has(repo.current_branch);
+  const doneCount = isCurrentOnly ? commits.length : selectedAhead;
+  const nothingSelected = selected.size === 0;
+  const blocked = sync.push.isPending || nothingSelected;
 
   return (
     <Modal title={t("shell.push.title")} onClose={onClose} width={520}>
@@ -358,22 +376,72 @@ function PushModal({ onClose }: { onClose: () => void }) {
           : t("shell.push.nothingToSend", { branch: repo.current_branch, upstream })}
       </div>
       <CommitList commits={commits} empty={t("shell.push.nothingEmpty")} />
+      {localBranches.length > 0 && (
+        <div style={{ border: "1px solid var(--border)", borderRadius: 10, background: "var(--panel2)", overflow: "hidden" }}>
+          <div style={{ padding: "7px 12px", borderBottom: "1px solid var(--border)", fontSize: 10.5, fontWeight: 700, letterSpacing: 1, color: "var(--muted)" }}>
+            {t("shell.push.branchesHeading")}
+          </div>
+          <div style={{ maxHeight: 170, overflowY: "auto", padding: "4px 0" }}>
+            {localBranches.map((b) => (
+              <div
+                key={b.name}
+                onClick={() => toggle(b.name)}
+                style={{ display: "flex", alignItems: "center", gap: 10, padding: "0 12px", height: 36, cursor: "pointer", boxSizing: "border-box" }}
+              >
+                <CheckSquare on={selected.has(b.name)} />
+                <span
+                  style={{
+                    flex: 1,
+                    minWidth: 0,
+                    fontFamily: mono,
+                    fontSize: 12,
+                    color: "var(--text)",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {b.name}
+                </span>
+                {b.ahead > 0 && (
+                  <span
+                    style={{
+                      background: "var(--accent)",
+                      color: "var(--accentT)",
+                      borderRadius: 999,
+                      fontSize: 9.5,
+                      fontWeight: 700,
+                      padding: "1px 6px",
+                      flexShrink: 0,
+                    }}
+                  >
+                    ↑{b.ahead}
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       {failure && <SyncFailurePanel failure={failure} />}
       <div style={{ display: "flex", justifyContent: "flex-end", gap: "var(--sp-3)" }}>
         <CloseButton onClose={onClose} />
         <Button
           variant="primary"
           onClick={() =>
-            !sync.push.isPending &&
-            sync.push.mutate(undefined, {
-              onSuccess: () => { notify(t("shell.push.doneTitle"), t("shell.push.doneSub", { count: commits.length, branch: repo.current_branch }), "success", "push"); onClose(); },
+            !blocked &&
+            sync.push.mutate(Array.from(selected), {
+              onSuccess: () => {
+                notify(t("shell.push.doneTitle"), t("shell.push.doneSub", { count: doneCount, branch: repo.current_branch }), "success", "push");
+                onClose();
+              },
               onError: (e: unknown) => {
                 const msg = errMsg(e, t("shell.error.push"));
                 setFailure({ kind: classifySyncError(msg), message: msg });
               },
             })
           }
-          style={sync.push.isPending ? { opacity: 0.7, cursor: "default" } : undefined}
+          style={blocked ? { opacity: sync.push.isPending ? 0.7 : 0.5, cursor: "default" } : undefined}
         >
           {sync.push.isPending ? t("shell.push.pushing") : t("shell.push.doPush")}
         </Button>
