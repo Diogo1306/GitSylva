@@ -118,6 +118,8 @@ export const ptShell = {
   "shell.branch.behindTitle": { one: "{count} commit por integrar (pull)", other: "{count} commits por integrar (pull)" },
   "shell.branch.deleteAria": "Apagar {name}",
   "shell.branch.noMatches": "Sem branches correspondentes",
+  "shell.branch.checkout": "Checkout",
+  "shell.branch.searchToggle": "Filtrar branches",
   "shell.branch.checkoutLocal": "Checkout local de {name}…",
   "shell.branch.mergeInto": "Merge de {name} na branch atual…",
   "shell.branch.rebaseOnto": "Rebase da atual sobre {name}…",
@@ -213,11 +215,10 @@ export const ptShell = {
   // ── Sidebar ────────────────────────────────────────────────────────────────
   "shell.sidebar.workspace": "ESPAÇO DE TRABALHO",
   "shell.sidebar.recents": "RECENTES",
-  "shell.sidebar.branches": "BRANCHES",
+  "shell.sidebar.branches": "BRANCHES · {count}",
   "shell.sidebar.remotes": "REMOTOS",
   "shell.sidebar.tags": "TAGS",
-  "shell.sidebar.expand": "Expandir barra lateral",
-  "shell.sidebar.collapse": "Colapsar barra lateral",
+  "shell.sidebar.account": "Conta & sync",
 
   // ── Folders (sidebar branch/remote folders) ────────────────────────────────
   "shell.folder.toggleTitle": "{action} {name}",

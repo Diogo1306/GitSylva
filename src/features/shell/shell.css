@@ -17,6 +17,21 @@
   background: var(--hover);
 }
 
+/* Branch row hover "Checkout" chip (V2): mouse-hover-only affordance, hidden
+   otherwise so the row stays uncluttered until the pointer lands on it. */
+.gs-branch-checkout-hint {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s ease, background 0.12s ease;
+}
+.gs-branch-row:hover .gs-branch-checkout-hint {
+  opacity: 1;
+  pointer-events: auto;
+}
+.gs-branch-checkout-hint:hover {
+  background: var(--sel);
+}
+
 /* Responsive rules from the handoff (§8): relative times hide under 1180px,
  * tab branch labels hide under 980px. The window IS the viewport in Tauri. */
 @media (max-width: 1180px) {
