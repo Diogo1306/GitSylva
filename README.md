@@ -9,7 +9,7 @@
 <p align="center">
   <a href="https://github.com/Diogo1306/GitSylva/releases/latest">Download</a> ·
   <a href="#features">Features</a> ·
-  <a href="site/index.html">Website</a>
+  <a href="https://diogo1306.github.io/GitSylva/">Website</a>
 </p>
 
 GitSylva is a fast, animated desktop git client for Windows. The commit graph is drawn as a living tree — with oak leaves, cherry blossoms, palm trees, or plain classic nodes if that's your thing — on top of a full-featured, keyboard-friendly git workflow.
@@ -37,7 +37,7 @@ Available in **English and Portuguese**, auto-detected from your OS locale and s
 
 ## Website
 
-A self-contained landing page lives in [`site/`](site/) (open `site/index.html`, or `npx serve site`). See [`site/README.md`](site/README.md) for deployment notes.
+Live at **[diogo1306.github.io/GitSylva](https://diogo1306.github.io/GitSylva/)** — a self-contained landing page whose source lives in [`site/`](site/) (published to GitHub Pages from the `gh-pages` branch). See [`site/README.md`](site/README.md) for deployment notes.
 
 ## Development
 
