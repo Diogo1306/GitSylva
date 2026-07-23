@@ -59,6 +59,7 @@ pub fn run() {
       git::repo::open_repo_cmd,
       git::repo::init_repo_cmd,
       git::repo::clone_repo_cmd,
+      git::repo::scan_local_repos_cmd,
       git::status::get_status_cmd,
       git::stage::stage_file_cmd,
       git::stage::unstage_file_cmd,

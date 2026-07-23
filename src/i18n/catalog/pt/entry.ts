@@ -45,27 +45,21 @@ export const ptEntry = {
   // ── repo picker: chrome + tabs ─────────────────────────────────────────────
   "repo.screenLabel": "Adicionar repositório",
   "repo.tab.local": "Local",
-  "repo.tab.remote": "Remoto",
   "repo.tab.clone": "Clonar",
-  "repo.tab.add": "Adicionar",
   "repo.choose": "Escolher…",
 
-  // ── repo picker: local (recents) ───────────────────────────────────────────
-  "repo.local.title": "Repositórios recentes",
-  "repo.local.searchLabel": "Procurar repositórios recentes",
+  // ── repo picker: local (recents + folders scanned from ~/dev) ──────────────
+  "repo.local.title": "Repositórios locais",
+  "repo.local.searchLabel": "Procurar repositórios locais",
   "repo.local.removeTitle": "Remover dos recentes",
   "repo.local.removeAria": "Remover {name} dos recentes",
-  "repo.local.empty": "Ainda sem repositórios recentes.",
-  "repo.local.noMatch": "Nenhum recente corresponde. Abrir ou clonar um repositório?",
-  "repo.local.openFolder": "Abrir pasta…",
+  "repo.local.empty": "Ainda sem repositórios locais.",
+  "repo.local.noMatch": "Nada encontrado para essa procura.",
+  "repo.local.openPath": "Abrir caminho: {path}",
   "repo.local.cloneEllipsis": "Clonar…",
-  "repo.local.browseFolder": "Procurar pasta…",
-
-  // ── repo picker: add existing ──────────────────────────────────────────────
-  "repo.add.title": "Adicionar repositório existente",
-  "repo.add.pathLabel": "Caminho da pasta (com .git)",
-  "repo.add.pathPlaceholder": "C:/projetos/o-meu-repo",
-  "repo.add.opening": "A abrir…",
+  "repo.local.browseFolder": "Escolher pasta…",
+  "repo.local.badgeOpen": "Já aberto",
+  "repo.local.badgeInit": "Inicializar",
 
   // ── repo picker: create new ────────────────────────────────────────────────
   "repo.create.title": "Criar repositório novo",
@@ -85,11 +79,6 @@ export const ptEntry = {
   "repo.clone.into": "Clona para {path}.",
   "repo.clone.doneTitle": "Clone concluído",
   "repo.clone.cloning": "A clonar…",
-
-  // ── repo picker: remote (soon) ─────────────────────────────────────────────
-  "repo.remote.title": "Repositórios remotos",
-  "repo.remote.body":
-    "Listar repositórios da tua conta (GitHub/GitLab/Bitbucket) chega quando o backend suportar autenticação. Entretanto, usa a aba Clonar com o URL.",
 
   // ── repo: open error (useOpenRepo) ─────────────────────────────────────────
   "repo.openError": "não foi possível abrir o repositório",

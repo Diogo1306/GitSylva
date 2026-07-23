@@ -1,7 +1,7 @@
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { useAppStore } from "../../state/appStore";
 import { useRecentsStore } from "../../state/recentsStore";
-import { pickFolder, initRepo, cloneRepo } from "../../lib/api";
+import { pickFolder, initRepo, cloneRepo, scanLocalRepos } from "../../lib/api";
 import { notify } from "../../state/notificationStore";
 import { initials } from "../../lib/format";
 import { fold } from "../../lib/fold";
@@ -10,12 +10,18 @@ import { FormField } from "../../components/ui/FormField";
 import { SelectableRow } from "../../components/ui/SelectableRow";
 import { activateOnKeyDown } from "../../components/ui/keys";
 import { useT } from "../../i18n";
+import type { LocalRepoEntry } from "../../lib/types";
 
 const mono = "'JetBrains Mono', monospace";
 // Illustrative clone URL shown as the input placeholder. A neutral example
 // (host + user/repo), intentionally the same in every language.
 const CLONE_URL_EXAMPLE = "https://github.com/user/repo.git";
-type Tab = "local" | "remote" | "clone" | "add" | "create";
+type Tab = "local" | "clone" | "create";
+
+// One tile in the Local grid: a recent (has a branch, can be removed) and/or a
+// folder found by scanLocalRepos() under ~/dev (may not be a repo yet).
+type GridEntry = { path: string; name: string; branch?: string; isRepo: boolean; isRecent: boolean };
+type GridState = "open" | "abrir" | "init";
 
 export function RepoPicker() {
   const t = useT();
@@ -23,13 +29,15 @@ export function RepoPicker() {
   const prevView = useAppStore((s) => s.prevView);
   // Standalone at startup (no repo open yet): there is nothing to close into.
   const hasRepo = useAppStore((s) => !!s.repo);
+  const openRepos = useAppStore((s) => s.repos);
+  const switchRepo = useAppStore((s) => s.switchRepo);
   const recents = useRecentsStore((s) => s.recents);
   const removeRecent = useRecentsStore((s) => s.remove);
   const { open, run, busy, error } = useOpenRepo();
 
   const [tab, setTab] = useState<Tab>("local");
   const [q, setQ] = useState("");
-  const [addPath, setAddPath] = useState("");
+  const [scanned, setScanned] = useState<LocalRepoEntry[]>([]);
   const [createParent, setCreateParent] = useState("");
   const [createName, setCreateName] = useState("");
   const [cloneUrl, setCloneUrl] = useState("");
@@ -38,19 +46,36 @@ export function RepoPicker() {
   // Composite fields (text input + adjacent "Escolher…" button) can't go
   // through FormField's single-child cloneElement, so they get an explicit
   // id and a real <label htmlFor> instead.
-  const addPathId = useId();
   const createParentId = useId();
   const cloneParentId = useId();
 
+  // One-level-deep scan of ~/dev for the Local grid (checklist §8). Best
+  // effort: a missing/unreadable base folder must not block the picker, so a
+  // failed scan just leaves the grid at "recents only".
+  useEffect(() => {
+    let cancelled = false;
+    scanLocalRepos()
+      .then((entries) => {
+        if (!cancelled) setScanned(entries);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const close = () => setView(prevView === "picker" ? "history" : prevView);
+  // Entering a repo via the picker (open/switch/init/clone/create) always lands
+  // in its History (checklist §8), regardless of which view the picker was
+  // opened from.
+  const enterRepo = () => setView("history");
   // Default the clone folder name from the URL (…/name.git -> name).
   const cloneName = (cloneUrl.trim().split("/").pop() ?? "").replace(/\.git$/, "");
 
   async function browseAndOpen() {
     const path = await pickFolder();
     if (!path) return;
-    const ok = await open(path);
-    if (ok) close();
+    if (await open(path)) enterRepo();
   }
 
   async function browseInto(setter: (p: string) => void) {
@@ -59,19 +84,41 @@ export function RepoPicker() {
   }
 
   async function openPath(path: string) {
-    const ok = await open(path);
-    if (ok) close();
+    if (await open(path)) enterRepo();
   }
 
-  const filteredRecents = recents.filter((r) =>
-    fold(r.name + " " + r.path).includes(fold(q.trim())),
-  );
+  // Recents ∪ scanned folders, de-duplicated by path (a recent inside ~/dev
+  // wins: it carries the branch the scan doesn't bother reading).
+  const recentPaths = new Set(recents.map((r) => r.path));
+  const combined: GridEntry[] = [
+    ...recents.map((r) => ({ path: r.path, name: r.name, branch: r.branch, isRepo: true, isRecent: true })),
+    ...scanned.filter((e) => !recentPaths.has(e.path)).map((e) => ({ path: e.path, name: e.name, isRepo: e.is_repo, isRecent: false })),
+  ];
+  const filtered = combined.filter((e) => fold(e.name + " " + e.path).includes(fold(q.trim())));
+
+  const openPaths = new Set(openRepos.map((r) => r.path));
+  function stateOf(e: GridEntry): GridState {
+    if (openPaths.has(e.path)) return "open";
+    return e.isRepo ? "abrir" : "init";
+  }
+
+  async function activate(e: GridEntry) {
+    const state = stateOf(e);
+    if (state === "open") {
+      switchRepo(e.path);
+      enterRepo();
+    } else if (state === "abrir") {
+      await openPath(e.path);
+    } else {
+      // One-level-deep scan: the parent is `path` minus the trailing "/name".
+      const parent = e.path.slice(0, e.path.length - e.name.length - 1);
+      if (await run(() => initRepo(parent, e.name))) enterRepo();
+    }
+  }
 
   const tabs: [Tab, string][] = [
     ["local", t("repo.tab.local")],
-    ["remote", t("repo.tab.remote")],
     ["clone", t("repo.tab.clone")],
-    ["add", t("repo.tab.add")],
     ["create", t("common.create")],
   ];
 
@@ -110,6 +157,17 @@ export function RepoPicker() {
     cursor: "pointer",
     border: "none",
     fontFamily: "inherit",
+  };
+  const badgeBase = { fontSize: 10.5, fontWeight: 700, padding: "2px 8px", borderRadius: 999, whiteSpace: "nowrap" as const, flexShrink: 0 };
+  const badgeStyle: Record<GridState, React.CSSProperties> = {
+    open: { ...badgeBase, background: "var(--l0bg)", color: "var(--l0)", border: "1px solid var(--l0bd)" },
+    abrir: { ...badgeBase, background: "var(--btn)", color: "var(--btnT)", border: "1px solid var(--btnB)" },
+    init: { ...badgeBase, background: "var(--stMB)", color: "var(--stMT)" },
+  };
+  const badgeLabel: Record<GridState, string> = {
+    open: t("repo.local.badgeOpen"),
+    abrir: t("common.open"),
+    init: t("repo.local.badgeInit"),
   };
 
   return (
@@ -152,59 +210,76 @@ export function RepoPicker() {
               <FormField label={t("repo.local.searchLabel")} hideLabel>
                 <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("common.searchEllipsis")} style={{ ...inputStyle, fontFamily: "var(--font)" }} />
               </FormField>
-              <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
-                {filteredRecents.map((r) => (
-                  <SelectableRow
-                    key={r.path}
-                    onSelect={() => openPath(r.path)}
-                    disabled={busy}
-                    style={{ gap: 12, padding: "11px 14px", border: "1px solid var(--border)", borderRadius: 11, background: "var(--panel)" }}
-                  >
-                    <div style={{ width: 34, height: 34, borderRadius: 9, background: "var(--l0bg)", color: "var(--l0)", display: "grid", placeItems: "center", fontWeight: 700, fontSize: 12.5, flexShrink: 0 }}>{initials(r.name)}</div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 13.5, fontWeight: 600 }}>{r.name}</div>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 3, minWidth: 0 }}>
-                        <span style={{ fontFamily: mono, fontSize: 10.5, padding: "1px 7px", borderRadius: 999, background: "var(--l1bg)", color: "var(--l1)", border: "1px solid var(--l1bd)", whiteSpace: "nowrap" }}>{r.branch}</span>
-                        <span style={{ fontFamily: mono, fontSize: 11, color: "var(--muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.path}</span>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={(e) => { e.stopPropagation(); removeRecent(r.path); }}
-                      onKeyDown={(e) => {
-                        // Stop the row's own Enter/Space activation (SelectableRow's
-                        // onKeyDown) from also firing via bubbling.
-                        e.stopPropagation();
-                        activateOnKeyDown(e);
-                      }}
-                      title={t("repo.local.removeTitle")}
-                      aria-label={t("repo.local.removeAria", { name: r.name })}
-                      style={{ color: "var(--muted)", fontSize: 12, padding: 4, borderRadius: 6, background: "transparent", border: "none", cursor: "pointer", fontFamily: "inherit" }}
-                    >
-                      ✕
-                    </button>
-                  </SelectableRow>
-                ))}
-                {filteredRecents.length === 0 && (
-                  <div style={{ padding: 18, border: "1px dashed var(--btnB)", borderRadius: 11, textAlign: "center", color: "var(--muted)", fontSize: 13, display: "flex", flexDirection: "column", gap: 10, alignItems: "center" }}>
-                    {recents.length === 0 ? (
-                      t("repo.local.empty")
-                    ) : (
-                      <>
-                        <div>{t("repo.local.noMatch")}</div>
-                        <div style={{ display: "flex", gap: 8 }}>
-                          <button type="button" onClick={browseAndOpen} onKeyDown={activateOnKeyDown} disabled={busy} style={browseBtn} className="gs-lift">
-                            {t("repo.local.openFolder")}
-                          </button>
-                          <button type="button" onClick={() => setTab("clone")} onKeyDown={activateOnKeyDown} style={browseBtn} className="gs-lift">
-                            {t("repo.local.cloneEllipsis")}
-                          </button>
+
+              {filtered.length > 0 && (
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 10 }}>
+                  {filtered.map((e) => {
+                    const state = stateOf(e);
+                    return (
+                      <SelectableRow
+                        key={e.path}
+                        onSelect={() => activate(e)}
+                        disabled={busy}
+                        style={{ gap: 12, padding: "11px 14px", border: "1px solid var(--border)", borderRadius: 11, background: "var(--panel)" }}
+                      >
+                        <div style={{ width: 34, height: 34, borderRadius: 9, background: "var(--l0bg)", color: "var(--l0)", display: "grid", placeItems: "center", fontWeight: 700, fontSize: 12.5, flexShrink: 0 }}>{initials(e.name)}</div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            <span style={{ fontSize: 13.5, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{e.name}</span>
+                            <span style={badgeStyle[state]}>{badgeLabel[state]}</span>
+                          </div>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 3, minWidth: 0 }}>
+                            {e.branch && (
+                              <span style={{ fontFamily: mono, fontSize: 10.5, padding: "1px 7px", borderRadius: 999, background: "var(--l1bg)", color: "var(--l1)", border: "1px solid var(--l1bd)", whiteSpace: "nowrap" }}>{e.branch}</span>
+                            )}
+                            <span style={{ fontFamily: mono, fontSize: 11, color: "var(--muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{e.path}</span>
+                          </div>
                         </div>
-                      </>
-                    )}
-                  </div>
-                )}
-              </div>
+                        {e.isRecent && (
+                          <button
+                            type="button"
+                            onClick={(ev) => { ev.stopPropagation(); removeRecent(e.path); }}
+                            onKeyDown={(ev) => {
+                              // Stop the row's own Enter/Space activation (SelectableRow's
+                              // onKeyDown) from also firing via bubbling.
+                              ev.stopPropagation();
+                              activateOnKeyDown(ev);
+                            }}
+                            title={t("repo.local.removeTitle")}
+                            aria-label={t("repo.local.removeAria", { name: e.name })}
+                            style={{ color: "var(--muted)", fontSize: 12, padding: 4, borderRadius: 6, background: "transparent", border: "none", cursor: "pointer", fontFamily: "inherit" }}
+                          >
+                            ✕
+                          </button>
+                        )}
+                      </SelectableRow>
+                    );
+                  })}
+                </div>
+              )}
+
+              {filtered.length === 0 && (
+                <div style={{ padding: 18, border: "1px dashed var(--btnB)", borderRadius: 11, textAlign: "center", color: "var(--muted)", fontSize: 13, display: "flex", flexDirection: "column", gap: 10, alignItems: "center" }}>
+                  {combined.length === 0 ? (
+                    t("repo.local.empty")
+                  ) : (
+                    <>
+                      <div>{t("repo.local.noMatch")}</div>
+                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
+                        {q.trim() && (
+                          <button type="button" onClick={() => openPath(q.trim())} onKeyDown={activateOnKeyDown} disabled={busy} style={browseBtn} className="gs-lift">
+                            {t("repo.local.openPath", { path: q.trim() })}
+                          </button>
+                        )}
+                        <button type="button" onClick={() => setTab("clone")} onKeyDown={activateOnKeyDown} style={browseBtn} className="gs-lift">
+                          {t("repo.local.cloneEllipsis")}
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+
               <button
                 type="button"
                 onClick={browseAndOpen}
@@ -214,29 +289,6 @@ export function RepoPicker() {
                 className="gs-lift"
               >
                 + {t("repo.local.browseFolder")}
-              </button>
-            </div>
-          )}
-
-          {tab === "add" && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 14, animation: "fadeUp 0.3s ease both" }}>
-              <div style={bigTitle}>{t("repo.add.title")}</div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                <label htmlFor={addPathId} style={fieldLabelStyle}>{t("repo.add.pathLabel")}</label>
-                <div style={{ display: "flex", gap: 8 }}>
-                  <input id={addPathId} value={addPath} onChange={(e) => setAddPath(e.target.value)} placeholder={t("repo.add.pathPlaceholder")} style={{ ...inputStyle, flex: 1 }} />
-                  <button type="button" onClick={() => browseInto(setAddPath)} onKeyDown={activateOnKeyDown} style={browseBtn} className="gs-lift">{t("repo.choose")}</button>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => openPath(addPath.trim())}
-                onKeyDown={activateOnKeyDown}
-                disabled={!addPath.trim() || busy}
-                style={{ ...primaryBtn, opacity: addPath.trim() ? 1 : 0.5 }}
-                className="gs-press"
-              >
-                {busy ? t("repo.add.opening") : t("repo.tab.add")}
               </button>
             </div>
           )}
@@ -262,7 +314,7 @@ export function RepoPicker() {
               <button
                 type="button"
                 onClick={async () => {
-                  if (await run(() => initRepo(createParent.trim(), createName.trim()))) close();
+                  if (await run(() => initRepo(createParent.trim(), createName.trim()))) enterRepo();
                 }}
                 onKeyDown={activateOnKeyDown}
                 disabled={!createName.trim() || !createParent.trim() || busy}
@@ -293,7 +345,7 @@ export function RepoPicker() {
                 onClick={async () => {
                   if (await run(() => cloneRepo(cloneParent.trim(), cloneUrl.trim(), cloneName))) {
                     notify(t("repo.clone.doneTitle"), `${cloneName} → ${cloneParent.trim()}/${cloneName}`);
-                    close();
+                    enterRepo();
                   }
                 }}
                 onKeyDown={activateOnKeyDown}
@@ -304,18 +356,6 @@ export function RepoPicker() {
                 {busy && <span style={{ animation: "spin 0.8s linear infinite" }}>⟳</span>}
                 {busy ? t("repo.clone.cloning") : t("repo.tab.clone")}
               </button>
-            </div>
-          )}
-
-          {tab === "remote" && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 14, animation: "fadeUp 0.3s ease both" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <div style={bigTitle}>{t("repo.remote.title")}</div>
-                <span className="gs-soon">{t("common.soon")}</span>
-              </div>
-              <div style={{ padding: 20, border: "1px dashed var(--btnB)", borderRadius: 12, color: "var(--muted)", fontSize: 13.5, lineHeight: 1.6 }}>
-                {t("repo.remote.body")}
-              </div>
             </div>
           )}
         </div>
