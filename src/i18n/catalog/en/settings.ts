@@ -114,6 +114,7 @@ export const enSettings: Record<SettingsKey, MessageValue> = {
   "settings.git.identitySaved": "Identity saved",
   "settings.git.saveFailed": "could not save the identity",
   "settings.git.usedInCommits": "Used in this repository's commits.",
+  "settings.git.needRepo": "Open a repository to set the Git identity (it's per-repository).",
 
   // ── Push & Pull section ────────────────────────────────────────────────────
   "settings.pushPull.title": "PUSH & PULL",

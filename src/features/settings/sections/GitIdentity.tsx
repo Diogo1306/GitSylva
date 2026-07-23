@@ -12,9 +12,9 @@ const fieldLabelStyle = { fontSize: "var(--fs-btn)", fontWeight: "var(--fw-semib
 
 export function GitIdentity() {
   const t = useT();
-  const repo = useAppStore((s) => s.repo)!;
-  const { data } = useIdentity(repo.path);
-  const save = useSetIdentity(repo.path);
+  const repo = useAppStore((s) => s.repo);
+  const { data } = useIdentity(repo?.path ?? "");
+  const save = useSetIdentity(repo?.path ?? "");
   // null = "not edited yet": the fields show the identity from git until the
   // user types, so no effect is needed to sync server data into local state.
   const [nameEdit, setNameEdit] = useState<string | null>(null);
@@ -25,6 +25,16 @@ export function GitIdentity() {
   const setEmail = setEmailEdit;
 
   const changed = !!data && (name !== data.name || email !== data.email);
+
+  // Reachable from the entry screen (no repo yet): Git identity is per-repo.
+  if (!repo) {
+    return (
+      <div id="set-git" style={{ display: "flex", flexDirection: "column", gap: 16, scrollMarginTop: 20 }}>
+        <SectionTitle>{t("settings.git.title")}</SectionTitle>
+        <Hint>{t("settings.git.needRepo")}</Hint>
+      </div>
+    );
+  }
 
   return (
     <div id="set-git" style={{ display: "flex", flexDirection: "column", gap: 16, scrollMarginTop: 20 }}>

@@ -116,6 +116,7 @@ export const ptSettings = {
   "settings.git.identitySaved": "Identidade guardada",
   "settings.git.saveFailed": "não foi possível guardar a identidade",
   "settings.git.usedInCommits": "Usada nos commits deste repositório.",
+  "settings.git.needRepo": "Abre um repositório para configurar a identidade Git (é por repositório).",
 
   // ── Push & Pull section ────────────────────────────────────────────────────
   "settings.pushPull.title": "PUSH & PULL",

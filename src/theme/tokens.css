@@ -242,6 +242,9 @@ button:focus-visible {
 /* Keyframes expected by the design kit's animated tree SVGs (R5.22): the
    files reference gsDraw/gsPop/gsLeaf and size to their host box. */
 @keyframes gsDraw { to { stroke-dashoffset: 0; } }
+/* Onboarding tree "grows in" from its base each stage — a robust, always-visible
+   transform/opacity animation on top of the per-stroke gsDraw. */
+@keyframes gsGrowIn { from { transform: scale(0.45); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 @keyframes gsPop { from { transform: scale(0); } to { transform: scale(1); } }
 @keyframes gsLeaf { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 .gs-treeanim svg { width: 100%; height: 100%; display: block; overflow: visible; }

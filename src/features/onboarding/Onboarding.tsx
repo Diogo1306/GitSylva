@@ -187,7 +187,7 @@ export function Onboarding() {
               key={`s-${ts.theme}-${stage}`}
               className="gs-treeanim"
               dangerouslySetInnerHTML={{ __html: TREES[ts.theme]?.[stage] ?? s0Escuro }}
-              style={{ width: "100%", height: "100%", ["--gs-bg" as never]: "var(--win)" }}
+              style={{ width: "100%", height: "100%", transformOrigin: "bottom center", animation: "gsGrowIn 0.7s cubic-bezier(0.2,0.9,0.3,1) both", ["--gs-bg" as never]: "var(--win)" }}
             />
           </div>
           <div style={{ marginTop: 4 }}>
