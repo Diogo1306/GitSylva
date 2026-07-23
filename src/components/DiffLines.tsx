@@ -20,6 +20,7 @@ export function DiffLines({
   onStageHunk,
   stageLabel,
   partialTail,
+  clean,
 }: {
   patch: string;
   fontSize?: number;
@@ -28,6 +29,10 @@ export function DiffLines({
   stageLabel?: string;
   /** The last hunk may be cut (paged/capped patch): no stage button for it. */
   partialTail?: boolean;
+  /** Clean mode (commit detail): drop git plumbing (diff --git, index, mode,
+   *  similarity/rename, --- / +++) and render each hunk boundary as a subtle
+   *  separator with a readable line range instead of the raw `@@ … @@`. */
+  clean?: boolean;
 }) {
   // The whole line list (including syntax highlighting) is memoized on the
   // patch: re-renders of the parent no longer re-run the highlighter over
@@ -61,6 +66,32 @@ export function DiffLines({
             oldNo = h.oldStart;
             newNo = h.newStart;
           }
+        }
+        // Clean mode: strip plumbing, show hunk boundaries as a quiet range.
+        if (clean) {
+          if (kind === "meta") {
+            // Keep the one meta line that carries real content: a binary file
+            // has no +/- lines, so its "Binary files … differ" note is all
+            // there is to show. Everything else is noise.
+            if (line.startsWith("Binary files")) {
+              out.push(
+                <div key={i} style={{ padding: "4px 14px", fontFamily: mono, fontSize, color: "var(--muted)", ...rowContain }}>
+                  {line}
+                </div>,
+              );
+            }
+            continue;
+          }
+          const h = parseHunkHeader(line);
+          const label = h ? `${h.newStart}–${h.newStart + Math.max(1, h.newCount) - 1}` : "";
+          out.push(
+            <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "5px 14px", userSelect: "none", ...rowContain }}>
+              <span style={{ flex: 1, height: 1, background: "var(--bsoft)" }} />
+              <span style={{ fontFamily: mono, fontSize: 10, color: "var(--muted)", letterSpacing: 0.3 }}>{label}</span>
+              <span style={{ flex: 1, height: 1, background: "var(--bsoft)" }} />
+            </div>,
+          );
+          continue;
         }
         // A cut tail hunk would stage a corrupt patch — skip its button.
         const hunkComplete = !partialTail || hunkIdx < hunks.length - 1;
@@ -99,7 +130,7 @@ export function DiffLines({
       );
     }
     return out;
-  }, [patch, fontSize, onStageHunk, stageLabel, partialTail]);
+  }, [patch, fontSize, onStageHunk, stageLabel, partialTail, clean]);
 
   return <>{rows}</>;
 }

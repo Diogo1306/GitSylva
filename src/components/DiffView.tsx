@@ -21,6 +21,7 @@ export function DiffView({
   onStageHunk,
   stageLabel,
   onLoadFull,
+  clean,
 }: {
   patch: string;
   fontSize?: number;
@@ -28,6 +29,8 @@ export function DiffView({
   stageLabel?: string;
   /** Present when the backend capped this patch; requests the uncapped one. */
   onLoadFull?: () => void;
+  /** Clean mode (commit detail): hide git plumbing, quiet hunk separators. */
+  clean?: boolean;
 }) {
   const t = useT();
   const [mode, setMode] = useState<DiffMode>(() =>
@@ -91,9 +94,9 @@ export function DiffView({
       {/* Diff text IS content — it stays selectable/copyable (R5.12). */}
       <div className="gs-selectable" style={{ display: "contents" }}>
         {mode === "split" ? (
-          <DiffSplit patch={visiblePatch} />
+          <DiffSplit patch={visiblePatch} clean={clean} />
         ) : (
-          <DiffLines patch={visiblePatch} fontSize={fontSize} onStageHunk={onStageHunk} stageLabel={stageLabel} partialTail={partialTail} />
+          <DiffLines patch={visiblePatch} fontSize={fontSize} onStageHunk={onStageHunk} stageLabel={stageLabel} partialTail={partialTail} clean={clean} />
         )}
       </div>
       {hidden > 0 && (
