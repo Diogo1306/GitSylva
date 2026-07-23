@@ -5,6 +5,13 @@ export type RepoInfo = {
   is_empty: boolean;
 };
 
+/** One folder found by `scanLocalRepos`: a real repo (has `.git`) or a plain folder. */
+export type LocalRepoEntry = {
+  path: string;
+  name: string;
+  is_repo: boolean;
+};
+
 export type FileChange = {
   path: string;
   index_status: string;

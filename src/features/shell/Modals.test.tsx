@@ -1,13 +1,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, cleanup, fireEvent } from "@testing-library/react";
+import { render, screen, cleanup, fireEvent, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Modals } from "./Modals";
 import { useAppStore } from "../../state/appStore";
 import { useNotificationStore } from "../../state/notificationStore";
 import { useShortcutsStore, SHORTCUT_ACTIONS, shortcutLabel, DEFAULT_BINDINGS } from "../../state/shortcutsStore";
 import { comboHint } from "../../lib/platform";
-import type { RepoInfo, Commit } from "../../lib/types";
-import { fetchRemote, syncStatus, pull, push, outgoing, incoming } from "../../lib/api";
+import type { RepoInfo, Commit, BranchInfo } from "../../lib/types";
+import { fetchRemote, syncStatus, pull, pushBranches, outgoing, incoming, listBranches } from "../../lib/api";
 
 // Task 4: the Field helper now binds a real <label htmlFor> to the wrapped
 // Input's id, so every modal field must be reachable via getByLabelText.
@@ -21,6 +21,7 @@ vi.mock("../../lib/api", async (importOriginal) => {
     syncStatus: vi.fn(),
     pull: vi.fn(),
     push: vi.fn(),
+    pushBranches: vi.fn(),
     outgoing: vi.fn(),
     incoming: vi.fn(),
   };
@@ -206,12 +207,62 @@ describe("PushModal: pre-action explanation and sync states", () => {
   });
 
   it("shows a distinct authentication-needed message on a credential failure, not the generic error text", async () => {
-    vi.mocked(push).mockRejectedValue({ message: "git@github.com: Permission denied (publickey).\nfatal: Could not read from remote repository." });
+    vi.mocked(pushBranches).mockRejectedValue({ message: "git@github.com: Permission denied (publickey).\nfatal: Could not read from remote repository." });
     useAppStore.setState({ modal: "push" });
     renderModal();
     await screen.findByText("Push vai enviar 3 commits de main para origin/main.");
     fireEvent.click(screen.getByRole("button", { name: "Fazer push" }));
     expect(await screen.findByText("Autenticação necessária")).toBeTruthy();
     expect(screen.queryByText("não foi possível fazer push")).toBeNull();
+  });
+
+  it("sends only the checked branches: default is the current branch, and pushing sends its name via pushBranches", async () => {
+    vi.mocked(pushBranches).mockResolvedValue(undefined);
+    useAppStore.setState({ modal: "push" });
+    renderModal();
+    await screen.findByText("Push vai enviar 3 commits de main para origin/main.");
+    fireEvent.click(screen.getByRole("button", { name: "Fazer push" }));
+    await waitFor(() => expect(pushBranches).toHaveBeenCalledWith("/repo", ["main"]));
+  });
+
+  it("disables the confirm button once every branch is unchecked", async () => {
+    vi.mocked(pushBranches).mockResolvedValue(undefined);
+    // Wipe call history from earlier tests in this file — only this test's
+    // (absence of a) call matters for the assertion below.
+    vi.mocked(pushBranches).mockClear();
+    const branches: BranchInfo[] = [
+      { name: "main", is_current: true, is_remote: false, upstream: "origin/main", tip: "aaa", ahead: 3, behind: 0 },
+      { name: "feature", is_current: false, is_remote: false, upstream: null, tip: "bbb", ahead: 1, behind: 0 },
+    ];
+    vi.mocked(listBranches).mockResolvedValue(branches);
+    useAppStore.setState({ modal: "push" });
+    renderModal();
+    await screen.findByText("Push vai enviar 3 commits de main para origin/main.");
+    // Only "main" starts checked; unchecking it leaves nothing selected.
+    fireEvent.click(await screen.findByText("main"));
+    const confirm = screen.getByRole("button", { name: "Fazer push" });
+    fireEvent.click(confirm);
+    expect(pushBranches).not.toHaveBeenCalled();
+  });
+
+  it("lists every local branch with its ahead count, letting more than the current branch be checked", async () => {
+    const branches: BranchInfo[] = [
+      { name: "main", is_current: true, is_remote: false, upstream: "origin/main", tip: "aaa", ahead: 3, behind: 0 },
+      { name: "feature", is_current: false, is_remote: false, upstream: null, tip: "bbb", ahead: 2, behind: 0 },
+      { name: "origin/main", is_current: false, is_remote: true, upstream: null, tip: "aaa", ahead: 0, behind: 0 },
+    ];
+    vi.mocked(listBranches).mockResolvedValue(branches);
+    vi.mocked(pushBranches).mockResolvedValue(undefined);
+    useAppStore.setState({ modal: "push" });
+    renderModal();
+    await screen.findByText("Push vai enviar 3 commits de main para origin/main.");
+    // Remote-tracking refs are not offered as pushable local branches.
+    expect(screen.queryByText("origin/main")).toBeNull();
+    expect(await screen.findByText("↑2")).toBeTruthy();
+    fireEvent.click(screen.getByText("feature"));
+    fireEvent.click(screen.getByRole("button", { name: "Fazer push" }));
+    await waitFor(() =>
+      expect(pushBranches).toHaveBeenCalledWith("/repo", expect.arrayContaining(["main", "feature"])),
+    );
   });
 });

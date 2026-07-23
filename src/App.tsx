@@ -15,20 +15,24 @@ const Onboarding = lazy(() => import("./features/onboarding/Onboarding").then((m
 // No repo open → the full repository screen (recents + add/clone/create), not
 // a bare folder prompt (user request R5.5).
 const RepoPicker = lazy(() => import("./features/repo/RepoPicker").then((m) => ({ default: m.RepoPicker })));
+// Settings is reachable before any repo is open (Appearance, accounts, language…).
+const Settings = lazy(() => import("./features/settings/Settings").then((m) => ({ default: m.Settings })));
 
 function Root() {
   const onboarded = useOnboardStore((s) => s.onboarded);
   const repo = useAppStore((s) => s.repo);
+  const view = useAppStore((s) => s.view);
+  const setView = useAppStore((s) => s.setView);
 
   if (!onboarded)
     return (
-      <Suspense fallback={<div style={{ height: "100%", background: "var(--desk)" }} />}>
+      <Suspense fallback={<div style={{ height: "100%", background: "var(--win)" }} />}>
         <Onboarding />
       </Suspense>
     );
   if (!repo)
     return (
-      <Suspense fallback={<div style={{ height: "100%", background: "var(--desk)" }} />}>
+      <Suspense fallback={<div style={{ height: "100%", background: "var(--win)" }} />}>
         {/* No repo yet: the picker still lives inside a NORMAL window frame —
             wordmark, drag strip and real window controls (R5.15; the bare
             full-screen version hid everything and couldn't even be closed). */}
@@ -41,9 +45,24 @@ function Root() {
               <Wordmark size={17} />
             </div>
             <div data-tauri-drag-region style={{ flex: 1, alignSelf: "stretch" }} />
-            <WinControls />
+            {view !== "settings" && (
+              <button
+                type="button"
+                onClick={() => setView("settings")}
+                title="Definições"
+                aria-label="Definições"
+                className="gs-lift gs-press-97"
+                style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, borderRadius: "var(--r-btn)", background: "var(--btn)", border: "1px solid var(--btnB)", color: "var(--btnT)", cursor: "pointer", padding: 0, fontFamily: "inherit" }}
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg>
+              </button>
+            )}
+            {/* Flush to the top-right corner (cancel the 10px right padding), full height. */}
+            <div style={{ alignSelf: "stretch", display: "flex", marginRight: "-10px" }}>
+              <WinControls />
+            </div>
           </div>
-          <RepoPicker />
+          {view === "settings" ? <Settings /> : <RepoPicker />}
         </div>
       </Suspense>
     );

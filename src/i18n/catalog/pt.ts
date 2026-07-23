@@ -3,6 +3,7 @@ import { ptCommon } from "./pt/common";
 import { ptConfig } from "./pt/config";
 import { ptSettings } from "./pt/settings";
 import { ptShell } from "./pt/shell";
+import { ptHistory } from "./pt/history";
 import { ptWorkspace } from "./pt/workspace";
 import { ptEntry } from "./pt/entry";
 
@@ -15,6 +16,7 @@ export const pt = {
   ...ptConfig,
   ...ptSettings,
   ...ptShell,
+  ...ptHistory,
   ...ptWorkspace,
   ...ptEntry,
 } satisfies Record<string, MessageValue>;

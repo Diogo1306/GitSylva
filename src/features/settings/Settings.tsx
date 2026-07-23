@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useAppStore } from "../../state/appStore";
 import { useOnboardStore } from "../../state/onboardStore";
 import { Appearance } from "./sections/Appearance";
+import { Accounts } from "./sections/Accounts";
 import { GitIdentity } from "./sections/GitIdentity";
 import { Commits } from "./sections/Commits";
 import { PushPull } from "./sections/PushPull";
@@ -9,8 +10,10 @@ import { Cleanup } from "./sections/Cleanup";
 import { About } from "./sections/About";
 import { Shortcuts } from "./sections/Shortcuts";
 import { Notifications } from "./sections/Notifications";
-import { StubSection, SectionTitle } from "./sections/_shared";
+import { StubSection, SectionTitle, Hint } from "./sections/_shared";
 import { FormField } from "../../components/ui/FormField";
+import { Input } from "../../components/ui/Input";
+import { Segmented } from "../../components/ui/Segmented";
 import { fold } from "../../lib/fold";
 import { useT, useLocaleStore, type MessageKey, type Locale } from "../../i18n";
 
@@ -28,8 +31,8 @@ const NAV: [MessageKey, string][] = [
   ["settings.nav.notifications", "set-notificacoes"],
   ["settings.nav.language", "set-idioma"],
   ["settings.nav.advanced", "set-avancado"],
-  ["settings.nav.cleanup", "set-limpeza"],
   ["settings.nav.about", "set-sobre"],
+  ["settings.nav.cleanup", "set-limpeza"],
 ];
 
 // Live language picker replacing the old "Em breve" stub. Switching updates the
@@ -45,20 +48,13 @@ function LanguageSection() {
   return (
     <div id="set-idioma" style={{ display: "flex", flexDirection: "column", gap: 12, scrollMarginTop: 20 }}>
       <SectionTitle>{t("settings.language.title")}</SectionTitle>
-      <div style={{ display: "inline-flex", gap: 4, padding: 4, borderRadius: 10, background: "var(--panel2)", border: "1px solid var(--border)", alignSelf: "flex-start" }}>
-        {options.map(([key, labelKey]) => (
-          <div
-            key={key}
-            onClick={() => setLocale(key)}
-            role="button"
-            aria-pressed={locale === key}
-            style={{ padding: "6px 16px", borderRadius: 7, fontSize: 13, fontWeight: 600, cursor: "pointer", background: locale === key ? "var(--win)" : "transparent", color: locale === key ? "var(--text)" : "var(--muted)" }}
-          >
-            {t(labelKey)}
-          </div>
-        ))}
-      </div>
-      <div style={{ fontSize: 12, color: "var(--muted)" }}>{t("settings.language.desc")}</div>
+      <Segmented
+        aria-label={t("settings.language.title")}
+        value={locale}
+        onChange={(v) => setLocale(v as Locale)}
+        options={options.map(([key, labelKey]) => ({ value: key, label: t(labelKey) }))}
+      />
+      <Hint>{t("settings.language.desc")}</Hint>
     </div>
   );
 }
@@ -67,6 +63,8 @@ export function Settings() {
   const t = useT();
   const setView = useAppStore((s) => s.setView);
   const prevView = useAppStore((s) => s.prevView);
+  const settingsSection = useAppStore((s) => s.settingsSection);
+  const setSettingsSection = useAppStore((s) => s.setSettingsSection);
   const replayOnboard = useOnboardStore((s) => s.replay);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [active, setActive] = useState("set-aparencia");
@@ -92,22 +90,31 @@ export function Settings() {
     return () => obs.disconnect();
   }, []);
 
+  // Deep-link: opened targeting a section (e.g. the sidebar "Conta & sync" row) — scroll to it once,
+  // then clear (deferred so it isn't a synchronous store write inside the effect). The scroll-spy updates `active`.
+  useEffect(() => {
+    if (!settingsSection) return;
+    scrollRef.current?.querySelector(`#${settingsSection}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    const id = setTimeout(() => setSettingsSection(null), 0);
+    return () => clearTimeout(id);
+  }, [settingsSection, setSettingsSection]);
+
   return (
     <div style={{ flex: 1, display: "flex", minHeight: 0, background: "var(--win)", animation: "fadeUp 0.25s ease both" }}>
-      <div style={{ width: 192, flexShrink: 0, borderRight: "1px solid var(--border)", background: "var(--panel)", padding: "16px 10px", display: "flex", flexDirection: "column", gap: 2, overflowY: "auto", boxSizing: "border-box" }}>
-        <div onClick={() => setView(prevView)} className="gs-lift" style={{ display: "flex", alignItems: "center", gap: 7, padding: "7px 11px", marginBottom: 8, borderRadius: 8, background: "var(--btn)", border: "1px solid var(--btnB)", color: "var(--btnT)", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>
+      <div style={{ width: 192, flexShrink: 0, borderRight: "1px solid var(--border)", background: "var(--panel)", padding: "var(--sp-7) var(--sp-4)", display: "flex", flexDirection: "column", gap: 2, overflowY: "auto", boxSizing: "border-box" }}>
+        <div onClick={() => setView(prevView)} className="gs-lift" style={{ display: "flex", alignItems: "center", gap: 7, padding: "7px 11px", marginBottom: "var(--sp-5)", borderRadius: "var(--r-btn)", background: "var(--btn)", border: "1px solid var(--btnB)", color: "var(--btnT)", fontSize: "var(--fs-btn)", fontWeight: "var(--fw-semibold)", cursor: "pointer" }}>
           ← {t("common.back")}
         </div>
         <FormField label={t("settings.searchSections")} hideLabel>
-          <input
+          <Input
             value={navQuery}
             onChange={(e) => setNavQuery(e.target.value)}
             placeholder={t("common.searchEllipsis")}
-            style={{ marginBottom: 8, background: "var(--input)", border: "1px solid var(--btnB)", borderRadius: 8, padding: "6px 10px", fontSize: 12.5, color: "var(--text)", fontFamily: "var(--font)", boxSizing: "border-box", width: "100%" }}
+            style={{ marginBottom: "var(--sp-3)", padding: "6px 10px", fontSize: "var(--fs-btn)" }}
           />
         </FormField>
         {visibleNav.length === 0 && (
-          <div style={{ padding: "6px 11px", fontSize: 12, color: "var(--muted)" }}>{t("settings.noSections", { query: navQuery })}</div>
+          <div style={{ padding: "6px 11px", fontSize: "var(--fs-xs)", color: "var(--muted)" }}>{t("settings.noSections", { query: navQuery })}</div>
         )}
         {visibleNav.map(([name, id]) => (
           <a
@@ -118,7 +125,7 @@ export function Settings() {
               scrollRef.current?.querySelector(`#${id}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
             }}
             className="gs-row"
-            style={{ padding: "7px 11px", borderRadius: 8, fontSize: 13, textDecoration: "none", color: active === id ? "var(--text)" : "var(--text2)", background: active === id ? "var(--sel)" : undefined, fontWeight: active === id ? 600 : 400 }}
+            style={{ padding: "7px 11px", borderRadius: "var(--r-btn)", fontSize: "var(--fs-sm)", textDecoration: "none", color: active === id ? "var(--text)" : "var(--text2)", background: active === id ? "var(--sel)" : undefined, fontWeight: active === id ? "var(--fw-semibold)" : "var(--fw-regular)" }}
           >
             {name}
           </a>
@@ -129,19 +136,17 @@ export function Settings() {
         <div style={{ maxWidth: 720, margin: "0 auto", padding: "28px 32px 48px", display: "flex", flexDirection: "column", gap: 32, animation: "fadeUp 0.3s ease both" }}>
           <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.2px" }}>{t("settings.title")}</div>
-              <div style={{ fontSize: 13.5, color: "var(--text2)", marginTop: 4 }}>{t("settings.subtitle")}</div>
+              <div style={{ fontSize: "var(--fs-title)", fontWeight: "var(--fw-bold)", letterSpacing: "-0.2px" }}>{t("settings.title")}</div>
+              <div style={{ fontSize: "var(--fs-base)", color: "var(--text2)", marginTop: 4 }}>{t("settings.subtitle")}</div>
             </div>
-            <div onClick={replayOnboard} className="gs-lift" style={{ fontSize: 12, color: "var(--text2)", border: "1px solid var(--btnB)", padding: "6px 12px", borderRadius: 8, cursor: "pointer", whiteSpace: "nowrap" }}>
+            <div onClick={replayOnboard} className="gs-lift" style={{ fontSize: "var(--fs-xs)", color: "var(--text2)", border: "1px solid var(--btnB)", padding: "6px 12px", borderRadius: "var(--r-btn)", cursor: "pointer", whiteSpace: "nowrap" }}>
               {t("settings.replayOnboarding")}
             </div>
           </div>
 
           <Appearance />
 
-          <StubSection id="set-contas" title={t("settings.accounts.title")}>
-            {t("settings.accounts.body")}
-          </StubSection>
+          <Accounts />
 
           <GitIdentity />
           <StubSection id="set-git-extra" title={t("settings.gitEditor.title")}>
@@ -164,9 +169,9 @@ export function Settings() {
             {t("settings.advanced.body")}
           </StubSection>
 
-          <Cleanup />
-
           <About />
+
+          <Cleanup />
         </div>
       </div>
     </div>

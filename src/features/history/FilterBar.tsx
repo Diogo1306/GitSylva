@@ -123,7 +123,7 @@ export function FilterBar({
             boxSizing: "border-box",
           }}
         >
-          Diff {detailOpen ? "✓" : ""}
+          {t("history.detail.diffToggle")} {detailOpen ? "✓" : ""}
         </button>
       </div>
 

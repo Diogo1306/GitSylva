@@ -1,8 +1,4 @@
-// Shared unified-diff line classification for the diff views.
-//
-// File headers are only `--- ` / `+++ ` lines whose target is a git path
-// (a/…, b/…, quoted, or /dev/null): a REMOVED content line that happens to
-// start with "--" (e.g. a CLI flag or a Markdown rule) must stay a removal.
+// Shared unified-diff line classification. File headers are only `--- `/`+++ ` lines whose target is a git path (a/…, b/…, quoted, /dev/null) — a removed content line starting with "--" must stay a removal.
 
 export type DiffLineKind = "hunk" | "meta" | "add" | "del" | "ctx";
 
@@ -56,4 +52,60 @@ export function gutterDigits(lines: string[]): number {
     if (h) max = Math.max(max, h.oldStart + h.oldCount, h.newStart + h.newCount);
   }
   return String(max).length;
+}
+
+export type FilePatch = { path: string; patch: string };
+
+// Git may quote a path with special chars ("a/spá ce.ts"); unwrap it.
+function unquotePath(p: string): string {
+  if (p.startsWith('"') && p.endsWith('"')) {
+    try {
+      return JSON.parse(p) as string;
+    } catch {
+      return p.slice(1, -1);
+    }
+  }
+  return p;
+}
+
+// The path a `+++ `/`--- ` header points at, without the a//b/ prefix, or ""
+// for /dev/null (a creation's old side or a deletion's new side).
+function headerPath(line: string): string {
+  const rest = line.slice(4);
+  if (rest === "/dev/null") return "";
+  return unquotePath(rest).replace(/^[ab]\//, "");
+}
+
+/** Split a combined multi-file commit diff into one patch per file, keyed by
+ *  the file's path. The path is taken from the `+++ b/…` header (the new path,
+ *  which matches the commit's file list), falling back to `--- a/…` for pure
+ *  deletions and to the `diff --git` line for headerless (e.g. binary) files. */
+export function splitDiffByFile(diff: string): FilePatch[] {
+  if (!diff.trim()) return [];
+  const segments: string[][] = [];
+  for (const line of diff.split("\n")) {
+    if (line.startsWith("diff --git ")) segments.push([line]);
+    else if (segments.length) segments[segments.length - 1].push(line);
+  }
+  return segments.map((seg) => {
+    let path = "";
+    for (const l of seg) if (l.startsWith("+++ ")) { path = headerPath(l); break; }
+    if (!path) for (const l of seg) if (l.startsWith("--- ")) { path = headerPath(l); break; }
+    if (!path) {
+      const m = /^diff --git a\/(.+) b\/(.+)$/.exec(seg[0]);
+      if (m) path = unquotePath(m[2]);
+    }
+    return { path, patch: seg.join("\n") };
+  });
+}
+
+/** The single-file patch for `path` inside a combined commit diff, matched by
+ *  the file list's path (with a loose fallback for renames/quoting). */
+export function patchForFile(diff: string, path: string): string {
+  const files = splitDiffByFile(diff);
+  return (
+    files.find((f) => f.path === path)?.patch ??
+    files.find((f) => f.patch.includes(` b/${path}`) || f.patch.includes(` a/${path}`))?.patch ??
+    ""
+  );
 }

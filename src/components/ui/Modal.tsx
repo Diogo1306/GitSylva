@@ -2,9 +2,7 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import { ModalCloseContext } from "./modalClose";
 import { useT } from "../../i18n";
 
-// Shared modal shell (handoff §10): scrim + dialog with entrance/exit
-// animation, Escape/scrim/✕ close, focus trap, autofocus on the first field
-// and focus returned to the opener on unmount.
+// Modal shell: scrim + dialog, focus trap, autofocus, Escape/scrim/✕ close, focus restored on unmount.
 
 const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
@@ -84,12 +82,12 @@ export function Modal({ title, onClose, width = 460, children }: { title: string
           overflowY: "auto",
           background: "var(--win)",
           border: "1px solid var(--border)",
-          borderRadius: "var(--radius)",
-          boxShadow: "var(--shadow-2)",
-          padding: "var(--sp-5)",
+          borderRadius: "var(--r-card)",
+          boxShadow: "var(--shadow)",
+          padding: "var(--sp-8)",
           display: "flex",
           flexDirection: "column",
-          gap: "var(--sp-3)",
+          gap: "var(--sp-6)",
           color: "var(--text)",
           outline: "none",
           animation: closing
@@ -98,12 +96,12 @@ export function Modal({ title, onClose, width = 460, children }: { title: string
         }}
       >
         <div style={{ display: "flex", alignItems: "center" }}>
-          <div style={{ fontSize: 16, fontWeight: 700, flex: 1 }}>{title}</div>
+          <div style={{ fontSize: 16, fontWeight: "var(--fw-bold)", flex: 1 }}>{title}</div>
           <button
             onClick={requestClose}
             aria-label={t("common.close")}
             className="gs-row"
-            style={{ width: 26, height: 26, borderRadius: 7, display: "grid", placeItems: "center", cursor: "pointer", color: "var(--muted)", fontSize: 14, background: "transparent", border: "none", fontFamily: "inherit" }}
+            style={{ width: 26, height: 26, borderRadius: "var(--r-md)", display: "grid", placeItems: "center", cursor: "pointer", color: "var(--muted)", fontSize: 14, background: "transparent", border: "none", fontFamily: "inherit" }}
           >
             ✕
           </button>

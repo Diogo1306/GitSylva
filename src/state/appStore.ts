@@ -8,9 +8,7 @@ export type Modal = "branch" | "stash" | "tag" | "merge" | "pull" | "push" | "sh
 export type RepoGroup = { id: string; name: string; color: number; collapsed: boolean };
 
 type AppState = {
-  // All open repositories and the active one. `repo` mirrors the active repo so
-  // existing code that reads `s.repo` keeps working; multi-repo tabs (B2) build
-  // on `repos` / switchRepo / closeRepo.
+  // All open repos + the active one. `repo` mirrors the active repo so existing `s.repo` readers keep working.
   repos: RepoInfo[];
   repo: RepoInfo | null;
   // Optional grouping of the open repos (name + color), shown in the rail.
@@ -28,6 +26,8 @@ type AppState = {
   selectedFile: string | null;
   // Commit selected from the palette; History reads and clears it.
   focusCommit: string | null;
+  // Settings section to scroll to when Settings opens (deep-link, e.g. sidebar account row); cleared after.
+  settingsSection: string | null;
   paletteOpen: boolean;
   modal: Modal;
   // Open a repo (adds it if new, updates it if already open) and make it active.
@@ -35,9 +35,7 @@ type AppState = {
   // Refresh an open repo's info in place (never changes which repo is active).
   updateRepo: (oldPath: string, repo: RepoInfo) => void;
   switchRepo: (path: string) => void;
-  // Unconditional close — no confirmation, no refusal. Used internally by
-  // requestCloseRepo/confirmCloseRepo and by startup cleanup of repos that
-  // no longer exist on disk (AppShell), where a prompt would be wrong.
+  // Unconditional close (no confirm). Used internally and by startup cleanup of repos missing on disk, where a prompt would be wrong.
   closeRepo: (path: string) => void;
   setRepoBusy: (path: string, busy: boolean) => void;
   // User-facing close: closes immediately unless the repo is busy, in which
@@ -52,6 +50,7 @@ type AppState = {
   toggleGroupCollapsed: (id: string) => void;
   setRepoGroup: (path: string, groupId: string | undefined) => void;
   setView: (view: View) => void;
+  setSettingsSection: (section: string | null) => void;
   setSelectedFile: (file: string | null) => void;
   setFocusCommit: (hash: string | null) => void;
   setPaletteOpen: (open: boolean) => void;
@@ -71,6 +70,7 @@ export const useAppStore = create<AppState>()(
   prevView: "history",
   selectedFile: null,
   focusCommit: null,
+  settingsSection: null,
   paletteOpen: false,
   modal: null,
   setRepo: (repo) =>
@@ -148,6 +148,7 @@ export const useAppStore = create<AppState>()(
     })),
   setSelectedFile: (selectedFile) => set({ selectedFile }),
   setFocusCommit: (focusCommit) => set({ focusCommit }),
+  setSettingsSection: (settingsSection) => set({ settingsSection }),
   setPaletteOpen: (paletteOpen) => set({ paletteOpen }),
   setModal: (modal) => set({ modal }),
     }),

@@ -20,9 +20,8 @@ pub struct CommitDetail {
     pub diff: String,
 }
 
-// Merge commits: `git show` alone uses the combined (--cc) diff, which is
-// usually empty for clean merges — the panel would show "0 files". Diffing
-// against the first parent (-m --first-parent) shows what the merge brought in.
+// Merge commits: plain `git show` uses the combined (--cc) diff, usually
+// empty for clean merges, so diff against the first parent instead.
 
 #[tauri::command(rename = "commit_detail")]
 pub async fn commit_detail_cmd(path: String, hash: String, full: Option<bool>) -> Result<CommitDetail, GitError> {
@@ -40,15 +39,13 @@ pub async fn commit_detail_cmd(path: String, hash: String, full: Option<bool>) -
 /// Files changed by a commit (with per file add/delete counts and status), the
 /// full commit message, and the unified patch. Backs the history detail panel.
 pub fn commit_detail(path: String, hash: String) -> Result<CommitDetail, GitError> {
-    // The (possibly large) patch is fetched on a separate thread while the
-    // main thread parses message + stats: two git spawns run concurrently.
+    // Patch fetched on its own thread so it runs concurrently with the message/stats spawn below.
     let diff_handle = {
         let (p, h) = (path.clone(), hash.clone());
         std::thread::spawn(move || run_git(&p, &["show", "--format=", "-m", "--first-parent", "--patch", &h]))
     };
 
-    // Status letter per (new) path. `-z` gives exact NUL-separated fields even
-    // for renames/copies: "R100 NUL old NUL new NUL".
+    // Status letter per (new) path; `-z` gives NUL-separated fields, incl. renames: "R100 NUL old NUL new NUL".
     let name_status = run_git(
         &path,
         &["show", "--format=", "--name-status", "-z", "-m", "--first-parent", &hash],
@@ -71,8 +68,7 @@ pub fn commit_detail(path: String, hash: String) -> Result<CommitDetail, GitErro
         }
     }
 
-    // Full message and per-file add/delete counts in one call: %B then a NUL,
-    // then the numstat records (NUL-terminated because of -z).
+    // Full message + per-file counts in one call: %B, a NUL, then numstat records.
     let out = run_git(
         &path,
         &["show", "--format=%B%x00", "--numstat", "-z", "-m", "--first-parent", &hash],
@@ -96,8 +92,7 @@ pub fn commit_detail(path: String, hash: String) -> Result<CommitDetail, GitErro
         // Binary files report "-" for both counts.
         let additions = cols[0].parse::<u32>().unwrap_or(0);
         let deletions = cols[1].parse::<u32>().unwrap_or(0);
-        // Renames leave the inline path empty; the old and new paths follow as
-        // two separate NUL fields.
+        // Renames leave the inline path empty; old/new paths follow as separate NUL fields.
         let (fpath, renamed) = if cols[2].is_empty() {
             let _old = records.next();
             (records.next().unwrap_or("").to_string(), true)

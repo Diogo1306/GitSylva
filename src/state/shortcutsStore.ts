@@ -2,10 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { t } from "../i18n";
 
-// Rebindable global shortcuts (handoff interactions §Global + Settings).
-// A combo is stored as "mod+shift+k" — `mod` is ⌘ on macOS, Ctrl elsewhere.
-// Every action requires the mod key so plain typing can never trigger git ops.
-
+// Rebindable global shortcuts. Combo stored as "mod+shift+k" (`mod` = ⌘ on macOS, Ctrl elsewhere); every action requires the mod key so plain typing never triggers git ops.
 export type ShortcutAction = "palette" | "commit" | "push" | "pull" | "fetch" | "branch" | "stash";
 
 /** All actions, in display order — for iterating the shortcut list. */

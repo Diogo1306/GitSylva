@@ -13,9 +13,7 @@ export type Density = "conforto" | "compacta";
 /** History detail/diff panel placement: beside the list or below it. */
 export type HistoryLayout = "lado" | "baixo";
 
-// Note: earlier builds persisted `density` and `language` keys that nothing
-// consumed; they were dropped to keep every stored preference real. Stale keys
-// in localStorage are simply ignored on rehydrate.
+// Stale localStorage keys from earlier builds are simply ignored on rehydrate.
 type ThemeState = {
   theme: ThemeKey;
   treeStyle: TreeStyleKey;
@@ -37,8 +35,9 @@ type ThemeState = {
   resetPrefs: () => void;
 };
 
+// V2 default theme is light "classic" (claro). New users only: rehydrate overlays these defaults and never resets an already-persisted pref.
 const DEFAULTS: ThemePrefsSlice = {
-  theme: "escuro",
+  theme: "claro",
   treeStyle: "normal",
   branchColor: "auto",
   accentIdx: 0,
@@ -76,8 +75,7 @@ export const useThemeStore = create<ThemeState>()(
   persist(
     (set) => ({
       ...DEFAULTS,
-      // Resetting the accent when the theme changes keeps it in range, since
-      // each theme has its own accent list.
+      // Reset accent on theme change to keep it in range (each theme has its own accent list).
       savePrefs: (patch) =>
         set((s) => {
           const next = { ...patch };

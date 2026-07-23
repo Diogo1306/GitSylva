@@ -25,6 +25,7 @@ export type Sel = { path: string; staged: boolean } | null;
 export function WorkingCopy() {
   const t = useT();
   const repo = useAppStore((s) => s.repo)!;
+  const setModal = useAppStore((s) => s.setModal);
   const { data, isLoading, error } = useStatus(repo.path);
   const actions = useStageActions(repo.path);
   const hunk = useHunkActions(repo.path);
@@ -126,8 +127,8 @@ export function WorkingCopy() {
     return () => window.removeEventListener("gitsylva:commit", onCommitShortcut);
   });
 
-  if (isLoading) return <div style={{ padding: 16, color: "var(--muted)" }}>{t("workingCopy.loadingChanges")}</div>;
-  if (error) return <div style={{ padding: 16, color: "var(--ddT)" }}>{errMsg(error, t("workingCopy.statusError"))}</div>;
+  if (isLoading) return <div style={{ padding: "var(--sp-7)", color: "var(--muted)" }}>{t("workingCopy.loadingChanges")}</div>;
+  if (error) return <div style={{ padding: "var(--sp-7)", color: "var(--ddT)" }}>{errMsg(error, t("workingCopy.statusError"))}</div>;
 
   const files = data ?? [];
   // Conflicted files show once (in the unstaged list, letter "U") — staging them
@@ -281,6 +282,7 @@ export function WorkingCopy() {
             if (useThemeStore.getState().confirmDiscard) setConfirmDiscardAll(true);
             else discardAll();
           }}
+          onStash={() => setModal("stash")}
           onToggle={stageEntry}
           onSelect={select}
           onContext={(x, y, file) => setFileMenu({ x, y, file })}

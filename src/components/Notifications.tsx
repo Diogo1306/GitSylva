@@ -3,10 +3,7 @@ import { useToastStore, type ToastKind } from "../state/toastStore";
 import { useThemeStore } from "../state/themeStore";
 import { useT } from "../i18n";
 
-// One notification corner for everything (user request R5): notification
-// cards AND quick toasts share the same stack at the bottom right, with the
-// same card look and the same in/out motion. Toasts are click-to-dismiss;
-// notifications keep ✕ and hover-pauses-the-timer.
+// Notifications and quick toasts share one bottom-right stack, same card look and in/out motion. Toasts are click-to-dismiss; notifications keep ✕ + hover-pauses-the-timer.
 
 const DOT: Record<NotifKind, string> = {
   success: "var(--leaf)",
@@ -29,8 +26,8 @@ function cardStyle(error: boolean, exiting: boolean, exitMs: number): React.CSSP
     boxSizing: "border-box",
     background: "var(--win)",
     border: `1px solid ${error ? "var(--ddT)" : "var(--border)"}`,
-    borderRadius: 12,
-    boxShadow: "var(--shadow-1)",
+    borderRadius: "var(--r-card)",
+    boxShadow: "var(--shadow)",
     padding: "13px 15px",
     display: "flex",
     gap: 11,
@@ -42,8 +39,7 @@ function cardStyle(error: boolean, exiting: boolean, exitMs: number): React.CSSP
   };
 }
 
-// Small vine flourish hugging the card corner (animation spec §Toast),
-// decorative and gated by the anims preference.
+// Small vine flourish hugging the card corner, decorative and gated by the anims preference.
 export function Vine({ treeStyle }: { treeStyle: string }) {
   // Static flourish — one curved stem plus a leaf/blossom, no animation loops.
   return (
@@ -100,15 +96,15 @@ export function Notifications() {
           {anims && <Vine treeStyle={treeStyle} />}
           <span style={{ width: 9, height: 9, borderRadius: "50%", background: DOT[n.kind], marginTop: 4, flexShrink: 0 }} />
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 13.5, fontWeight: 600, color: "var(--text)", lineHeight: 1.35 }}>{n.title}</div>
+            <div style={{ fontSize: "var(--fs-base)", fontWeight: "var(--fw-semibold)", color: "var(--text)", lineHeight: 1.35 }}>{n.title}</div>
             {n.sub && (
-              <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 3, lineHeight: 1.4, overflowWrap: "break-word" }}>{n.sub}</div>
+              <div style={{ fontSize: "var(--fs-xs)", color: "var(--muted)", marginTop: 3, lineHeight: 1.4, overflowWrap: "break-word" }}>{n.sub}</div>
             )}
           </div>
           <button
             onClick={() => dismiss(n.id)}
             aria-label={t("components.notif.dismiss")}
-            style={{ width: 20, height: 20, borderRadius: 6, display: "grid", placeItems: "center", background: "transparent", border: "none", color: "var(--muted)", fontSize: 12, cursor: "pointer", flexShrink: 0, fontFamily: "inherit" }}
+            style={{ width: 20, height: 20, borderRadius: "var(--r-sm)", display: "grid", placeItems: "center", background: "transparent", border: "none", color: "var(--muted)", fontSize: 12, cursor: "pointer", flexShrink: 0, fontFamily: "inherit" }}
             className="gs-row"
           >
             ✕
@@ -121,13 +117,12 @@ export function Notifications() {
           onClick={() => dismissToast(to.id)}
           title={t("common.close")}
           role={to.kind === "error" ? "alert" : "status"}
-          // The store removes the toast 220ms after dismiss — the exit must
-          // not outlive that window.
+          // Exit animation (200ms) must not outlive the store's 220ms removal.
           style={{ ...cardStyle(to.kind === "error", to.exiting, 200), cursor: "pointer" }}
         >
           {anims && <Vine treeStyle={treeStyle} />}
           <span style={{ width: 9, height: 9, borderRadius: "50%", background: TOAST_DOT[to.kind], marginTop: 4, flexShrink: 0 }} />
-          <span style={{ flex: 1, minWidth: 0, fontSize: 13, color: "var(--text)", lineHeight: 1.4, overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical" }}>
+          <span style={{ flex: 1, minWidth: 0, fontSize: "var(--fs-sm)", color: "var(--text)", lineHeight: 1.4, overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical" }}>
             {to.text}
           </span>
         </div>

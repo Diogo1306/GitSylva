@@ -64,7 +64,7 @@ function cellStyle(cell: Cell): React.CSSProperties {
   return { display: "flex", fontFamily: mono, fontSize: 11.5, lineHeight: 1.75, padding: "0 10px", whiteSpace: "pre", background: bg, color: "var(--text2)", overflow: "hidden", ...rowContain };
 }
 
-export function DiffSplit({ patch }: { patch: string }) {
+export function DiffSplit({ patch, clean }: { patch: string; clean?: boolean }) {
   const rows = useMemo(() => parse(patch), [patch]);
   // Same highlight limits as the unified view (see diffLimits.ts).
   const hlOk = useMemo(() => shouldHighlight(rows.length), [rows]);
@@ -78,10 +78,34 @@ export function DiffSplit({ patch }: { patch: string }) {
       <span style={{ flex: 1, minWidth: 0 }}>{c ? hl(c.text) || " " : " "}</span>
     </div>
   );
+  // Clean mode (commit detail): drop plumbing headers, show hunk boundaries as
+  // a subtle full-width separator with a readable new-side line range.
+  const cleanHeader = (r: Row, i: number): React.ReactNode => {
+    if (r.headerKind === "meta") {
+      if (!r.header!.startsWith("Binary files")) return null;
+      return (
+        <div key={i} style={{ gridColumn: "1 / -1", fontFamily: mono, fontSize: 11.5, padding: "4px 10px", color: "var(--muted)", ...rowContain }}>
+          {r.header}
+        </div>
+      );
+    }
+    const h = parseHunkHeader(r.header!);
+    const label = h ? `${h.newStart}–${h.newStart + Math.max(1, h.newCount) - 1}` : "";
+    return (
+      <div key={i} style={{ gridColumn: "1 / -1", display: "flex", alignItems: "center", gap: 10, padding: "5px 10px", userSelect: "none", ...rowContain }}>
+        <span style={{ flex: 1, height: 1, background: "var(--bsoft)" }} />
+        <span style={{ fontFamily: mono, fontSize: 10, color: "var(--muted)", letterSpacing: 0.3 }}>{label}</span>
+        <span style={{ flex: 1, height: 1, background: "var(--bsoft)" }} />
+      </div>
+    );
+  };
   return (
     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", columnGap: 1, background: "var(--border)" }}>
       {rows.map((r, i) =>
         r.header !== undefined ? (
+          clean ? (
+            cleanHeader(r, i)
+          ) : (
           <div
             key={i}
             style={{
@@ -98,6 +122,7 @@ export function DiffSplit({ patch }: { patch: string }) {
           >
             {r.header}
           </div>
+          )
         ) : (
           <div key={i} style={{ display: "contents" }}>
             {cell(r.left ?? null)}

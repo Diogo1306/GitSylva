@@ -3,6 +3,7 @@ import { DiffLines } from "./DiffLines";
 import { DiffSplit } from "./DiffSplit";
 import { DIFF_PAGE_LINES, TRUNCATED_MARKER } from "../lib/diffLimits";
 import { useT } from "../i18n";
+import { activateOnKeyDown } from "./ui/keys";
 
 // Diff with a unified/side-by-side toggle. The mode is remembered per session
 // (sessionStorage) so switching files keeps the chosen view.
@@ -20,6 +21,7 @@ export function DiffView({
   onStageHunk,
   stageLabel,
   onLoadFull,
+  clean,
 }: {
   patch: string;
   fontSize?: number;
@@ -27,6 +29,8 @@ export function DiffView({
   stageLabel?: string;
   /** Present when the backend capped this patch; requests the uncapped one. */
   onLoadFull?: () => void;
+  /** Clean mode (commit detail): hide git plumbing, quiet hunk separators. */
+  clean?: boolean;
 }) {
   const t = useT();
   const [mode, setMode] = useState<DiffMode>(() =>
@@ -65,19 +69,24 @@ export function DiffView({
     [lines, visibleCount],
   );
 
+  // Real buttons (not bare divs) so the mode pill is keyboard-operable
+  // (Enter/Space) and announces its state, matching the DiffPane toggles.
   const tab = (m: "unified" | "split", label: string) => (
-    <div
+    <button
+      type="button"
       onClick={() => set(m)}
-      style={{ padding: "3px 10px", borderRadius: 6, fontSize: 11.5, fontWeight: 600, cursor: "pointer", background: mode === m ? "var(--win)" : "transparent", color: mode === m ? "var(--text)" : "var(--muted)" }}
+      onKeyDown={activateOnKeyDown}
+      aria-pressed={mode === m}
+      style={{ padding: "3px 10px", margin: 0, border: "none", borderRadius: 6, fontSize: 11.5, fontWeight: 600, fontFamily: "inherit", cursor: "pointer", background: mode === m ? "var(--win)" : "transparent", color: mode === m ? "var(--text)" : "var(--muted)" }}
     >
       {label}
-    </div>
+    </button>
   );
 
   return (
     <div style={{ display: "flex", flexDirection: "column", minHeight: 0 }}>
       <div style={{ display: "flex", justifyContent: "flex-end", padding: "0 10px 6px" }}>
-        <div style={{ display: "inline-flex", gap: 3, padding: 3, borderRadius: 8, background: "var(--panel2)", border: "1px solid var(--border)" }}>
+        <div role="group" aria-label={t("components.diff.modeGroupLabel")} style={{ display: "inline-flex", gap: 3, padding: 3, borderRadius: 8, background: "var(--panel2)", border: "1px solid var(--border)" }}>
           {tab("unified", t("components.diff.unified"))}
           {tab("split", t("components.diff.split"))}
         </div>
@@ -85,9 +94,9 @@ export function DiffView({
       {/* Diff text IS content — it stays selectable/copyable (R5.12). */}
       <div className="gs-selectable" style={{ display: "contents" }}>
         {mode === "split" ? (
-          <DiffSplit patch={visiblePatch} />
+          <DiffSplit patch={visiblePatch} clean={clean} />
         ) : (
-          <DiffLines patch={visiblePatch} fontSize={fontSize} onStageHunk={onStageHunk} stageLabel={stageLabel} partialTail={partialTail} />
+          <DiffLines patch={visiblePatch} fontSize={fontSize} onStageHunk={onStageHunk} stageLabel={stageLabel} partialTail={partialTail} clean={clean} />
         )}
       </div>
       {hidden > 0 && (

@@ -19,9 +19,9 @@ import {
   type FontKey,
 } from "../../../theme/themes";
 import { useT } from "../../../i18n";
-import { Toggle } from "../../../components/ui/misc";
 import { Button } from "../../../components/ui/Button";
-import { SectionTitle, FieldLabel, Hint } from "./_shared";
+import { Segmented } from "../../../components/ui/Segmented";
+import { SectionTitle, FieldLabel, Hint, ToggleRow } from "./_shared";
 import { pillStyle } from "./pill";
 
 const THEME_KEYS = ["theme", "treeStyle", "branchColor", "accentIdx", "fontKey", "anims"] as const;
@@ -35,8 +35,8 @@ function ThemeCard({ themeKey, active, onPick }: { themeKey: ThemeKey; active: b
   const v = p.vars;
   const accent = p.accents[0][1];
   return (
-    <div onClick={onPick} style={{ flex: 1, border: `2px solid ${active ? "var(--accent)" : "var(--btnB)"}`, borderRadius: 12, padding: 10, cursor: "pointer", display: "flex", flexDirection: "column", gap: 10, background: "var(--panel)" }}>
-      <div style={{ height: 88, borderRadius: 8, background: v["--win"], border: `1px solid ${v["--border"]}`, overflow: "hidden", display: "flex" }}>
+    <div onClick={onPick} style={{ flex: 1, border: `2px solid ${active ? "var(--accent)" : "var(--btnB)"}`, borderRadius: "var(--r-card)", padding: 10, cursor: "pointer", display: "flex", flexDirection: "column", gap: 10, background: "var(--panel)" }}>
+      <div style={{ height: 88, borderRadius: "var(--r-btn)", background: v["--win"], border: `1px solid ${v["--border"]}`, overflow: "hidden", display: "flex" }}>
         <div style={{ width: "34%", background: v["--panel"], borderRight: `1px solid ${v["--border"]}` }} />
         <div style={{ flex: 1, padding: 10, display: "flex", flexDirection: "column", gap: 7 }}>
           <div style={{ height: 7, width: "72%", borderRadius: 4, background: v["--text"] }} />
@@ -47,8 +47,8 @@ function ThemeCard({ themeKey, active, onPick }: { themeKey: ThemeKey; active: b
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         <span style={{ width: 14, height: 14, borderRadius: "50%", border: `2px solid ${v["--l0"]}`, background: accent, boxSizing: "border-box" }} />
-        <span style={{ fontSize: 13, fontWeight: 600 }}>{themeName(themeKey)}</span>
-        <span style={{ fontSize: 12, color: "var(--muted)" }}>{themeHint(themeKey)}</span>
+        <span style={{ fontSize: "var(--fs-sm)", fontWeight: "var(--fw-semibold)" }}>{themeName(themeKey)}</span>
+        <span style={{ fontSize: "var(--fs-xs)", color: "var(--muted)" }}>{themeHint(themeKey)}</span>
       </div>
     </div>
   );
@@ -133,7 +133,7 @@ export function Appearance() {
 
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         <FieldLabel>{t("settings.appearance.theme")}</FieldLabel>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <div style={{ display: "flex", gap: 12 }}>
           {THEME_ORDER.map((k) => (
             <ThemeCard key={k} themeKey={k} active={prefs.theme === k} onPick={() => prefs.savePrefs({ theme: k })} />
           ))}
@@ -142,15 +142,15 @@ export function Appearance() {
 
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         <FieldLabel>{t("settings.appearance.treeStyle")}</FieldLabel>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <div style={{ display: "flex", gap: 12 }}>
           {TREE_ORDER.map((k) => {
             const active = prefs.treeStyle === k;
             return (
-              <div key={k} onClick={() => prefs.savePrefs({ treeStyle: k })} className="gs-lift" style={{ border: `2px solid ${active ? "var(--accent)" : "var(--btnB)"}`, borderRadius: 12, padding: "12px 14px", cursor: "pointer", display: "flex", alignItems: "center", gap: 11, background: "var(--panel)" }}>
+              <div key={k} onClick={() => prefs.savePrefs({ treeStyle: k })} className="gs-lift" style={{ flex: 1, border: `2px solid ${active ? "var(--accent)" : "var(--btnB)"}`, borderRadius: "var(--r-card)", padding: "12px 14px", cursor: "pointer", display: "flex", alignItems: "center", gap: 11, background: "var(--panel)" }}>
                 <TreeIcon kind={k} leaf={treeLeafColor(prefs.theme, k)} />
                 <div>
-                  <div style={{ fontSize: 13, fontWeight: 600 }}>{treeName(k)}</div>
-                  <div style={{ fontSize: 11.5, color: "var(--muted)" }}>{treeDesc(k)}</div>
+                  <div style={{ fontSize: "var(--fs-sm)", fontWeight: "var(--fw-semibold)" }}>{treeName(k)}</div>
+                  <div style={{ fontSize: "var(--fs-2xs)", color: "var(--muted)" }}>{treeDesc(k)}</div>
                 </div>
               </div>
             );
@@ -172,13 +172,12 @@ export function Appearance() {
         <Hint>{t("settings.appearance.branchHint")}</Hint>
       </div>
 
-      <div onClick={() => prefs.savePrefs({ anims: !prefs.anims })} style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 4px", cursor: "pointer", borderBottom: "1px solid var(--bsoft)" }}>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 13.5, fontWeight: 500 }}>{t("settings.appearance.anims")}</div>
-          <Hint>{t("settings.appearance.animsHint")}</Hint>
-        </div>
-        <Toggle on={prefs.anims} aria-label={t("settings.appearance.anims")} />
-      </div>
+      <ToggleRow
+        label={t("settings.appearance.anims")}
+        hint={t("settings.appearance.animsHint")}
+        on={prefs.anims}
+        onToggle={() => prefs.savePrefs({ anims: !prefs.anims })}
+      />
 
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         <FieldLabel>{t("settings.appearance.accent")}</FieldLabel>
@@ -194,36 +193,48 @@ export function Appearance() {
 
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         <FieldLabel>{t("settings.appearance.density")}</FieldLabel>
-        <div style={{ display: "inline-flex", gap: 4, padding: 4, borderRadius: 10, background: "var(--panel2)", border: "1px solid var(--border)", alignSelf: "flex-start" }}>
-          {(["conforto", "compacta"] as const).map((k) => (
-            <div key={k} onClick={() => prefs.savePrefs({ density: k })} style={{ padding: "6px 16px", borderRadius: 7, fontSize: 13, fontWeight: 600, cursor: "pointer", background: prefs.density === k ? "var(--win)" : "transparent", color: prefs.density === k ? "var(--text)" : "var(--muted)" }}>
-              {k === "conforto" ? t("settings.appearance.densityComfort") : t("settings.appearance.densityCompact")}
-            </div>
-          ))}
+        <div style={{ alignSelf: "flex-start" }}>
+          <Segmented
+            aria-label={t("settings.appearance.density")}
+            value={prefs.density}
+            onChange={(v) => prefs.savePrefs({ density: v as typeof prefs.density })}
+            options={[
+              { value: "conforto", label: t("settings.appearance.densityComfort") },
+              { value: "compacta", label: t("settings.appearance.densityCompact") },
+            ]}
+          />
         </div>
         <Hint>{t("settings.appearance.densityHint")}</Hint>
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         <FieldLabel>{t("settings.appearance.openRepos")}</FieldLabel>
-        <div style={{ display: "inline-flex", gap: 4, padding: 4, borderRadius: 10, background: "var(--panel2)", border: "1px solid var(--border)", alignSelf: "flex-start" }}>
-          {(["tabs", "rail"] as const).map((k) => (
-            <div key={k} onClick={() => prefs.savePrefs({ repoLayout: k })} style={{ padding: "6px 16px", borderRadius: 7, fontSize: 13, fontWeight: 600, cursor: "pointer", background: prefs.repoLayout === k ? "var(--win)" : "transparent", color: prefs.repoLayout === k ? "var(--text)" : "var(--muted)" }}>
-              {k === "tabs" ? t("settings.appearance.layoutTabs") : t("settings.appearance.layoutRail")}
-            </div>
-          ))}
+        <div style={{ alignSelf: "flex-start" }}>
+          <Segmented
+            aria-label={t("settings.appearance.openRepos")}
+            value={prefs.repoLayout}
+            onChange={(v) => prefs.savePrefs({ repoLayout: v as typeof prefs.repoLayout })}
+            options={[
+              { value: "tabs", label: t("settings.appearance.layoutTabs") },
+              { value: "rail", label: t("settings.appearance.layoutRail") },
+            ]}
+          />
         </div>
         <Hint>{t("settings.appearance.openReposHint")}</Hint>
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         <FieldLabel>{t("settings.appearance.historyPanel")}</FieldLabel>
-        <div style={{ display: "inline-flex", gap: 4, padding: 4, borderRadius: 10, background: "var(--panel2)", border: "1px solid var(--border)", alignSelf: "flex-start" }}>
-          {(["lado", "baixo"] as const).map((k) => (
-            <div key={k} onClick={() => prefs.savePrefs({ historyLayout: k })} style={{ padding: "6px 16px", borderRadius: 7, fontSize: 13, fontWeight: 600, cursor: "pointer", background: prefs.historyLayout === k ? "var(--win)" : "transparent", color: prefs.historyLayout === k ? "var(--text)" : "var(--muted)" }}>
-              {k === "lado" ? t("settings.appearance.historySide") : t("settings.appearance.historyBelow")}
-            </div>
-          ))}
+        <div style={{ alignSelf: "flex-start" }}>
+          <Segmented
+            aria-label={t("settings.appearance.historyPanel")}
+            value={prefs.historyLayout}
+            onChange={(v) => prefs.savePrefs({ historyLayout: v as typeof prefs.historyLayout })}
+            options={[
+              { value: "lado", label: t("settings.appearance.historySide") },
+              { value: "baixo", label: t("settings.appearance.historyBelow") },
+            ]}
+          />
         </div>
         <Hint>{t("settings.appearance.historyPanelHint")}</Hint>
       </div>
@@ -234,10 +245,10 @@ export function Appearance() {
           {FONT_ORDER.map((k) => {
             const active = prefs.fontKey === k;
             return (
-              <div key={k} onClick={() => prefs.savePrefs({ fontKey: k })} style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 14px", borderRadius: 10, border: `2px solid ${active ? "var(--accent)" : "var(--btnB)"}`, cursor: "pointer", background: "var(--panel)" }}>
+              <div key={k} onClick={() => prefs.savePrefs({ fontKey: k })} style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 14px", borderRadius: "var(--r-lg)", border: `2px solid ${active ? "var(--accent)" : "var(--btnB)"}`, cursor: "pointer", background: "var(--panel)" }}>
                 <span style={{ width: 14, height: 14, borderRadius: "50%", border: `2px solid ${active ? "var(--accent)" : "var(--btnB)"}`, background: active ? "var(--accent)" : "transparent", boxSizing: "border-box", flexShrink: 0 }} />
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 13.5, fontWeight: 600 }}>{fontName(k)}</div>
+                  <div style={{ fontSize: "var(--fs-base)", fontWeight: "var(--fw-semibold)" }}>{fontName(k)}</div>
                   <Hint>{fontDesc(k)}</Hint>
                 </div>
                 <div style={{ fontSize: 16, color: "var(--text2)", fontFamily: FONTS[k].stack }}>AaBbCc 0123</div>

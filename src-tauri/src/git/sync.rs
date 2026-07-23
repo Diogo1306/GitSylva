@@ -30,6 +30,11 @@ pub async fn push_cmd(path: String) -> Result<(), GitError> {
     crate::git::run_mutating("push", path.clone(), move || push(path)).await
 }
 
+#[tauri::command(rename = "push_branches")]
+pub async fn push_branches_cmd(path: String, branches: Vec<String>) -> Result<(), GitError> {
+    crate::git::run_mutating("push_branches", path.clone(), move || push_branches(path, branches)).await
+}
+
 #[tauri::command(rename = "outgoing")]
 pub async fn outgoing_cmd(path: String) -> Result<Vec<Commit>, GitError> {
     crate::git::run_blocking("outgoing", move || outgoing(path)).await
@@ -40,9 +45,8 @@ pub async fn incoming_cmd(path: String) -> Result<Vec<Commit>, GitError> {
     crate::git::run_blocking("incoming", move || incoming(path)).await
 }
 
-/// Fetch all remotes and prune deleted refs. Fails fast (no credential
-/// prompt) and is killed after 120s: fetch is idempotent, so a hung network
-/// must not leave the UI "A verificar origin…" forever.
+/// Fetches all remotes and prunes deleted refs; killed after 120s since a
+/// hung network must not block the UI forever (fetch is idempotent).
 pub fn fetch(path: String) -> Result<(), GitError> {
     crate::git::run_git_timeout(&path, &["fetch", "--all", "--prune"], 120).map(|_| ())
 }
@@ -68,13 +72,9 @@ pub fn incoming(path: String) -> Result<Vec<Commit>, GitError> {
     Ok(log_range(&path, "HEAD..@{u}"))
 }
 
-/// Pull using the chosen mode: "ff" (fast-forward only, safe default),
-/// "merge" (default git merge), or "rebase".
-///
-/// Uses `run_git_full` (not plain `run_git`) so a merge/rebase conflict's
-/// "CONFLICT ..."/"Automatic merge failed ..." text — which git prints to
-/// STDOUT — reaches the frontend and is classified as a conflict instead of a
-/// generic error.
+/// Pulls using `mode`: "ff" (fast-forward only, safe default), "merge", or
+/// "rebase". Uses `run_git_full` so a conflict's STDOUT text reaches the
+/// frontend classifier instead of being dropped.
 pub fn pull(path: String, mode: String) -> Result<(), GitError> {
     let flag = match mode.as_str() {
         "merge" => "--no-rebase",
@@ -92,6 +92,21 @@ pub fn push(path: String) -> Result<(), GitError> {
     } else {
         run_git(&path, &["push", "-u", "origin", "HEAD"]).map(|_| ())
     }
+}
+
+/// Pushes each selected local branch to origin, in order, stopping at the
+/// first failure. Sets the upstream per-branch when it has none yet — mirrors
+/// `push`'s upstream handling but keyed on the pushed branch, not HEAD.
+pub fn push_branches(path: String, branches: Vec<String>) -> Result<(), GitError> {
+    for branch in &branches {
+        let has_upstream = run_git(&path, &["rev-parse", "--abbrev-ref", &format!("{branch}@{{u}}")]).is_ok();
+        if has_upstream {
+            run_git(&path, &["push", "origin", branch]).map(|_| ())?;
+        } else {
+            run_git(&path, &["push", "-u", "origin", branch]).map(|_| ())?;
+        }
+    }
+    Ok(())
 }
 
 /// How far the current branch is ahead/behind its upstream. No upstream -> zeros.
@@ -133,7 +148,6 @@ mod tests {
         let bare_s = slug(&bare);
         run_git(&bare_s, &["init", "--bare", "-b", "main"]).unwrap();
 
-        // Uploader clone: commit and push "one".
         let up = base.join("up");
         fs::create_dir_all(&up).unwrap();
         let up_s = up.to_string_lossy().to_string();
@@ -146,12 +160,10 @@ mod tests {
         run_git(&up_s, &["remote", "add", "origin", &bare_s]).unwrap();
         run_git(&up_s, &["push", "-u", "origin", "main"]).unwrap();
 
-        // Downloader clone.
         let down = base.join("down");
         run_git(&slug(&base), &["clone", &bare_s, "down"]).unwrap();
         let down_s = down.to_string_lossy().to_string();
 
-        // New commit pushed from the uploader.
         fs::write(up.join("a.txt"), "one\ntwo\n").unwrap();
         run_git(&up_s, &["commit", "-am", "two"]).unwrap();
         run_git(&up_s, &["push"]).unwrap();
@@ -191,11 +203,51 @@ mod tests {
     }
 
     #[test]
+    fn push_branches_sends_each_branch_and_sets_upstream() {
+        let base = std::env::temp_dir().join(format!("gitsylva-push-branches-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&base);
+        fs::create_dir_all(&base).unwrap();
+
+        let bare = base.join("remote.git");
+        fs::create_dir_all(&bare).unwrap();
+        let bare_s = slug(&bare);
+        run_git(&bare_s, &["init", "--bare", "-b", "main"]).unwrap();
+
+        let repo = base.join("repo");
+        fs::create_dir_all(&repo).unwrap();
+        let repo_s = repo.to_string_lossy().to_string();
+        run_git(&repo_s, &["init", "-b", "main"]).unwrap();
+        run_git(&repo_s, &["config", "user.email", "t@t.com"]).unwrap();
+        run_git(&repo_s, &["config", "user.name", "T"]).unwrap();
+        fs::write(repo.join("a.txt"), "one\n").unwrap();
+        run_git(&repo_s, &["add", "-A"]).unwrap();
+        run_git(&repo_s, &["commit", "-m", "one"]).unwrap();
+        run_git(&repo_s, &["remote", "add", "origin", &bare_s]).unwrap();
+
+        // A second local branch, never pushed, so it has no upstream yet.
+        run_git(&repo_s, &["checkout", "-b", "feature"]).unwrap();
+        fs::write(repo.join("b.txt"), "two\n").unwrap();
+        run_git(&repo_s, &["add", "-A"]).unwrap();
+        run_git(&repo_s, &["commit", "-m", "two"]).unwrap();
+        run_git(&repo_s, &["checkout", "main"]).unwrap();
+
+        push_branches(repo_s.clone(), vec!["main".into(), "feature".into()]).unwrap();
+
+        // Both branches landed on the bare remote.
+        let refs = run_git(&bare_s, &["branch"]).unwrap();
+        assert!(refs.contains("main"));
+        assert!(refs.contains("feature"));
+
+        // Upstream got set for both, since neither had one before the push.
+        let up_main = run_git(&repo_s, &["rev-parse", "--abbrev-ref", "main@{u}"]).unwrap();
+        assert_eq!(up_main.trim(), "origin/main");
+        let up_feature = run_git(&repo_s, &["rev-parse", "--abbrev-ref", "feature@{u}"]).unwrap();
+        assert_eq!(up_feature.trim(), "origin/feature");
+    }
+
+    #[test]
     fn pull_merge_conflict_surfaces_conflict_text() {
-        // Regression: a merge-mode `git pull` prints "CONFLICT ..."/"Automatic
-        // merge failed ..." to STDOUT, which plain run_git discards. `pull`
-        // uses run_git_full so that text reaches the frontend classifier —
-        // without it the user saw only the fetch summary in an error box.
+        // Regression: merge conflict text lands on STDOUT; run_git_full must forward it.
         let base = std::env::temp_dir().join(format!("gitsylva-pull-conflict-{}", std::process::id()));
         let _ = fs::remove_dir_all(&base);
         fs::create_dir_all(&base).unwrap();
@@ -205,7 +257,6 @@ mod tests {
         let bare_s = slug(&bare);
         run_git(&bare_s, &["init", "--bare", "-b", "main"]).unwrap();
 
-        // Uploader: base commit pushed to origin/main.
         let up = base.join("up");
         fs::create_dir_all(&up).unwrap();
         let up_s = up.to_string_lossy().to_string();
@@ -218,8 +269,7 @@ mod tests {
         run_git(&up_s, &["remote", "add", "origin", &bare_s]).unwrap();
         run_git(&up_s, &["push", "-u", "origin", "main"]).unwrap();
 
-        // Downloader clones, then both sides edit the same line differently so
-        // the histories diverge with a real content conflict.
+        // Both sides then edit the same line differently, causing a real content conflict.
         let down = base.join("down");
         run_git(&slug(&base), &["clone", &bare_s, "down"]).unwrap();
         let down_s = down.to_string_lossy().to_string();

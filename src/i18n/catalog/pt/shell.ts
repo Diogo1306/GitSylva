@@ -1,7 +1,7 @@
 import type { MessageValue } from "../../types";
 
-// App shell chrome: Titlebar, Sidebar, ActionBar, RepoRail, CommandPalette,
-// Modals, GroupEditModal, AppShell. Namespace: "shell.*".
+// App shell chrome: Titlebar, Sidebar, RepoRail, CommandPalette, Modals,
+// GroupEditModal, AppShell. Namespace: "shell.*".
 export const ptShell = {
   // ── generic / shared shell vocabulary ──────────────────────────────────────
   "shell.soonTooltip": "{label} · em breve",
@@ -51,11 +51,6 @@ export const ptShell = {
   "shell.error.mergeConflict": "conflito ou erro no merge",
   "shell.error.mergeConflictWC": "conflito no merge — vê a Cópia de trabalho",
   "shell.error.rebaseConflictWC": "conflito no rebase — vê a Cópia de trabalho",
-
-  // ── ActionBar ──────────────────────────────────────────────────────────────
-  "shell.actionBar.aria": "Ações",
-  "shell.actionBar.commitsToPush": "commits por enviar",
-  "shell.actionBar.commitsToPull": "commits por integrar",
 
   // ── AppShell ───────────────────────────────────────────────────────────────
   "shell.fetch.doneTitle": "Fetch concluído",
@@ -123,6 +118,8 @@ export const ptShell = {
   "shell.branch.behindTitle": { one: "{count} commit por integrar (pull)", other: "{count} commits por integrar (pull)" },
   "shell.branch.deleteAria": "Apagar {name}",
   "shell.branch.noMatches": "Sem branches correspondentes",
+  "shell.branch.checkout": "Checkout",
+  "shell.branch.searchToggle": "Filtrar branches",
   "shell.branch.checkoutLocal": "Checkout local de {name}…",
   "shell.branch.mergeInto": "Merge de {name} na branch atual…",
   "shell.branch.rebaseOnto": "Rebase da atual sobre {name}…",
@@ -203,6 +200,7 @@ export const ptShell = {
   },
   "shell.push.nothingToSend": "Nada para enviar — {branch} está atualizado com {upstream}.",
   "shell.push.nothingEmpty": "Nada para enviar.",
+  "shell.push.branchesHeading": "Branches a enviar",
   "shell.push.doneTitle": "Push concluído",
   "shell.push.doneSub": { one: "origin · {count} commit · {branch}", other: "origin · {count} commits · {branch}" },
   "shell.push.pushing": "A enviar…",
@@ -218,9 +216,10 @@ export const ptShell = {
   // ── Sidebar ────────────────────────────────────────────────────────────────
   "shell.sidebar.workspace": "ESPAÇO DE TRABALHO",
   "shell.sidebar.recents": "RECENTES",
+  "shell.sidebar.branches": "BRANCHES · {count}",
   "shell.sidebar.remotes": "REMOTOS",
-  "shell.sidebar.expand": "Expandir barra lateral",
-  "shell.sidebar.collapse": "Colapsar barra lateral",
+  "shell.sidebar.tags": "TAGS",
+  "shell.sidebar.account": "Conta & sync",
 
   // ── Folders (sidebar branch/remote folders) ────────────────────────────────
   "shell.folder.toggleTitle": "{action} {name}",
@@ -248,6 +247,21 @@ export const ptShell = {
   "shell.tab.rightClickGroups": "{path} · botão direito para grupos",
   "shell.tab.close": "Fechar {name}",
   "shell.tabs.aria": "Repositórios abertos",
+  "shell.repoSel.tooltip": "Repositório atual — clicar para trocar (abertos · fixados · recentes)",
+  "shell.repoSel.open": "ABERTOS",
+  "shell.repoSel.pinned": "FIXADOS",
+  "shell.repoSel.recents": "RECENTES",
+  "shell.repoSel.optionsAria": "Opções do repositório",
+  "shell.repoSel.addRepo": "Adicionar repositório (Local · Clonar · Criar)",
+  "shell.repoSel.pin": "Fixar",
+  "shell.repoSel.unpin": "Remover dos fixados",
+  "shell.repoSel.pinnedTitle": "Fixado",
+  "shell.repoSel.reveal": "Mostrar no explorador",
+  "shell.repoSel.revealError": "não foi possível abrir o explorador",
+  "shell.repoSel.copyPath": "Copiar caminho",
+  "shell.repoSel.pathCopied": "Caminho copiado",
+  "shell.repoSel.close": "Fechar repositório",
+  "shell.sync.menu": "Fetch · Pull · Push",
   "shell.fetch.tooltip": "Fetch de origin",
   "shell.fetch.fetching": "A obter…",
   "shell.discard.button": "↩ Descartar",

@@ -8,10 +8,10 @@ export function pillStyle(active: boolean): CSSProperties {
     alignItems: "center",
     gap: 8,
     padding: "7px 12px",
-    borderRadius: "var(--radius-pill)",
+    borderRadius: "var(--r-pill)",
     border: `2px solid ${active ? "var(--accent)" : "var(--btnB)"}`,
     cursor: "pointer",
     background: "var(--panel)",
-    fontSize: 13,
+    fontSize: "var(--fs-sm)",
   };
 }

@@ -1,10 +1,6 @@
 import { invoke as tauriInvoke } from "@tauri-apps/api/core";
 
-// Central instrumentation for every Tauri call plus global error capture.
-// The backend logs its own execution time; this side measures the full
-// round-trip (IPC + serialization) and keeps an in-memory ring for the
-// perf report (window.__gsPerf() / window.__gsPerfDump()).
-
+// Instruments every Tauri call (full IPC round-trip) into an in-memory ring for the perf report (window.__gsPerf() / window.__gsPerfDump()), plus global error capture.
 export type CallRecord = {
   cmd: string;
   ms: number;
@@ -28,9 +24,7 @@ function approxSize(result: unknown): number {
   return result == null ? 0 : 1;
 }
 
-// Errors are forwarded to the Rust log file so crashes in the field leave a
-// trail. Self-disables if the backend (or the command) is unavailable, e.g.
-// running in a plain browser.
+// Forward errors to the Rust log so field crashes leave a trail; self-disables if the backend is unavailable (e.g. plain browser).
 let backendLogOk = true;
 function toBackendLog(level: "info" | "warn" | "error", message: string) {
   if (!backendLogOk) return;

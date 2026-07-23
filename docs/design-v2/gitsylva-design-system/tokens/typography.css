@@ -1,0 +1,36 @@
+/* GitSylva typography */
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400..700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Space+Grotesk:wght@400;500;600&display=swap');
+
+:root {
+  /* families */
+  --font-sans: 'Instrument Sans', -apple-system, system-ui, sans-serif;
+  --font-serif: 'Instrument Serif', Georgia, serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', monospace;
+  --font-logo: 'Space Grotesk', var(--font-sans);
+  --font-a11y: 'Atkinson Hyperlegible', var(--font-sans);
+  --font: var(--font-sans); /* app default; may be overridden per user pref */
+
+  /* type scale (px) */
+  --fs-title: 22px;   /* settings / page titles */
+  --fs-logo: 17px;
+  --fs-lg: 15px;
+  --fs-md: 14.5px;    /* commit message, detail */
+  --fs-base: 13.5px;  /* body / nav */
+  --fs-sm: 13px;
+  --fs-btn: 12.5px;
+  --fs-xs: 12px;
+  --fs-2xs: 11.5px;
+  --fs-mono: 12px;    /* hashes, paths */
+  --fs-label: 10.5px; /* uppercase section labels */
+
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+  --fw-bold: 700;
+
+  --ls-label: 1.3px;  /* uppercase section labels */
+  --ls-logo: 0.3px;
+  --lh-tight: 1.2;
+  --lh-body: 1.45;
+  --lh-mono: 1.75;
+}

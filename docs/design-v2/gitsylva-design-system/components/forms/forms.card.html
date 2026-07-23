@@ -1,0 +1,33 @@
+<!-- @dsCard group="Components" viewport="700x210" subtitle="Actions & inputs across variants" name="Forms — Button, Input, Toggle, Segmented" -->
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="../../styles.css">
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>body{margin:0;font-family:var(--font-sans);background:var(--win);color:var(--text);padding:18px;box-sizing:border-box}.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}</style>
+</head><body><div id="root"></div>
+<script src="../../_ds_bundle.js"></script>
+<script type="text/babel" data-presets="react">
+  function findNS(need){ for(const k of Object.keys(window)){ const v=window[k]; if(v&&typeof v==='object'&&need.every(n=>n in v)) return v; } return window; }
+  const NS = findNS(["Button","IconButton","Input","Toggle","Segmented"]);
+  const { Button, IconButton, Input, Toggle, Segmented } = NS;
+  
+  function Demo(){
+    const [on,setOn]=React.useState(true); const [seg,setSeg]=React.useState('pt');
+    return (<div style={{display:'flex',flexDirection:'column',gap:14}}>
+      <div className="row">
+        <Button variant="primary">Commit</Button>
+        <Button variant="secondary">Branch</Button>
+        <Button variant="ghost">Ghost</Button>
+        <Button variant="danger">Descartar</Button>
+        <Button variant="secondary" loading>Fetch</Button>
+        <Button variant="secondary" disabled>Disabled</Button>
+        <IconButton title="settings">⚙</IconButton>
+      </div>
+      <div className="row"><div style={{width:240}}><Input placeholder="Filtrar histórico…"/></div>
+        <Toggle checked={on} onChange={setOn}/>
+        <Segmented value={seg} onChange={setSeg} options={[{value:'pt',label:'Português'},{value:'en',label:'English'}]}/>
+      </div>
+    </div>);
+  }
+  ReactDOM.createRoot(document.getElementById('root')).render(<Demo/>);
+</script></body></html>

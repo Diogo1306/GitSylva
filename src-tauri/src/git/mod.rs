@@ -22,22 +22,15 @@ use std::process::{Command, Stdio};
 use std::sync::{Arc, Mutex, OnceLock};
 use std::time::Instant;
 
-// ── Execução fora da main thread ─────────────────────────────────────────────
-//
-// Comandos #[tauri::command] síncronos correm NA MAIN THREAD da janela (o
-// handler IPC do wry vive no event loop). Um `git fetch` de 10s congelava a UI
-// inteira e o Windows marcava a janela como "não responde". Por isso todos os
-// comandos são wrappers `async fn` finos que despacham o trabalho bloqueante
-// para a blocking pool do tokio via `run_blocking`/`run_mutating`.
+// Tauri sync commands run on the main thread; heavy git work must go through
+// run_blocking/run_mutating or the UI freezes.
 
 thread_local! {
-    // Nome da operação em curso nesta thread — lido pelo panic hook para o log.
+    // Current op name, read by the panic hook for logging.
     pub static CURRENT_OP: std::cell::Cell<Option<&'static str>> = const { std::cell::Cell::new(None) };
 }
 
-/// Corre um trabalho git/filesystem bloqueante na blocking pool. Mede a
-/// duração, regista comandos lentos e converte um panic do trabalho num
-/// GitError (o processo NUNCA aborta por causa de um comando).
+/// Runs blocking git/filesystem work on the blocking pool; converts a panic into a GitError instead of aborting the process.
 pub async fn run_blocking<T, F>(name: &'static str, job: F) -> Result<T, GitError>
 where
     T: Send + 'static,
@@ -64,12 +57,10 @@ where
     })?
 }
 
-/// Uma entrada de lock por repositório: operações que ESCREVEM no repo entram
-/// em fila em vez de disputarem o .git/index.lock (duplo clique, fetch do
-/// atalho durante um pull, etc.). Leituras continuam concorrentes.
+/// Per-repo write lock: mutating operations queue instead of racing on .git/index.lock; reads stay concurrent.
 fn repo_lock(path: &str) -> Arc<Mutex<()>> {
     static LOCKS: OnceLock<Mutex<HashMap<String, Arc<Mutex<()>>>>> = OnceLock::new();
-    // Normalização barata; canonicalize() pode pendurar num caminho de rede morto.
+    // Cheap normalization; canonicalize() can hang on a dead network path.
     let key = path.replace('\\', "/").to_lowercase();
     let mut map = LOCKS
         .get_or_init(Default::default)
@@ -78,7 +69,7 @@ fn repo_lock(path: &str) -> Arc<Mutex<()>> {
     map.entry(key).or_default().clone()
 }
 
-/// `run_blocking` serializado por repositório — para operações mutantes.
+/// `run_blocking` serialized per repository, for mutating operations.
 pub async fn run_mutating<T, F>(name: &'static str, repo: String, job: F) -> Result<T, GitError>
 where
     T: Send + 'static,
@@ -86,17 +77,14 @@ where
 {
     run_blocking(name, move || {
         let lock = repo_lock(&repo);
-        // Um panic anterior com o lock preso não pode bloquear o repo para sempre.
+        // A poisoned lock from an earlier panic must not block the repo forever.
         let _guard = lock.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
         job()
     })
     .await
 }
 
-/// Esconde a janela de consola dos processos filho no Windows. Sem isto, cada
-/// spawn de git abre um terminal visível QUE ROUBA O FOCO à janela — além do
-/// flicker, as animações ambientais pausam a cada ação (data-win-hidden é
-/// ativado no blur). CREATE_NO_WINDOW = 0x08000000.
+/// Hides the child console window on Windows; an unhidden window steals focus and pauses ambient animations on blur. CREATE_NO_WINDOW = 0x08000000.
 #[cfg(windows)]
 pub fn hide_console(cmd: &mut Command) {
     use std::os::windows::process::CommandExt;
@@ -105,14 +93,10 @@ pub fn hide_console(cmd: &mut Command) {
 #[cfg(not(windows))]
 pub fn hide_console(_cmd: &mut Command) {}
 
-/// Diffs acima deste tamanho são cortados antes do IPC (o utilizador pode
-/// pedir o diff completo). Transferir e desenhar 20MB num só passo era um
-/// freeze de vários segundos no WebView.
+/// Diffs above this size are truncated before IPC (the frontend can request the full diff); transferring/drawing 20MB in one shot froze the WebView for seconds.
 pub const PATCH_CAP_BYTES: usize = 1_500_000;
 
-/// Linha-marcador anexada a um patch cortado. Linhas de conteúdo de um diff
-/// nunca começam por `\`, por isso é inequívoca; o frontend remove-a e mostra
-/// "Carregar diff completo" (ver diffLimits.ts).
+/// Marker appended to a truncated patch. Diff content lines never start with `\`, so this is unambiguous; the frontend strips it (see diffLimits.ts).
 pub const PATCH_TRUNCATED_MARKER: &str = "\\ gitsylva:truncated";
 
 /// Corta um patch em ~`max` bytes, numa fronteira de linha (e de char UTF-8),
@@ -129,20 +113,9 @@ pub fn cap_patch(patch: String, max: usize) -> String {
     format!("{}\n{}\n", &patch[..cut], PATCH_TRUNCATED_MARKER)
 }
 
-/// Trim git's raw stderr for a failed command.
-///
-/// This used to prepend a hardcoded Portuguese hint sentence ahead of the raw
-/// text. That is now redundant AND an i18n bug: the frontend classifies and
-/// localizes auth/network/conflict guidance itself in the user's chosen
-/// language (see `classifySyncError` in src/lib/errors.ts and
-/// `SyncFailurePanel` in src/features/shell/Modals.tsx), so a hardcoded-PT
-/// hint from the backend would render verbatim Portuguese prose under an
-/// English UI. Return the raw stderr (trimmed) instead — this keeps the
-/// stable English substrings ("Authentication failed", "could not read
-/// Username", "Could not resolve host", "CONFLICT", "Automatic merge
-/// failed", …) that `classifySyncError` matches on, unchanged. Non-sync
-/// error surfaces now show this raw, technical (English) text directly,
-/// which is the intended outcome — never a hidden or empty message.
+/// Trims git's raw stderr. Must NOT prepend any hardcoded-language hint —
+/// the frontend classifies/localizes errors itself (see `classifySyncError`
+/// in src/lib/errors.ts), which relies on matching raw English substrings.
 fn friendly(stderr: &str) -> String {
     let trimmed = stderr.trim();
     if trimmed.is_empty() {
@@ -152,13 +125,8 @@ fn friendly(stderr: &str) -> String {
     }
 }
 
-/// Combine git's STDOUT into the failure message alongside STDERR. Most git
-/// failures put the actionable text on stderr, but a merge-mode `git pull`
-/// conflict prints "CONFLICT (content): ..." and "Automatic merge failed; ..."
-/// to STDOUT while stderr only carries the fetch summary. stderr is kept
-/// FIRST so the auth/network/lock substrings (all on stderr) stay at the top
-/// of the message; stdout is appended when it adds anything, so a conflict
-/// stays visible and classifiable downstream.
+/// Combines STDOUT into the failure message alongside STDERR: a pull conflict's
+/// "CONFLICT ..." text lands on STDOUT. stderr stays first so its auth/network substrings stay on top.
 pub fn combine_git_streams(stdout: &str, stderr: &str) -> String {
     let err = stderr.trim();
     let out = stdout.trim();
@@ -169,20 +137,15 @@ pub fn combine_git_streams(stdout: &str, stderr: &str) -> String {
     }
 }
 
-/// Run the system git in `repo` with `args`. Returns stdout on success.
-///
-/// GIT_TERMINAL_PROMPT=0 makes network operations fail fast instead of hanging
-/// on a credential prompt. GIT_EDITOR=true stops merge/rebase --continue from
-/// opening an editor and blocking. A GUI must never block on either.
+/// Runs system git in `repo`. GIT_TERMINAL_PROMPT=0 fails fast instead of
+/// hanging on a credential prompt; GIT_EDITOR=true stops --continue from
+/// opening an editor and blocking.
 pub fn run_git(repo: &str, args: &[&str]) -> Result<String, GitError> {
     run_git_capturing(repo, args, false)
 }
 
-/// Like `run_git`, but on failure the error message includes git's STDOUT as
-/// well as STDERR (see `combine_git_streams`). Used by `pull`: a merge-mode
-/// conflict's "CONFLICT ..."/"Automatic merge failed ..." text is on STDOUT,
-/// which `run_git` discards — the frontend would otherwise receive only the
-/// fetch summary and never classify the failure as a conflict.
+/// Like `run_git`, but the error message also includes STDOUT (see
+/// `combine_git_streams`) — used by `pull`, whose conflict text lands there.
 pub fn run_git_full(repo: &str, args: &[&str]) -> Result<String, GitError> {
     run_git_capturing(repo, args, true)
 }
@@ -200,8 +163,7 @@ fn run_git_capturing(repo: &str, args: &[&str], include_stdout_on_error: bool) -
         code: "spawn_failed".into(),
         message: format!("could not run git: {e}"),
     })?;
-    // Só o subcomando: os args completos podem conter mensagens de commit ou
-    // URLs com credenciais embebidas — nunca vão para o log.
+    // Log only the subcommand: full args may contain commit messages or credential-embedded URLs.
     let sub = args.first().copied().unwrap_or("");
     let ms = started.elapsed().as_millis();
     if ms >= 1000 {
@@ -222,10 +184,8 @@ fn run_git_capturing(repo: &str, args: &[&str], include_stdout_on_error: bool) -
     }
 }
 
-/// Como `run_git`, mas mata o processo git se exceder `secs`. Usado em
-/// operações de rede idempotentes (fetch): uma ligação em buraco negro não
-/// pode deixar um "A verificar origin…" pendurado para sempre. NÃO usar em
-/// pull/clone — matá-los a meio pode deixar estado parcial.
+/// Like `run_git`, but kills the process after `secs`. Only for idempotent
+/// network ops (fetch) — killing pull/clone mid-write can leave partial state.
 pub fn run_git_timeout(repo: &str, args: &[&str], secs: u64) -> Result<String, GitError> {
     run_git_timeout_inner(repo, args, secs, false)
 }
@@ -246,8 +206,7 @@ fn run_git_timeout_inner(repo: &str, args: &[&str], secs: u64, hold_stdin: bool)
         code: "spawn_failed".into(),
         message: format!("could not run git: {e}"),
     })?;
-    // Ler stdout/stderr em threads evita deadlock se o git encher os pipes
-    // antes de terminar.
+    // Drain stdout/stderr on threads: avoids deadlock if git fills the pipes before exiting.
     fn drain(pipe: Option<impl std::io::Read + Send + 'static>) -> std::thread::JoinHandle<String> {
         std::thread::spawn(move || {
             let mut s = String::new();
@@ -291,8 +250,7 @@ fn run_git_timeout_inner(repo: &str, args: &[&str], secs: u64, hold_stdin: bool)
     }
 }
 
-/// Run git in `repo` feeding `input` to stdin. Used for `git apply`, which reads
-/// a patch from stdin. Same environment guards as `run_git`.
+/// Runs git in `repo` feeding `input` to stdin (used by `git apply`).
 pub fn run_git_stdin(repo: &str, args: &[&str], input: &str) -> Result<String, GitError> {
     let mut cmd = Command::new("git");
     cmd.arg("-C")
@@ -364,9 +322,8 @@ mod tests {
         for i in 0..12 {
             fs::write(format!("{p}/f{i}.txt"), "x").unwrap();
         }
-        // 12 `git add` concorrentes: sem o lock por repositório, vários
-        // processos disputam .git/index.lock e alguns falham. Com o lock,
-        // entram em fila e todos têm de suceder.
+        // 12 concurrent `git add`s: without the per-repo lock some would race
+        // .git/index.lock and fail; the lock queues them so all succeed.
         let results = tauri::async_runtime::block_on(async {
             let mut handles = Vec::new();
             for i in 0..12 {
@@ -392,12 +349,11 @@ mod tests {
 
     #[test]
     fn cap_patch_keeps_small_patches_and_cuts_on_line_boundary() {
-        // Pequeno: intacto.
+        // Small: passes through untouched.
         let small = "diff --git a/x b/x\n+um\n".to_string();
         assert_eq!(cap_patch(small.clone(), 1000), small);
 
-        // Grande: cortado em fronteira de linha, com o marcador no fim.
-        // Conteúdo multibyte garante que o corte respeita UTF-8.
+        // Large: cut on a line boundary; multibyte content exercises the UTF-8-safe cut.
         let mut big = String::new();
         for i in 0..200 {
             big.push_str(&format!("+linha çãé {i}\n"));
@@ -405,7 +361,7 @@ mod tests {
         let capped = cap_patch(big, 300);
         assert!(capped.len() < 400);
         assert!(capped.ends_with(&format!("{PATCH_TRUNCATED_MARKER}\n")));
-        // Todas as linhas de conteúdo continuam completas.
+        // Every content line stays intact.
         for l in capped.lines() {
             assert!(l.starts_with('+') || l == PATCH_TRUNCATED_MARKER, "linha cortada: {l:?}");
         }
@@ -414,8 +370,7 @@ mod tests {
     #[test]
     fn run_git_timeout_kills_a_hung_process() {
         let repo = temp_repo("timeout");
-        // `hash-object --stdin` com o stdin aberto (e nunca fechado) bloqueia
-        // até ser morto — determinístico, sem depender de rede.
+        // `hash-object --stdin` blocks until killed (stdin left open) — deterministic, no network needed.
         let t0 = std::time::Instant::now();
         let err = run_git_timeout_inner(&repo, &["hash-object", "--stdin"], 1, true).unwrap_err();
         assert_eq!(err.code, "timeout");
@@ -431,23 +386,18 @@ mod tests {
 
     #[test]
     fn combine_git_streams_keeps_stdout_conflict_text_after_stderr() {
-        // A merge-mode pull conflict: fetch summary on stderr, the conflict
-        // text on stdout. run_git discards stdout, so `pull` uses run_git_full
-        // which combines them — both halves must survive, stderr first.
+        // Merge conflict text lands on stdout; both streams must survive, stderr first.
         let stderr = "From /tmp/remote\n * branch            main       -> FETCH_HEAD";
         let stdout = "Auto-merging a.txt\nCONFLICT (content): Merge conflict in a.txt\nAutomatic merge failed; fix conflicts and then commit the result.";
         let combined = combine_git_streams(stdout, stderr);
         assert!(combined.contains("CONFLICT"), "{combined:?}");
         assert!(combined.contains("Automatic merge failed"), "{combined:?}");
-        // stderr stays first so the auth/network detection substrings (all on
-        // stderr) stay ahead of the conflict text.
         assert!(combined.find("From /tmp/remote").unwrap() < combined.find("CONFLICT").unwrap());
     }
 
     #[test]
     fn friendly_returns_raw_stderr_trimmed_without_any_hint() {
-        // Regression for the i18n leak: friendly() must NOT prepend any
-        // hardcoded-language prose (the frontend now owns that guidance).
+        // Regression: friendly() must not prepend a hardcoded-language hint.
         let raw = "  fatal: Authentication failed for 'https://github.com/x/y.git'\n";
         let out = friendly(raw);
         assert_eq!(out, "fatal: Authentication failed for 'https://github.com/x/y.git'");
@@ -457,8 +407,7 @@ mod tests {
 
     #[test]
     fn friendly_preserves_raw_substrings_the_frontend_classifier_matches_on() {
-        // src/lib/errors.ts classifySyncError matches on these RAW git
-        // strings — friendly() must keep them byte-for-byte.
+        // classifySyncError (src/lib/errors.ts) matches these substrings byte-for-byte.
         let cases = [
             "fatal: Authentication failed for 'https://github.com/x/y.git'",
             "fatal: could not read Username for 'https://github.com': terminal prompts disabled",
@@ -473,8 +422,7 @@ mod tests {
 
     #[test]
     fn friendly_falls_back_to_a_neutral_message_when_stderr_is_empty() {
-        // git can exit non-zero with nothing on stderr; the caller must never
-        // see an empty error message.
+        // git can exit non-zero with empty stderr; the caller must never see an empty message.
         let out = friendly("");
         assert!(!out.is_empty());
         let out2 = friendly("   \n  ");
@@ -490,7 +438,7 @@ mod tests {
 
     #[test]
     fn run_blocking_converts_panic_into_error() {
-        // Um panic num comando tem de virar GitError — nunca abortar o processo.
+        // A panic inside a command must become a GitError, never abort the process.
         let err = tauri::async_runtime::block_on(run_blocking::<(), _>("test_panic", || {
             panic!("boom de teste")
         }))

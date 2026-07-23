@@ -1,11 +1,7 @@
 import { hexAlpha } from "../theme/themes";
 import { t, type MessageKey } from "../i18n";
 
-// Tab-group palette (user request R5): groups pick from a fixed set of eight
-// mid-tone hues that read on every theme, instead of borrowing the three lane
-// colors. The stored `color` is an index into this table — the historical
-// values 0..2 keep (roughly) their old green/blue/amber look. Display names live
-// in the i18n "groupColor.*" catalog and are read via groupColorName(idx).
+// Tab-group palette: eight fixed mid-tone hues that read on every theme. Stored `color` is an index here (0..2 keep their old green/blue/amber); display names live in the i18n "groupColor.*" catalog.
 export const GROUP_COLORS: { hex: string }[] = [
   { hex: "#4E9B6A" },
   { hex: "#5B8FD6" },

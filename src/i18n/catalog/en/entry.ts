@@ -42,27 +42,21 @@ export const enEntry: Record<EntryKey, MessageValue> = {
   // ── repo picker: chrome + tabs ─────────────────────────────────────────────
   "repo.screenLabel": "Add repository",
   "repo.tab.local": "Local",
-  "repo.tab.remote": "Remote",
   "repo.tab.clone": "Clone",
-  "repo.tab.add": "Add",
   "repo.choose": "Choose…",
 
-  // ── repo picker: local (recents) ───────────────────────────────────────────
-  "repo.local.title": "Recent repositories",
-  "repo.local.searchLabel": "Search recent repositories",
+  // ── repo picker: local (recents + folders scanned from ~/dev) ──────────────
+  "repo.local.title": "Local repositories",
+  "repo.local.searchLabel": "Search local repositories",
   "repo.local.removeTitle": "Remove from recent",
   "repo.local.removeAria": "Remove {name} from recent",
-  "repo.local.empty": "No recent repositories yet.",
-  "repo.local.noMatch": "No recent matches. Open or clone a repository?",
-  "repo.local.openFolder": "Open folder…",
+  "repo.local.empty": "No local repositories yet.",
+  "repo.local.noMatch": "No matches for that search.",
+  "repo.local.openPath": "Open path: {path}",
   "repo.local.cloneEllipsis": "Clone…",
-  "repo.local.browseFolder": "Browse folder…",
-
-  // ── repo picker: add existing ──────────────────────────────────────────────
-  "repo.add.title": "Add existing repository",
-  "repo.add.pathLabel": "Folder path (with .git)",
-  "repo.add.pathPlaceholder": "C:/projects/my-repo",
-  "repo.add.opening": "Opening…",
+  "repo.local.browseFolder": "Choose folder…",
+  "repo.local.badgeOpen": "Already open",
+  "repo.local.badgeInit": "Initialize",
 
   // ── repo picker: create new ────────────────────────────────────────────────
   "repo.create.title": "Create new repository",
@@ -83,11 +77,6 @@ export const enEntry: Record<EntryKey, MessageValue> = {
   "repo.clone.doneTitle": "Clone complete",
   "repo.clone.cloning": "Cloning…",
 
-  // ── repo picker: remote (soon) ─────────────────────────────────────────────
-  "repo.remote.title": "Remote repositories",
-  "repo.remote.body":
-    "Listing repositories from your account (GitHub/GitLab/Bitbucket) arrives once the backend supports authentication. Meanwhile, use the Clone tab with the URL.",
-
   // ── repo: open error (useOpenRepo) ─────────────────────────────────────────
   "repo.openError": "could not open the repository",
 
@@ -95,6 +84,7 @@ export const enEntry: Record<EntryKey, MessageValue> = {
   "components.confirm.discard": "Discard",
 
   // ── components: DiffView ───────────────────────────────────────────────────
+  "components.diff.modeGroupLabel": "Diff display mode",
   "components.diff.unified": "Unified",
   "components.diff.split": "Side by side",
   "components.diff.showMoreLines": {

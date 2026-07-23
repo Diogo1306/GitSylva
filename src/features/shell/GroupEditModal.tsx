@@ -1,19 +1,22 @@
 import { useState } from "react";
 import { useAppStore } from "../../state/appStore";
 import { Modal } from "../../components/ui/Modal";
+import { useModalClose } from "../../components/ui/modalClose";
 import { Input } from "../../components/ui/Input";
 import { Button } from "../../components/ui/Button";
+import { FormField } from "../../components/ui/FormField";
 import { GROUP_COLORS, groupColor, groupColorName } from "../../lib/groupColors";
 import { useT } from "../../i18n";
 
-// Edit a tab group's name and color (user request R5). Shared by the tab bar
-// and the rail — both open it from the group's right-click menu.
+// Edit a tab group's name and color. Shared by the tab bar and the rail —
+// both open it from the group's right-click menu.
 export function GroupEditModal({ groupId, onClose }: { groupId: string; onClose: () => void }) {
   const t = useT();
   const group = useAppStore((s) => s.groups.find((g) => g.id === groupId));
   const renameGroup = useAppStore((s) => s.renameGroup);
   const setGroupColor = useAppStore((s) => s.setGroupColor);
   const [name, setName] = useState(group?.name ?? "");
+  const requestClose = useModalClose(onClose);
 
   if (!group) return null;
   const save = () => {
@@ -22,9 +25,8 @@ export function GroupEditModal({ groupId, onClose }: { groupId: string; onClose:
   };
   return (
     <Modal title={t("shell.group.editTitle")} onClose={onClose} width={380}>
-      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text2)" }}>{t("shell.field.name")}</div>
+      <div style={{ display: "flex", flexDirection: "column", gap: "var(--sp-7)" }}>
+        <FormField label={t("shell.field.name")}>
           <Input
             autoFocus
             value={name}
@@ -34,10 +36,10 @@ export function GroupEditModal({ groupId, onClose }: { groupId: string; onClose:
             }}
             placeholder={t("shell.group.namePlaceholder")}
           />
-        </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text2)" }}>{t("shell.group.color")}</div>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        </FormField>
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--sp-3)" }}>
+          <div style={{ fontSize: "var(--fs-xs)", fontWeight: "var(--fw-semibold)", color: "var(--text2)" }}>{t("shell.group.color")}</div>
+          <div style={{ display: "flex", gap: "var(--sp-3)", flexWrap: "wrap" }}>
             {GROUP_COLORS.map((c, i) => {
               const active = group.color === i;
               return (
@@ -64,8 +66,8 @@ export function GroupEditModal({ groupId, onClose }: { groupId: string; onClose:
             })}
           </div>
         </div>
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
-          <Button onClick={onClose}>{t("common.cancel")}</Button>
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: "var(--sp-3)" }}>
+          <Button onClick={requestClose}>{t("common.cancel")}</Button>
           <Button variant="primary" onClick={save}>
             {t("common.save")}
           </Button>

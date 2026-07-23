@@ -3,6 +3,18 @@
 // three orthogonal choices: tree style, branch color palette, and accent.
 // computeThemeVars() folds all four into one flat { "--x": "value" } map that
 // the app writes onto :root. This mirrors the design's renderVals() logic.
+//
+// V2 tokens (docs/design-v2/gitsylva-design-system/tokens/colors.css, also
+// mirrored in design_handoff_gitsylva/tokens/themes.{css,json}): internal
+// keys map to V2 theme names escuro->batman, claro->classic, gitclassic->
+// gitclassic, nipon->nipon. The color-role values below already equal the
+// V2 spec value-for-value, verified against colors.css, with two documented
+// exceptions kept from V1: --muted (each theme darkens/lightens the raw V2
+// value so small labels keep passing AA — see the per-theme comments below;
+// the V2 raw values measure ~3.0-4.1:1 against --win, below the 4.5:1 target)
+// and --danger/--dangerT/--leaf(claro only), which V2's colors.css does not
+// define at all (no danger/leaf-for-classic role in the V2 spec), so the
+// existing V1 values are kept unchanged.
 
 export type ThemeKey = "escuro" | "claro" | "gitclassic" | "nipon";
 export type TreeStyleKey = "normal" | "sakura" | "tropical" | "grafo";
@@ -303,8 +315,17 @@ export const PALETTES: Record<ThemeKey, Palette> = {
   },
 };
 
+// The FontKey enum values (inter/sistema/atkinson) are persisted in
+// gitsylva-prefs and stay unchanged; only the underlying stack/label moved to
+// the V2 family. "inter" now serves Instrument Sans (V2's UI default font,
+// tokens/typography.css --font-sans) — its display name is updated to match
+// (see i18n theme.font.inter.*) since it no longer renders as Inter.
 export const FONTS: Record<FontKey, { name: string; desc: string; stack: string }> = {
-  inter: { name: "Inter", desc: "Padrão do GitSylva", stack: "'Inter', sans-serif" },
+  inter: {
+    name: "Instrument Sans",
+    desc: "Padrão do GitSylva",
+    stack: "'Instrument Sans', -apple-system, system-ui, sans-serif",
+  },
   sistema: {
     name: "Sistema",
     desc: "Segoe UI / San Francisco",
@@ -313,7 +334,7 @@ export const FONTS: Record<FontKey, { name: string; desc: string; stack: string 
   atkinson: {
     name: "Atkinson Hyperlegible",
     desc: "Máxima legibilidade",
-    stack: "'Atkinson Hyperlegible', 'Inter', sans-serif",
+    stack: "'Atkinson Hyperlegible', 'Instrument Sans', sans-serif",
   },
 };
 

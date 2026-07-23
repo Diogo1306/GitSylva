@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAppStore } from "../../state/appStore";
 import {
   useLog,
+  useStatus,
   useRewriteActions,
   useBranchActions,
   useTagActions,
@@ -15,6 +16,7 @@ import { Button } from "../../components/ui/Button";
 import { ContextMenu, type MenuItem } from "../../components/ui/ContextMenu";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
 import { PanelHandle } from "../../components/ui/PanelResize";
+import { SelectableRow } from "../../components/ui/SelectableRow";
 import { usePanelWidth, usePanelHeight } from "../../lib/usePanelWidth";
 import { toast } from "../../state/toastStore";
 import { useThemeStore } from "../../state/themeStore";
@@ -29,13 +31,39 @@ import { CommitRow } from "./CommitRow";
 import { DetailPanel } from "./DetailPanel";
 import { FilterBar } from "./FilterBar";
 
-const ROW_H = 52;
+// Denser rows (user: "cada barra menor, mais apertado, mais info, mais ágil").
+const ROW_H = 44;
 
-// Above this many rows the list renders in a window (uniform row height →
-// simple math). Measured: 2000 commits fully rendered = 2000 divs + 11.6k SVG
-// elements (~1.6MB of markup) living in one 104k-px-tall layer — scroll and
-// selection paid for all of it. Below the threshold everything renders (and
-// the entrance animation, capped at 120, still plays).
+const mono = "'JetBrains Mono', monospace";
+
+// "Alterações por commitar" node at the top of the history list (spec §4 /
+// master 299-306). Its own dashed graph node + dashed avatar mark it as the
+// not-yet-committed working state; clicking opens the Working Copy.
+function WcRow({ gutter, rowH, count, hideSecondary, onOpen }: { gutter: number; rowH: number; count: number; hideSecondary: boolean; onOpen: () => void }) {
+  const t = useT();
+  return (
+    <SelectableRow
+      onSelect={onOpen}
+      title={t("history.wcRow.title")}
+      style={{ position: "relative", height: rowH, gap: 12, padding: `0 16px 0 ${gutter}px`, borderRadius: 0, boxSizing: "border-box", borderBottom: "1px solid var(--bsoft)" }}
+    >
+      <span style={{ position: "absolute", left: 19, top: "50%", transform: "translateY(-50%)", width: 9, height: 9, border: "1.6px dashed var(--l2)", borderRadius: "50%", boxSizing: "border-box" }} />
+      <div style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 8 }}>
+        <span style={{ fontSize: 13.5, color: "var(--text)", fontWeight: 600, fontStyle: "italic", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{t("history.wcRow.label")}</span>
+        <span style={{ fontFamily: mono, fontSize: 10.5, padding: "2px 8px", borderRadius: 999, whiteSpace: "nowrap", background: "var(--stMB)", color: "var(--stMT)", border: "1px solid var(--l2bd)" }}>
+          {t("history.detail.filesCount", { count })}
+        </span>
+      </div>
+      {!hideSecondary && <span style={{ width: 22, height: 22, borderRadius: "50%", border: "1.6px dashed var(--btnB)", boxSizing: "border-box", flexShrink: 0 }} />}
+      <div style={{ width: 66, fontFamily: mono, fontSize: 12, color: "var(--muted)", flexShrink: 0 }}>—</div>
+      <div className="gs-resp-time" style={{ width: 96, fontSize: 12, color: "var(--muted)", textAlign: "right", flexShrink: 0 }}>{t("time.now")}</div>
+    </SelectableRow>
+  );
+}
+
+// Above this many rows the list windows (uniform row height, simple math).
+// Measured: 2000 commits fully rendered = 2000 divs + 11.6k SVG elements
+// (~1.6MB) in one 104k-px layer — costly. Below the cutoff everything renders.
 const VIRTUAL_MIN = 300;
 const OVERSCAN = 10;
 
@@ -47,11 +75,14 @@ export function History() {
   const { data, isLoading, error, isFetching } = useLog(repo.path, limit);
   const rewrite = useRewriteActions(repo.path);
   const [selectedHash, setSelectedHash] = useState<string | null>(null);
-  // Task 11: filters compose over the free-text search (`filters.text`).
+  // Filters compose over the free-text search (`filters.text`).
   const [filters, setFilters] = useState<HistoryFilters>(EMPTY_HISTORY_FILTERS);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const branches = useBranches(repo.path);
-  const [menu, setMenu] = useState<{ x: number; y: number; hash: string } | null>(null);
+  // Drives the "Alterações por commitar" node at the top of the list.
+  const wcStatus = useStatus(repo.path);
+  // advancedOnly = opened from the detail "…" (Branch/Tag/Revert are buttons there).
+  const [menu, setMenu] = useState<{ x: number; y: number; hash: string; advancedOnly?: boolean } | null>(null);
   const [confirmHardReset, setConfirmHardReset] = useState<string | null>(null);
   const [confirmRebase, setConfirmRebase] = useState<string | null>(null);
   // R5.6 context-menu extras: revert, branch-from-here, tag-here.
@@ -65,11 +96,11 @@ export function History() {
   const [tagName, setTagName] = useState("");
   const branchActions = useBranchActions(repo.path);
   const tagActions = useTagActions(repo.path);
-  // Settings → Aparência → Densidade (handoff: conforto 52 / compacta 40).
+  // Settings → Aparência → Densidade. Tighter than before per user feedback:
+  // comfortable 44, compact 32.
   const density = useThemeStore((s) => s.density);
-  const rowH = density === "compacta" ? 40 : ROW_H;
-  // Persisted (R5.10): closing the diff used to reset every time the screen
-  // remounted; now the choice sticks, and the header button shows the state.
+  const rowH = density === "compacta" ? 32 : ROW_H;
+  // Persisted (R5.10): the diff panel's open/closed choice survives remounts.
   const [detailOpen, setDetailOpenState] = useState(() => localStorage.getItem("gitsylva-history-detail") !== "off");
   // R5.16: hide plays a short exit animation before the panel unmounts.
   const [detailClosing, setDetailClosing] = useState(false);
@@ -100,25 +131,23 @@ export function History() {
     setDetailClosing(false);
     setDetailOpenState(true);
   };
-  // Design: detail panel resizable 300–560, persisted; dragging well past the
-  // minimum minimizes it (R5.13), same as the header button.
+  // Resizable 300–560, persisted; dragging well past the minimum minimizes it
+  // (R5.13), same as the header button.
   const detailW = usePanelWidth("gitsylva-w-detail", 372, 300, 560, "left", collapseDetail);
-  // R5.9: the detail/diff panel can sit beside the list (default) or below it
-  // (SourceTree style); the handle sits ABOVE the bottom panel, so drag down
-  // shrinks and keeps shrinking into a collapse.
+  // R5.9: the panel sits beside the list (default) or below it (SourceTree
+  // style); the drag handle sits above the bottom panel so drag-down shrinks
+  // into a collapse.
   const storedBelow = useThemeStore((s) => s.historyLayout) === "baixo";
-  // Task 6: at the window minimum there isn't room for the detail panel
-  // beside the list, so width forces "below" too — a responsive OVERRIDE
-  // layered on top of the stored preference, never a write to it (the user's
-  // explicit choice survives resizing back up).
+  // At the window minimum there's no room beside the list, so width forces
+  // "below" too — a responsive override layered on the stored preference,
+  // never written back (survives resizing back up).
   const bp = useBreakpoint();
   const below = storedBelow || bp.historyStacked;
   const detailH = usePanelHeight("gitsylva-h-history-detail", 340, 160, 720, "top", collapseDetail);
 
-  // A focused commit (palette pick or a branch click in the sidebar) deeper
-  // than the loaded window grows the window instead of silently selecting the
-  // first row (derive-on-change, render phase). Capped so an unreachable hash
-  // can't grow the log forever.
+  // A focused commit deeper than the loaded window grows the window instead
+  // of silently selecting row 0 (derive-on-change); capped so an unreachable
+  // hash can't grow the log forever.
   {
     const loaded = data ?? [];
     if (
@@ -132,16 +161,35 @@ export function History() {
     }
   }
 
-  // Selecting a commit locally also clears any pending palette focus request.
+  // Proactively load the rest of the history (up to the 2000 cap) right after
+  // the first page, without waiting for scroll: every lane stays connected to
+  // its parent before it scrolls into view, so the continuation fade is only
+  // ever seen at the true end. Render-phase derive-on-change, same pattern as
+  // the focus-commit growth above.
+  {
+    const loaded = data ?? [];
+    if (!isFetching && !hasActiveFilters(filters) && loaded.length >= limit && limit < 2000) {
+      setLimit(Math.min(2000, limit + 800));
+    }
+  }
+
+  // Selecting a commit locally also clears any pending palette focus request,
+  // and (re)opens the detail panel — the ✕ close (R5/E) is only temporary.
+  // All setters here are stable, so this callback keeps a stable identity and
+  // the memoized rows don't re-render on selection.
   const selectHash = useCallback((hash: string) => {
     setSelectedHash(hash);
     const st = useAppStore.getState();
     if (st.focusCommit) st.setFocusCommit(null);
+    localStorage.setItem("gitsylva-history-detail", "on");
+    setDetailClosing(false);
+    setDetailOpenState(true);
   }, []);
 
-  // Stable handler so the memo() around CommitRow actually holds: without it,
-  // selecting a commit re-rendered every row in the list.
+  // Stable handler so memo() around CommitRow holds — else every row re-renders on select.
   const onContext = useCallback((hash: string, x: number, y: number) => setMenu({ hash, x, y }), []);
+  // WC row / detail: navigate to the Working Copy (staging + message + Commit).
+  const openWorking = useCallback(() => useAppStore.getState().setView("working"), []);
 
   // Arrow-key navigation between commits (kept in a ref so the listener binds once).
   const navRef = useRef<{ hashes: string[]; selected: string | null }>({ hashes: [], selected: null });
@@ -168,23 +216,19 @@ export function History() {
 
   const commits = useMemo(() => data ?? [], [data]);
   const rows = useMemo(() => graphRows(commits), [commits]);
-  // The text gutter follows the widest lane (graph audit): with all branches
-  // in the log, busy repos need more than the old fixed 96px.
+  // The text gutter follows the widest lane: busy repos need more than a fixed 96px.
   const gutter = useMemo(() => {
     const maxLane = rows.reduce((m, r) => Math.max(m, r.lane), 0);
     return Math.min(96 + Math.max(0, maxLane - 3) * 18, 96 + 9 * 18);
   }, [rows]);
 
-  // Branch/path filters need data the loaded window doesn't carry (branch
-  // reachability, per-commit changed files) — resolved as hash sets by a
-  // small dedicated backend query (see historyFilters.ts's module doc and
-  // get_branch_commits/get_path_commits in src-tauri/src/git/log.rs). Both
-  // are disabled (no request) when their filter isn't active.
+  // Branch/path filters need data the window doesn't carry (reachability,
+  // changed files) — resolved as hash sets via a dedicated backend query
+  // (historyFilters.ts, get_branch_commits/get_path_commits); disabled when inactive.
   const branchCommits = useBranchCommits(repo.path, filters.branch, limit);
   const pathCommits = usePathCommits(repo.path, filters.path.trim(), limit);
-  // `undefined` = still resolving (matchesFilters treats that as "don't
-  // exclude"); an error also resolves to an empty set rather than silently
-  // showing every commit, so a broken branch/path filter never lies.
+  // undefined = still resolving; an error resolves to an empty set rather
+  // than silently showing every commit.
   const branchHashes = useMemo(() => {
     if (!filters.branch) return undefined;
     if (branchCommits.data) return new Set(branchCommits.data);
@@ -195,17 +239,22 @@ export function History() {
     if (pathCommits.data) return new Set(pathCommits.data);
     return pathCommits.isError ? new Set<string>() : undefined;
   }, [filters.path, pathCommits.data, pathCommits.isError]);
-  // True while a branch/path filter is active but its membership hasn't
-  // resolved yet — the list is hidden behind a loading row instead of
-  // rendering with that dimension silently unfiltered.
+  // True while an active branch/path filter's membership hasn't resolved yet
+  // — a loading row stands in instead of rendering silently unfiltered.
   const resolving = (filters.branch !== "" && !branchHashes) || (filters.path.trim() !== "" && !pathHashes);
-  // A backend error resolving branch/path membership must surface as an
-  // error, not blend into "zero results" (that would read as "this branch
-  // has no commits", which is a different — and wrong — claim).
+  // A resolution error must surface as an error, not blend into "zero results".
   const filterError = filters.branch !== "" && branchCommits.isError ? "branch" : filters.path.trim() !== "" && pathCommits.isError ? "path" : null;
 
   const filtering = hasActiveFilters(filters);
   const filtered = filtering ? commits.filter((c) => matchesFilters(c, filters, { branchHashes, pathHashes })) : commits;
+
+  // "Alterações por commitar" node (spec §4 / master 299-306): only when the
+  // working copy is dirty and no filter is active. The graph + commit rows sit
+  // below it, so windowing/scroll math run in the block's own space and shift
+  // down by exactly one row while the WC row is shown.
+  const wcCount = (wcStatus.data ?? []).length;
+  const showWcRow = !filtering && wcCount > 0;
+  const wcOffset = showWcRow ? rowH : 0;
 
   // A palette pick (focusCommit) wins until the user selects something else.
   const selected = commits.find((c) => c.hash === (focusCommit ?? selectedHash)) ?? commits[0];
@@ -216,8 +265,8 @@ export function History() {
   });
 
   // ── List windowing ────────────────────────────────────────────────────────
-  // Callback-ref state: the scroll container appears only after loading, so a
-  // plain useRef + [] effect would observe nothing.
+  // Callback-ref: the scroll container only appears after loading, so a plain
+  // useRef + [] effect would observe nothing.
   const [scrollEl, setScrollEl] = useState<HTMLDivElement | null>(null);
   const [viewH, setViewH] = useState(0);
   const [scrollTop, setScrollTop] = useState(0);
@@ -230,13 +279,16 @@ export function History() {
   }, [scrollEl]);
 
   const virtual = filtered.length > VIRTUAL_MIN;
-  const startIdx = virtual ? Math.max(0, Math.floor(scrollTop / rowH) - OVERSCAN) : 0;
-  const endIdx = virtual ? Math.min(filtered.length - 1, Math.ceil((scrollTop + viewH) / rowH) + OVERSCAN) : filtered.length - 1;
+  // The block starts wcOffset px into the scroll area, so windowing works off
+  // the position within the block, not the raw container scrollTop.
+  const blockTop = Math.max(0, scrollTop - wcOffset);
+  const startIdx = virtual ? Math.max(0, Math.floor(blockTop / rowH) - OVERSCAN) : 0;
+  const endIdx = virtual ? Math.min(filtered.length - 1, Math.ceil((blockTop + viewH) / rowH) + OVERSCAN) : filtered.length - 1;
   const visibleCommits = virtual ? filtered.slice(startIdx, endIdx + 1) : filtered;
 
-  // Keep the selected row visible when the SELECTION changes (keyboard nav,
-  // palette jump). An element-level scrollIntoView ref would re-fire on every
-  // remount in windowed mode and hijack the user's scroll.
+  // Keep the selected row visible on selection change (keyboard nav, palette
+  // jump) — a plain scrollIntoView ref would re-fire on every remount in
+  // windowed mode and hijack the user's scroll.
   const lastScrolledTo = useRef<string | null>(null);
   useEffect(() => {
     if (!scrollEl || !selected) return;
@@ -246,13 +298,17 @@ export function History() {
     if (first) return; // initial selection: don't move a freshly opened list
     const idx = filtered.findIndex((c) => c.hash === selected.hash);
     if (idx < 0) return;
-    const top = idx * rowH;
+    const top = wcOffset + idx * rowH;
     if (top < scrollEl.scrollTop) scrollEl.scrollTo({ top });
     else if (top + rowH > scrollEl.scrollTop + scrollEl.clientHeight)
       scrollEl.scrollTo({ top: top + rowH - scrollEl.clientHeight });
   });
 
-  if (isLoading) return <div style={{ padding: 16, color: "var(--muted)" }}>{t("history.loading")}</div>;
+  // Only the TRUE first load (no data yet) may replace the view: on "load
+  // more" react-query reports isLoading=true again during the placeholder
+  // phase even though the previous page is still showing — gating on that
+  // alone blanked the whole list ("everything disappears" bug).
+  if (isLoading && commits.length === 0) return <div style={{ padding: 16, color: "var(--muted)" }}>{t("history.loading")}</div>;
   if (error) return <div style={{ padding: 16, color: "var(--ddT)" }}>{errMsg(error, t("history.readError"))}</div>;
   if (commits.length === 0) return <div style={{ padding: 16, color: "var(--muted)" }}>{t("history.noCommits")}</div>;
 
@@ -273,7 +329,10 @@ export function History() {
 
         <div
           ref={setScrollEl}
-          onScroll={virtual ? (e) => setScrollTop(e.currentTarget.scrollTop) : undefined}
+          // Track scrollTop always, not only in virtual mode: the list can
+          // cross VIRTUAL_MIN mid-session, and windowing must compute from
+          // the real (possibly already-scrolled) position, not a stale 0.
+          onScroll={(e) => setScrollTop(e.currentTarget.scrollTop)}
           style={{ flex: 1, overflowY: "auto" }}
         >
           {filterError ? (
@@ -286,9 +345,7 @@ export function History() {
               </Button>
             </div>
           ) : resolving ? (
-            // A branch/path filter is active but its backend-resolved hash
-            // set hasn't arrived yet — showing the list now would mean that
-            // dimension is silently unfiltered, so a loading row stands in.
+            // A branch/path filter's hash set hasn't resolved yet — a loading row stands in.
             <div style={{ padding: "48px 24px", textAlign: "center", color: "var(--muted)", fontSize: 13 }}>{t("history.filter.applying")}</div>
           ) : filtering && filtered.length === 0 ? (
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12, padding: "56px 24px" }}>
@@ -299,10 +356,12 @@ export function History() {
             </div>
           ) : (
             <>
-              {/* In windowed mode the spacer keeps the real scroll height and
-                  the rows are absolutely positioned inside it; the graph
-                  overlay is full-height either way, emitting only the
-                  visible range. */}
+              {/* Working-copy node above the graph block (its own dashed node);
+                  the block below stays in graph coordinates so lanes align. */}
+              {showWcRow && <WcRow gutter={gutter} rowH={rowH} count={wcCount} hideSecondary={bp.hideSecondary} onOpen={openWorking} />}
+              {/* Windowed mode: the spacer keeps the real scroll height, rows
+                  are absolutely positioned inside it, and the graph overlay
+                  stays full-height but only emits the visible range. */}
               <div style={{ position: "relative", height: virtual ? filtered.length * rowH : undefined }}>
                 {!filtering && (
                   <div style={{ position: "absolute", left: 14, top: 0, pointerEvents: "none" }}>
@@ -358,9 +417,7 @@ export function History() {
         </div>
       </div>
 
-      {/* The header "Diff" button is the single show/hide control (R5.11 —
-          the old floating arrow sat on top of the commit-hash chip). Entrance
-          and exit are short slides so the toggle never feels jarring. */}
+      {/* The header "Diff" button is the single show/hide control (R5.11); entrance/exit are short slides. */}
       {(detailOpen || detailClosing) && (
         <>
           {below && (
@@ -384,7 +441,15 @@ export function History() {
             }}
           >
             {!below && <PanelHandle edge="left" handleProps={detailW.handleProps} />}
-            <DetailPanel repoPath={repo.path} commit={selected} />
+            <DetailPanel
+              repoPath={repo.path}
+              commit={selected}
+              onClose={() => setDetailOpen(false)}
+              onBranch={(h) => { setBranchName(""); setBranchFrom(h); }}
+              onTag={(h) => { setTagName(""); setTagAt(h); }}
+              onRevert={(h) => setConfirmRevert(h)}
+              onMore={(h, x, y) => setMenu({ hash: h, x, y, advancedOnly: true })}
+            />
           </div>
         </>
       )}
@@ -396,19 +461,27 @@ export function History() {
           const reset = (mode: "soft" | "mixed" | "hard") => () =>
             rewrite.reset.mutate({ target: h, mode }, { onSuccess: () => toast(t("history.menu.resetToast", { mode, short })), onError: (e: unknown) => toast((e as { message?: string })?.message ?? t("history.menu.resetError"), "error") });
           const subject = commits.find((c) => c.hash === h)?.subject ?? "";
+          const divider: MenuItem = { label: "", onClick: () => {}, divider: true };
+          // From the detail "…", Branch/Tag/Revert are already visible buttons —
+          // the menu carries only the advanced (and destructive) actions.
+          const primary: MenuItem[] = menu.advancedOnly
+            ? []
+            : [
+                { label: t("history.menu.branchFromHere"), onClick: () => { setBranchName(""); setBranchFrom(h); } },
+                { label: t("history.menu.tagAtCommit"), onClick: () => { setTagName(""); setTagAt(h); } },
+                { label: t("history.menu.revertCommit"), onClick: () => setConfirmRevert(h) },
+              ];
           const items: MenuItem[] = [
             { label: t("history.menu.gotoCommit"), onClick: () => setConfirmGoto(h) },
-            { label: t("history.menu.branchFromHere"), onClick: () => { setBranchName(""); setBranchFrom(h); } },
-            { label: t("history.menu.tagAtCommit"), onClick: () => { setTagName(""); setTagAt(h); } },
-            { label: "", onClick: () => {}, divider: true },
+            ...primary,
+            divider,
             { label: t("history.menu.cherryPick"), onClick: () => rewrite.cherryPick.mutate(h, { onSuccess: () => toast(t("history.menu.cherryPickDone")), onError: (e: unknown) => toast((e as { message?: string })?.message ?? t("history.menu.cherryPickConflict"), "error") }) },
-            { label: t("history.menu.revertCommit"), onClick: () => setConfirmRevert(h) },
             { label: t("history.menu.rebaseOnto"), onClick: () => setConfirmRebase(h) },
-            { label: "", onClick: () => {}, divider: true },
+            divider,
             { label: t("history.menu.resetSoft", { short }), onClick: reset("soft") },
             { label: t("history.menu.resetMixed", { short }), onClick: reset("mixed") },
             { label: t("history.menu.resetHard", { short }), onClick: () => setConfirmHardReset(h), danger: true },
-            { label: "", onClick: () => {}, divider: true },
+            divider,
             { label: t("history.menu.copyHash"), onClick: () => navigator.clipboard?.writeText(h).then(() => toast(t("history.menu.hashCopied"))) },
             { label: t("history.menu.copyMessage"), onClick: () => navigator.clipboard?.writeText(subject).then(() => toast(t("history.menu.messageCopied"))) },
           ];

@@ -25,16 +25,13 @@ pub fn get_log(path: String, limit: u32, skip: u32) -> Result<Vec<Commit>, GitEr
     let arg = format!("--pretty=format:{FMT}");
     let n = format!("-{limit}");
     let sk = format!("--skip={skip}");
-    // ALL branches/remotes/tags, not just HEAD's history (the graph audit's
-    // root cause: unmerged branches never appeared at all), in --topo-order
-    // so parallel branches don't interleave by date and tangle the lanes.
-    // HEAD is listed explicitly for the detached case. refs/stash is NOT
-    // included (--all would pull it in).
+    // All branches/remotes/tags (not just HEAD) so unmerged branches show,
+    // in --topo-order so parallel lanes don't interleave by date.
+    // refs/stash is deliberately excluded (--all would pull it in).
     match run_git(&path, &["log", "--branches", "--remotes", "--tags", "HEAD", "--topo-order", &n, &sk, &arg]) {
         Ok(out) => Ok(parse_log(&out)),
         Err(e) => {
-            // A repository with no commits yet has no HEAD; that's an empty
-            // log, not an error the user needs to see.
+            // A repo with no commits has no HEAD; that's an empty log, not an error.
             if run_git(&path, &["rev-parse", "--verify", "HEAD"]).is_err() {
                 Ok(Vec::new())
             } else {
@@ -54,24 +51,15 @@ pub fn log_range(path: &str, range: &str) -> Vec<Commit> {
     }
 }
 
-// ── History filters (Task 11) ────────────────────────────────────────────
-//
-// The History screen's loaded log window comes from `get_log` above, which
-// walks --branches --remotes --tags HEAD together — it does NOT record which
-// ref(s) each commit is reachable from, and per-commit changed files aren't
-// loaded at all (that's `commit_detail`, one commit at a time). So "commits
-// on branch X" and "commits touching path P" can't be answered from the
-// window already in the frontend; both need a small, targeted git query.
-// Both return just hashes (not full Commit rows) — the frontend already has
-// the row data for anything in its loaded window and only needs membership.
+// History filters: "commits on branch X" / "commits touching path P" can't be
+// answered from the loaded log window, so these run a targeted query and
+// return just hashes — the frontend already has row data, only needs membership.
 
 fn parse_hashes(out: &str) -> Vec<String> {
     out.lines().map(str::trim).filter(|l| !l.is_empty()).map(str::to_string).collect()
 }
 
-/// Hashes reachable from `branch` (a local or remote-tracking branch name,
-/// e.g. "main" or "origin/main"), newest first, capped at `limit` — mirrors
-/// the cap already applied to the main log window.
+/// Hashes reachable from `branch` (e.g. "main" or "origin/main"), newest first, capped at `limit`.
 #[tauri::command(rename = "get_branch_commits")]
 pub async fn get_branch_commits_cmd(path: String, branch: String, limit: u32) -> Result<Vec<String>, GitError> {
     crate::git::run_blocking("get_branch_commits", move || get_branch_commits(path, branch, limit)).await
@@ -83,10 +71,8 @@ pub fn get_branch_commits(path: String, branch: String, limit: u32) -> Result<Ve
     Ok(parse_hashes(&out))
 }
 
-/// Hashes of commits that touch `pathspec` (a plain path or a glob like
-/// "*.rs" — git's pathspec matching is glob-aware by default), newest first,
-/// capped at `limit`. Same all-refs scope as `get_log` so the set lines up
-/// with the loaded window.
+/// Hashes of commits touching `pathspec` (plain path or glob like "*.rs"),
+/// newest first, capped at `limit`; same all-refs scope as `get_log`.
 #[tauri::command(rename = "get_path_commits")]
 pub async fn get_path_commits_cmd(path: String, pathspec: String, limit: u32) -> Result<Vec<String>, GitError> {
     crate::git::run_blocking("get_path_commits", move || get_path_commits(path, pathspec, limit)).await

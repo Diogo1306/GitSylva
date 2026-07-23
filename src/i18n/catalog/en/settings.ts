@@ -4,7 +4,7 @@ import type { SettingsKey } from "../pt/settings";
 export const enSettings: Record<SettingsKey, MessageValue> = {
   // ── nav + screen chrome ────────────────────────────────────────────────────
   "settings.nav.appearance": "Appearance",
-  "settings.nav.accounts": "Accounts",
+  "settings.nav.accounts": "Accounts & Access",
   "settings.nav.git": "Git",
   "settings.nav.gitEditor": "Git · Editor",
   "settings.nav.commits": "Commits",
@@ -23,8 +23,6 @@ export const enSettings: Record<SettingsKey, MessageValue> = {
   "settings.replayOnboarding": "Replay welcome screen",
 
   // stub sections
-  "settings.accounts.title": "ACCOUNTS & ACCESS",
-  "settings.accounts.body": "Connecting GitHub / GitLab / Bitbucket (OAuth) and managing local accounts arrives once the backend supports authentication.",
   "settings.gitEditor.title": "GIT · EDITOR & OPTIONS",
   "settings.gitEditor.body": "External editor and other per-repository git options arrive in a future phase.",
   "settings.ssh.title": "SSH KEYS",
@@ -69,6 +67,14 @@ export const enSettings: Record<SettingsKey, MessageValue> = {
   "settings.appearance.imported": "Theme imported",
   "settings.appearance.invalidFile": "Invalid theme file",
 
+  // ── Accounts section ───────────────────────────────────────────────────────
+  "settings.accounts.title": "ACCOUNTS & ACCESS",
+  "settings.accounts.hint": "Connecting GitHub, GitLab or Bitbucket accounts arrives in a future phase — authentication isn't implemented yet.",
+  "settings.accounts.notConnected": "Not connected",
+  "settings.accounts.connect": "Connect…",
+  "settings.accounts.connectAria": "Connect {provider} account",
+  "settings.accounts.connectSoon": "Connecting accounts arrives in a future phase",
+
   // ── About section ──────────────────────────────────────────────────────────
   "settings.about.title": "ABOUT",
   "settings.about.checkFailed": "could not check for updates",
@@ -108,6 +114,7 @@ export const enSettings: Record<SettingsKey, MessageValue> = {
   "settings.git.identitySaved": "Identity saved",
   "settings.git.saveFailed": "could not save the identity",
   "settings.git.usedInCommits": "Used in this repository's commits.",
+  "settings.git.needRepo": "Open a repository to set the Git identity (it's per-repository).",
 
   // ── Push & Pull section ────────────────────────────────────────────────────
   "settings.pushPull.title": "PUSH & PULL",

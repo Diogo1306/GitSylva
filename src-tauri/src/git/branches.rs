@@ -129,8 +129,7 @@ fn validate_branch_name(path: &str, name: &str) -> Result<(), GitError> {
     })
 }
 
-/// Create a new branch from `from` (HEAD when omitted), optionally checking
-/// it out — the history's "criar branch daqui" passes a commit hash.
+/// Create a new branch from `from` (HEAD when omitted), optionally checking it out.
 pub fn create_branch(path: String, name: String, checkout: bool, from: Option<String>) -> Result<(), GitError> {
     validate_branch_name(&path, &name)?;
     let name = name.trim();

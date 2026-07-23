@@ -10,6 +10,15 @@ pub struct RepoInfo {
     pub is_empty: bool,
 }
 
+/// One folder found by `scan_local_repos`: `is_repo` tells the picker whether
+/// to offer "Abrir" (has `.git`) or "Inicializar" (plain folder, `git init` in place).
+#[derive(Debug, Serialize)]
+pub struct LocalRepoEntry {
+    pub path: String,
+    pub name: String,
+    pub is_repo: bool,
+}
+
 #[tauri::command(rename = "open_repo")]
 pub async fn open_repo_cmd(path: String) -> Result<RepoInfo, GitError> {
     crate::git::run_blocking("open_repo", move || open_repo(path)).await
@@ -28,6 +37,11 @@ pub async fn clone_repo_cmd(parent: String, url: String, name: String) -> Result
     crate::git::run_mutating("clone_repo", key, move || clone_repo(parent, url, name)).await
 }
 
+#[tauri::command(rename = "scan_local_repos")]
+pub async fn scan_local_repos_cmd(base: Option<String>) -> Result<Vec<LocalRepoEntry>, GitError> {
+    crate::git::run_blocking("scan_local_repos", move || scan_local_repos(base)).await
+}
+
 pub fn open_repo(path: String) -> Result<RepoInfo, GitError> {
     // Bare repositories have no working copy to operate on.
     if run_git(&path, &["rev-parse", "--is-bare-repository"]).map(|s| s.trim() == "true").unwrap_or(false) {
@@ -44,13 +58,11 @@ pub fn open_repo(path: String) -> Result<RepoInfo, GitError> {
             message: "esta pasta não é um repositório git".into(),
         });
     }
-    // Normalize to the repository root: opening a subfolder must not create a
-    // second "repo" with a wrong name and subfolder-relative paths.
+    // Normalize to the repo root: opening a subfolder must not create a second "repo".
     let path = run_git(&path, &["rev-parse", "--show-toplevel"])
         .map(|s| s.trim().to_string())
         .unwrap_or(path);
-    // symbolic-ref resolves the branch name even on an unborn branch (no commits yet),
-    // where rev-parse --abbrev-ref would only print "HEAD". Falls back on detached HEAD.
+    // symbolic-ref resolves the branch name on an unborn branch too (rev-parse --abbrev-ref would only print "HEAD").
     let branch = run_git(&path, &["symbolic-ref", "--short", "HEAD"])
         .map(|s| s.trim().to_string())
         .unwrap_or_else(|_| "HEAD".into());
@@ -93,6 +105,49 @@ pub fn clone_repo(parent: String, url: String, name: String) -> Result<RepoInfo,
 fn join(parent: &str, name: &str) -> String {
     let sep = if parent.ends_with('/') || parent.ends_with('\\') { "" } else { "/" };
     format!("{parent}{sep}{name}")
+}
+
+/// `<home>/dev`, the default base folder for `scan_local_repos`.
+pub fn default_dev_base() -> String {
+    #[cfg(windows)]
+    let home = std::env::var("USERPROFILE").unwrap_or_default();
+    #[cfg(not(windows))]
+    let home = std::env::var("HOME").unwrap_or_default();
+    format!("{}/dev", home.replace('\\', "/"))
+}
+
+/// Cap on how many folders a scan returns — a picker grid, not a file browser.
+const SCAN_LIMIT: usize = 60;
+
+/// Lists the folders one level under `base` (default: `~/dev`), marking each as
+/// an existing repo (has `.git`) or a plain folder a user could `git init` in
+/// place. Pure filesystem checks only — no `git` subprocess — so it stays cheap
+/// even for a folder with many entries. A missing base folder is not an error:
+/// it just yields an empty grid (nothing to scan yet).
+pub fn scan_local_repos(base: Option<String>) -> Result<Vec<LocalRepoEntry>, GitError> {
+    let base = base.unwrap_or_else(default_dev_base);
+    let dir = std::path::Path::new(&base);
+    if !dir.is_dir() {
+        return Ok(Vec::new());
+    }
+    let read = std::fs::read_dir(dir).map_err(|e| GitError { code: "os".into(), message: e.to_string() })?;
+    let mut out: Vec<LocalRepoEntry> = Vec::new();
+    for entry in read.flatten() {
+        let path = entry.path();
+        if !path.is_dir() {
+            continue;
+        }
+        let name = entry.file_name().to_string_lossy().into_owned();
+        // Hidden/dotfolders (.git of an ancestor, .cache, …) are not projects.
+        if name.starts_with('.') {
+            continue;
+        }
+        let is_repo = path.join(".git").exists();
+        out.push(LocalRepoEntry { path: path.to_string_lossy().replace('\\', "/"), name, is_repo });
+    }
+    out.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
+    out.truncate(SCAN_LIMIT);
+    Ok(out)
 }
 
 #[cfg(test)]
@@ -160,5 +215,55 @@ mod tests {
         let info = clone_repo(base_s, src.to_string_lossy().replace('\\', "/"), "copy".into()).unwrap();
         assert!(!info.is_empty);
         assert!(std::path::Path::new(&base.join("copy").join("a.txt")).exists());
+    }
+
+    #[test]
+    fn scan_marks_repos_and_plain_folders_skips_hidden_and_files() {
+        let base = std::env::temp_dir().join("gitsylva-scan-test");
+        let _ = fs::remove_dir_all(&base);
+        fs::create_dir_all(&base).unwrap();
+
+        // A real repo…
+        let repo_dir = base.join("has-git");
+        fs::create_dir_all(&repo_dir).unwrap();
+        run_git(&repo_dir.to_string_lossy(), &["init", "-b", "main"]).unwrap();
+        // …a plain folder…
+        fs::create_dir_all(base.join("plain-folder")).unwrap();
+        // …a hidden folder that must be skipped…
+        fs::create_dir_all(base.join(".hidden")).unwrap();
+        // …and a file at the top level, which is not a folder at all.
+        fs::write(base.join("readme.txt"), "x").unwrap();
+
+        let base_s = base.to_string_lossy().replace('\\', "/");
+        let entries = scan_local_repos(Some(base_s)).unwrap();
+
+        assert_eq!(entries.len(), 2, "{entries:?}");
+        let has_git = entries.iter().find(|e| e.name == "has-git").unwrap();
+        assert!(has_git.is_repo);
+        let plain = entries.iter().find(|e| e.name == "plain-folder").unwrap();
+        assert!(!plain.is_repo);
+        assert!(entries.iter().all(|e| e.name != ".hidden"));
+    }
+
+    #[test]
+    fn scan_sorted_alphabetically_case_insensitive() {
+        let base = std::env::temp_dir().join("gitsylva-scan-sort-test");
+        let _ = fs::remove_dir_all(&base);
+        for name in ["Zebra", "alpha", "Mango"] {
+            fs::create_dir_all(base.join(name)).unwrap();
+        }
+        let base_s = base.to_string_lossy().replace('\\', "/");
+        let entries = scan_local_repos(Some(base_s)).unwrap();
+        let names: Vec<&str> = entries.iter().map(|e| e.name.as_str()).collect();
+        assert_eq!(names, vec!["alpha", "Mango", "Zebra"]);
+    }
+
+    #[test]
+    fn scan_missing_base_folder_returns_empty_not_error() {
+        let base = std::env::temp_dir().join("gitsylva-scan-missing-test-does-not-exist");
+        let _ = fs::remove_dir_all(&base);
+        let base_s = base.to_string_lossy().replace('\\', "/");
+        let entries = scan_local_repos(Some(base_s)).unwrap();
+        assert!(entries.is_empty());
     }
 }

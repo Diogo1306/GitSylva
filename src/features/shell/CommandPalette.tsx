@@ -10,6 +10,7 @@ import { fold, foldChars } from "../../lib/fold";
 import { comboHint } from "../../lib/platform";
 import { useShortcutsStore } from "../../state/shortcutsStore";
 import { useT } from "../../i18n";
+import { Button } from "../../components/ui/Button";
 import type { View } from "../../state/appStore";
 
 const mono = "'JetBrains Mono', monospace";
@@ -27,7 +28,7 @@ function markMatch(text: string, q: string) {
   return (
     <>
       {chars.slice(0, i).join("")}
-      <span style={{ color: "var(--accent)", fontWeight: 700 }}>{chars.slice(i, end).join("")}</span>
+      <span style={{ color: "var(--accent)", fontWeight: "var(--fw-bold)" }}>{chars.slice(i, end).join("")}</span>
       {chars.slice(end).join("")}
     </>
   );
@@ -258,7 +259,7 @@ export function CommandPalette() {
           width: 580,
           background: "var(--win)",
           border: "1px solid var(--border)",
-          borderRadius: 14,
+          borderRadius: "var(--r-win)",
           boxShadow: "0 24px 80px rgba(0,0,0,0.4)",
           overflow: "hidden",
           animation: closing ? "fadeOut 150ms var(--ease-standard) both" : "popIn 0.2s var(--ease-pop) both",
@@ -283,16 +284,16 @@ export function CommandPalette() {
             border: "none",
             borderBottom: "1px solid var(--border)",
             padding: "15px 18px",
-            fontSize: 15,
+            fontSize: "var(--fs-lg)",
             color: "var(--text)",
             outline: "none",
             fontFamily: "var(--font)",
           }}
         />
-        <div style={{ maxHeight: 380, overflowY: "auto", padding: 8 }}>
+        <div style={{ maxHeight: 380, overflowY: "auto", padding: "var(--sp-3)" }}>
           {groups.map((g) => (
             <div key={g.title}>
-              <div style={{ padding: "8px 10px 4px", fontSize: 10.5, fontWeight: 700, letterSpacing: "1.3px", color: "var(--muted)" }}>{g.title}</div>
+              <div style={{ padding: "var(--sp-3) var(--sp-4) var(--sp-1)", fontSize: "var(--fs-label)", fontWeight: "var(--fw-bold)", letterSpacing: "var(--ls-label)", color: "var(--muted)" }}>{g.title}</div>
               {g.items.map((it, i) => {
                 flatIdx += 1;
                 const isActive = flatIdx === activeIdx;
@@ -302,12 +303,12 @@ export function CommandPalette() {
                     onClick={it.run}
                     onMouseEnter={() => setActive(flat.indexOf(it))}
                     className="gs-row"
-                    style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", borderRadius: 8, cursor: "pointer", background: isActive ? "var(--sel)" : undefined }}
+                    style={{ display: "flex", alignItems: "center", gap: "var(--sp-4)", padding: "var(--sp-3) var(--sp-4)", borderRadius: "var(--r-btn)", cursor: "pointer", background: isActive ? "var(--sel)" : undefined }}
                   >
                     <span style={{ width: 7, height: 7, borderRadius: it.dotR, background: it.dot, flexShrink: 0 }} />
-                    <span style={{ flex: 1, fontSize: 13.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{markMatch(it.label, q.trim())}</span>
+                    <span style={{ flex: 1, fontSize: "var(--fs-base)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{markMatch(it.label, q.trim())}</span>
                     {it.badge && (
-                      <span style={{ fontFamily: mono, fontSize: 10, fontWeight: 700, padding: "1px 7px", borderRadius: 999, background: "var(--l1bg)", color: "var(--l1)", border: "1px solid var(--l1bd)", flexShrink: 0 }}>
+                      <span style={{ fontFamily: mono, fontSize: 10, fontWeight: "var(--fw-bold)", padding: "1px 7px", borderRadius: "var(--r-pill)", background: "var(--l1bg)", color: "var(--l1)", border: "1px solid var(--l1bd)", flexShrink: 0 }}>
                         {it.badge}
                       </span>
                     )}
@@ -318,19 +319,14 @@ export function CommandPalette() {
             </div>
           ))}
           {groups.length === 0 && (
-            <div style={{ padding: 24, textAlign: "center", color: "var(--muted)", fontSize: 13 }}>
+            <div style={{ padding: "var(--sp-9)", textAlign: "center", color: "var(--muted)", fontSize: "var(--fs-sm)" }}>
               {q.trim() ? (
                 <>
                   <div>{t("shell.palette.noResults", { query: q })}</div>
-                  <div style={{ marginTop: 6, fontSize: 12 }}>{t("shell.palette.noResultsHint")}</div>
-                  <button
-                    type="button"
-                    onClick={() => { setQ(""); setActive(0); }}
-                    className="gs-lift"
-                    style={{ marginTop: 10, padding: "6px 14px", borderRadius: 8, border: "1px solid var(--btnB)", background: "var(--btn)", color: "var(--btnT)", fontSize: 12.5, cursor: "pointer", fontFamily: "inherit" }}
-                  >
+                  <div style={{ marginTop: "var(--sp-2)", fontSize: "var(--fs-xs)" }}>{t("shell.palette.noResultsHint")}</div>
+                  <Button variant="secondary" size="sm" onClick={() => { setQ(""); setActive(0); }} style={{ marginTop: "var(--sp-4)" }}>
                     {t("shell.palette.clearSearch")}
-                  </button>
+                  </Button>
                 </>
               ) : (
                 t("shell.palette.typeToSearch")
@@ -338,7 +334,7 @@ export function CommandPalette() {
             </div>
           )}
         </div>
-        <div style={{ padding: "8px 14px", borderTop: "1px solid var(--border)", display: "flex", gap: 14, fontSize: 11, color: "var(--muted)" }}>
+        <div style={{ padding: "var(--sp-3) var(--sp-6)", borderTop: "1px solid var(--border)", display: "flex", gap: "var(--sp-6)", fontSize: 11, color: "var(--muted)" }}>
           <span>{t("shell.palette.hintNavigate")}</span>
           <span>{t("shell.palette.hintOpen")}</span>
           <span>{t("shell.palette.hintClose")}</span>

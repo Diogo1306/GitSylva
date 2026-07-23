@@ -6,71 +6,140 @@
  */
 
 :root {
-  --desk: radial-gradient(120% 90% at 50% 0%, #1b1d1f 0%, #0b0c0d 62%);
-  --win: #141618;
-  --winB: rgba(255, 255, 255, 0.08);
-  --shadow: 0 0 0 1px rgba(0, 0, 0, 0.55), 0 24px 80px rgba(0, 0, 0, 0.55);
-  --panel: #101214;
-  --panel2: #0c0e10;
-  --border: #272b2e;
-  --bsoft: rgba(255, 255, 255, 0.05);
-  --text: #eaecee;
-  --text2: #a5acb2;
-  --muted: #7b838b;
-  --sel: rgba(234, 236, 238, 0.08);
-  --hover: rgba(234, 236, 238, 0.05);
-  --btn: #1b1e21;
-  --btnB: #2d3134;
-  --btnT: #c8cdd2;
-  --badge: #262a2e;
-  --badgeT: #aeb5bb;
-  --input: #181b1d;
-  --accent: #eaecee;
-  --accentT: #111315;
-  --leaf: #82c99b;
+  /* Fallback = classic (light), the V2 default theme. Overwritten at runtime
+   * by useApplyTheme() from themes.ts; this only paints the instant before
+   * React mounts and the effect runs, so it should match the new-user
+   * default rather than the old dark default. */
+  --desk: radial-gradient(120% 90% at 50% 0%, #f7f7f3 0%, #e8e8e3 70%);
+  --win: #ffffff;
+  --winB: rgba(0, 0, 0, 0.12);
+  --shadow: 0 24px 70px rgba(0, 0, 0, 0.16);
+  --panel: #fafaf7;
+  --panel2: #f5f5f1;
+  --border: #e7e7e0;
+  --bsoft: rgba(0, 0, 0, 0.05);
+  --text: #191c1a;
+  --text2: #59605a;
+  --muted: #767c74;
+  --sel: rgba(25, 28, 26, 0.07);
+  --hover: rgba(25, 28, 26, 0.045);
+  --btn: #ffffff;
+  --btnB: #ddddd5;
+  --btnT: #363c37;
+  --badge: #edede7;
+  --badgeT: #59605a;
+  --input: #ffffff;
+  --accent: #191c1a;
+  --accentT: #ffffff;
+  --leaf: #7ba083;
   --trunk: #8a5a33;
-  --l0: #82c99b;
-  --l0bg: rgba(130, 201, 155, 0.12);
-  --l0bd: rgba(130, 201, 155, 0.28);
-  --l1: #7fa6d9;
-  --l1bg: rgba(127, 166, 217, 0.12);
-  --l1bd: rgba(127, 166, 217, 0.28);
-  --l2: #d9a96b;
-  --l2bg: rgba(217, 169, 107, 0.13);
-  --l2bd: rgba(217, 169, 107, 0.3);
-  --tagbd: #31363a;
-  --dhB: rgba(127, 166, 217, 0.08);
-  --dhT: #7fa6d9;
-  --dcT: #8c9399;
-  --daB: rgba(130, 201, 155, 0.1);
-  --daT: #a9ddbc;
-  --ddB: rgba(228, 122, 122, 0.1);
-  --ddT: #e4a3a3;
-  --danger: #c25555;
+  --l0: #3b7a57;
+  --l0bg: rgba(59, 122, 87, 0.11);
+  --l0bd: rgba(59, 122, 87, 0.3);
+  --l1: #4e76a8;
+  --l1bg: rgba(78, 118, 168, 0.11);
+  --l1bd: rgba(78, 118, 168, 0.3);
+  --l2: #b08540;
+  --l2bg: rgba(176, 133, 64, 0.13);
+  --l2bd: rgba(176, 133, 64, 0.32);
+  --tagbd: #dcdcd4;
+  --dhB: rgba(78, 118, 168, 0.1);
+  --dhT: #40628c;
+  --dcT: #6f766e;
+  --daB: rgba(59, 122, 87, 0.1);
+  --daT: #2f6b4f;
+  --ddB: rgba(179, 80, 80, 0.1);
+  --ddT: #a34d4d;
+  --danger: #b14c4c;
   --dangerT: #ffffff;
-  --stMB: rgba(217, 169, 107, 0.14);
-  --stMT: #dcbe93;
-  --stAB: rgba(130, 201, 155, 0.14);
-  --stAT: #a9ddbc;
-  --stDB: rgba(228, 122, 122, 0.14);
-  --stDT: #e4a3a3;
-  --font: "Inter", sans-serif;
+  --stMB: rgba(176, 133, 64, 0.15);
+  --stMT: #8a6a33;
+  --stAB: rgba(59, 122, 87, 0.14);
+  --stAT: #2f6b4f;
+  --stDB: rgba(179, 80, 80, 0.13);
+  --stDT: #a34d4d;
+  --font: "Instrument Sans", sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
-  --radius: 14px;
-  --radius-sm: 8px;
-  --radius-pill: 999px;
 
-  /* Spacing scale (4px base). */
+  /* Radius (V2 scale, tokens/radius.css). --radius/-sm/-pill are kept as
+   * aliases onto the steps existing component code already reads (all three
+   * happen to already equal the V2 value, so nothing visibly moves). */
+  --r-xs: 5px;
+  --r-sm: 6px;
+  --r-md: 7px;
+  --r-btn: 8px;
+  --r-lg: 9px;
+  --r-card: 12px;
+  --r-win: 14px;
+  --r-pill: 999px;
+  --radius: var(--r-win);
+  --radius-sm: var(--r-btn);
+  --radius-pill: var(--r-pill);
+
+  /* Spacing scale (4px base, V2 tokens/spacing.css — replaces the old
+   * 6-step scale under the same --sp-* names). */
   --sp-1: 4px;
-  --sp-2: 8px;
-  --sp-3: 12px;
-  --sp-4: 16px;
-  --sp-5: 20px;
-  --sp-6: 28px;
+  --sp-2: 6px;
+  --sp-3: 8px;
+  --sp-4: 10px;
+  --sp-5: 12px;
+  --sp-6: 14px;
+  --sp-7: 16px;
+  --sp-8: 20px;
+  --sp-9: 24px;
+  --sp-10: 28px;
+  --sp-11: 32px;
+  --sp-12: 36px;
+
+  /* Fixed chrome sizes (V2 tokens/spacing.css). Not wired into the shell
+   * yet — declared here for the layout tasks that follow this one. */
+  --h-titlebar: 50px;
+  --h-actionbar: 52px;
+  --w-sidebar: 232px;
+  --w-rail: 176px;
+  --w-detail: 372px;
+  --h-btn: 30px;
+  --h-toggle: 22px;
+  --w-toggle: 38px;
 
   /* Elevation. */
   --shadow-1: 0 6px 18px rgba(0, 0, 0, 0.12);
   --shadow-2: 0 24px 80px rgba(0, 0, 0, 0.35);
+}
+
+/* Typography (V2 scale, tokens/typography.css). Families self-host from
+ * ./fonts.css — no CDN, so the app keeps working fully offline in Tauri.
+ * --font is the live app default (set by FONTS in theme/themes.ts, which
+ * also drives the "Interface font" picker); the rest are available for
+ * direct use (serif accents, wordmark, the a11y option). */
+:root {
+  --font-sans: "Instrument Sans", -apple-system, system-ui, sans-serif;
+  --font-serif: "Instrument Serif", Georgia, serif;
+  --font-logo: "Space Grotesk", var(--font-sans);
+  --font-a11y: "Atkinson Hyperlegible", var(--font-sans);
+
+  --fs-title: 22px; /* settings / page titles */
+  --fs-logo: 17px;
+  --fs-lg: 15px;
+  --fs-md: 14.5px; /* commit message, detail */
+  --fs-base: 13.5px; /* body / nav */
+  --fs-sm: 13px;
+  --fs-btn: 12.5px;
+  --fs-xs: 12px;
+  --fs-2xs: 11.5px;
+  --fs-mono: 12px; /* hashes, paths */
+  --fs-label: 10.5px; /* uppercase section labels */
+
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+  --fw-bold: 700;
+
+  --ls-label: 1.3px; /* uppercase section labels */
+  --ls-logo: 0.3px;
+  --lh-tight: 1.2;
+  --lh-body: 1.45;
+  --lh-mono: 1.75;
 }
 
 * {
@@ -136,6 +205,19 @@ button:focus-visible {
   --ease-pop: cubic-bezier(0.2, 0.9, 0.3, 1);
   --ease-standard: ease;
   --ease-out: ease-out;
+
+  /* V2 motion tokens (tokens/motion.css). --ease-pop's value already matches
+   * the one above (one token, not duplicated). The V2 exit curve is added as
+   * --ease-exit rather than reusing --ease-out: --ease-out already means the
+   * plain "ease-out" keyword to existing motion (e.g. FileList's fileOut),
+   * and repointing it here would silently change that animation's feel. */
+  --dur-micro: 130ms;
+  --dur-ui: 200ms;
+  --dur-panel: 300ms;
+  --dur-screen: 450ms;
+  --ease-std: ease;
+  --ease-exit: cubic-bezier(0.4, 0, 0.7, 0.2);
+  --lift: -1.5px;
 }
 
 @keyframes fadeUp { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: none; } }
@@ -160,6 +242,9 @@ button:focus-visible {
 /* Keyframes expected by the design kit's animated tree SVGs (R5.22): the
    files reference gsDraw/gsPop/gsLeaf and size to their host box. */
 @keyframes gsDraw { to { stroke-dashoffset: 0; } }
+/* Onboarding tree "grows in" from its base each stage — a robust, always-visible
+   transform/opacity animation on top of the per-stroke gsDraw. */
+@keyframes gsGrowIn { from { transform: scale(0.45); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 @keyframes gsPop { from { transform: scale(0); } to { transform: scale(1); } }
 @keyframes gsLeaf { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 .gs-treeanim svg { width: 100%; height: 100%; display: block; overflow: visible; }
@@ -188,6 +273,19 @@ button:focus-visible {
   100% { transform: translate(-14px, 106vh) rotate(330deg); opacity: 0; }
 }
 
+/* V2 motion kit keyframes (tokens/motion.css). Where an existing keyframe
+ * already produces the same motion under a different name, both names stay
+ * defined so nothing that already animates under the old name breaks:
+ * gs-fade-up/gs-notif-in/gs-notif-out/gs-spin are identical in output to
+ * fadeUp/notifIn/notifOut/spin. gs-pop is a distinct (slightly softer)
+ * entrance than popIn, not a rename, so both exist independently. */
+@keyframes gs-pop { from { opacity: 0; transform: scale(0.965) translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes gs-fade-up { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: none; } }
+@keyframes gs-notif-in { from { opacity: 0; transform: translateX(28px) scale(0.97); } to { opacity: 1; transform: none; } }
+@keyframes gs-notif-out { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateX(36px) scale(0.94); } }
+@keyframes gs-spin { to { transform: rotate(360deg); } }
+@keyframes gs-leaf-pop { 0% { transform: scale(0) rotate(-50deg); } 70% { transform: scale(1.15) rotate(3deg); } 100% { transform: scale(1) rotate(0deg); } }
+
 /* Ambient loops (falling leaves, sway) pause while the window is blurred,
  * minimized or the tab hidden — no CPU/GPU burn when nobody is looking. */
 :root[data-win-hidden] .gs-ambient,
@@ -207,12 +305,21 @@ button:focus-visible {
   animation-duration: 0.001ms !important;
   animation-iteration-count: 1 !important;
 }
+/* OS reduced-motion is respected UNLESS the user explicitly turned animations
+   ON in the app (data-anims="on") — the in-app toggle is the deliberate choice. */
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
+  :root:not([data-anims="on"]) *,
+  :root:not([data-anims="on"]) *::before,
+  :root:not([data-anims="on"]) *::after {
     animation-duration: 0.001ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
+  }
+  /* V2 motion tokens (tokens/motion.css) shrink too, for anything computing
+   * a duration from them directly rather than relying on the blanket
+   * override above. */
+  :root {
+    --dur-panel: 120ms;
+    --dur-screen: 120ms;
   }
 }

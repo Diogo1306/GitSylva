@@ -17,6 +17,21 @@
   background: var(--hover);
 }
 
+/* Branch row hover "Checkout" chip (V2): mouse-hover-only affordance, hidden
+   otherwise so the row stays uncluttered until the pointer lands on it. */
+.gs-branch-checkout-hint {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s ease, background 0.12s ease;
+}
+.gs-branch-row:hover .gs-branch-checkout-hint {
+  opacity: 1;
+  pointer-events: auto;
+}
+.gs-branch-checkout-hint:hover {
+  background: var(--sel);
+}
+
 /* Responsive rules from the handoff (§8): relative times hide under 1180px,
  * tab branch labels hide under 980px. The window IS the viewport in Tauri. */
 @media (max-width: 1180px) {
@@ -30,12 +45,14 @@
   }
 }
 
-/* Windows window controls: subtle hover; close turns red per the spec. */
+/* Windows window controls: subtle hover; close turns red per the spec.
+   !important so the hover fill beats the button's inline transparent bg
+   (otherwise the close only whitened its glyph = invisible on a light titlebar). */
 .gs-winbtn:hover {
-  background: var(--hover);
+  background: var(--hover) !important;
 }
 .gs-winclose:hover {
-  background: #e81123;
+  background: #e81123 !important;
   color: #fff !important;
 }
 
@@ -51,6 +68,20 @@
 }
 .gs-press:active {
   transform: scale(0.98);
+}
+
+/* V2 form primitives (Button/IconButton/Segmented): filled variants brighten
+   instead of swapping background (--hover would wash out a solid fill), and
+   press scales to .97 per the V2 interaction spec. */
+.gs-lift-solid {
+  transition: transform var(--dur-micro) var(--ease-std), filter var(--dur-micro) var(--ease-std);
+}
+.gs-lift-solid:hover {
+  transform: translateY(var(--lift));
+  filter: brightness(1.06);
+}
+.gs-press-97:active {
+  transform: scale(0.97);
 }
 
 /* Disabled / not-yet-built controls. Visible but clearly inert. */

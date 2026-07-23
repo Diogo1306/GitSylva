@@ -10,13 +10,7 @@ export function errMsg(e: unknown, fallback = t("error.generic")): string {
   return fallback;
 }
 
-// ── Sync error classification ────────────────────────────────────────────────
-//
-// fetch/pull/push run with GIT_TERMINAL_PROMPT=0 (see src-tauri/src/git/mod.rs
-// `run_git`), so a missing/rejected credential fails fast with a raw git
-// stderr instead of hanging on a prompt. The backend's `friendly()` returns
-// that stderr trimmed, with no added prose — classification matches on that
-// stable, English raw text.
+// Sync error classification. fetch/pull/push run with GIT_TERMINAL_PROMPT=0 (src-tauri/src/git/mod.rs), so credential failures produce raw English git stderr; matches key on that stable text.
 export type SyncErrorKind = "auth" | "network" | "conflict" | "other";
 
 export function classifySyncError(message: string): SyncErrorKind {
@@ -60,15 +54,11 @@ export function classifySyncError(message: string): SyncErrorKind {
   return "other";
 }
 
-// Fetch has no dedicated modal (it is a one-shot action fired from the
-// toolbar/sidebar/command palette/shortcut, surfaced only via a bottom-right
-// notification), so it gets a lighter-touch version of the same distinct
-// auth/network messaging the Pull/Push modals show inline.
+// Fetch has no modal (one-shot toolbar/palette action, surfaced via notification), so it gets a lighter version of the Pull/Push auth/network messaging.
 export function fetchFailureNotice(e: unknown): { title: string; sub: string } {
   const msg = errMsg(e, t("error.fetchFailedFallback"));
   const kind = classifySyncError(msg);
-  // Every branch keeps the raw git message so diagnostic detail is never
-  // hidden (same principle as SyncFailurePanel); auth prepends guidance.
+  // Keep the raw git message in every branch so diagnostic detail is never hidden; auth prepends guidance.
   if (kind === "auth") return { title: t("error.authTitle"), sub: `${t("error.authFetchHint")}\n${msg}` };
   if (kind === "network") return { title: t("error.networkTitle"), sub: msg };
   return { title: t("error.fetchFailedTitle"), sub: msg };

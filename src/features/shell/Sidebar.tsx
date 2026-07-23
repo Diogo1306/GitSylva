@@ -15,7 +15,6 @@ import { Button } from "../../components/ui/Button";
 import { activateOnKeyDown } from "../../components/ui/keys";
 import { groupBranches } from "../../lib/branchFolders";
 import { fold } from "../../lib/fold";
-import { useBreakpoint } from "../../lib/useBreakpoint";
 import { useT } from "../../i18n";
 import type { BranchInfo } from "../../lib/types";
 import { NavSection } from "./NavSection";
@@ -32,6 +31,7 @@ export function Sidebar() {
   const t = useT();
   const view = useAppStore((s) => s.view);
   const setView = useAppStore((s) => s.setView);
+  const setSettingsSection = useAppStore((s) => s.setSettingsSection);
   const setModal = useAppStore((s) => s.setModal);
   const setFocusCommit = useAppStore((s) => s.setFocusCommit);
   const repo = useAppStore((s) => s.repo)!;
@@ -63,15 +63,9 @@ export function Sidebar() {
   // branches key on their name; remote-tracking rows key on "<remote>/<name>"
   // so the two id spaces never collide. Transient UI state — not persisted.
   const [selectedBranch, setSelectedBranch] = useState<string | null>(null);
-  // Design: sidebar resizable 180–340, persisted.
+  // Design: sidebar resizable 180–340, persisted. V2 has no collapse toggle —
+  // the sidebar is always visible, at least at its resizable minimum width.
   const sidebarW = usePanelWidth("gitsylva-w-sidebar", 232, 180, 340, "right");
-  // Task 6: below ~1024px wide the sidebar defaults to a collapsed icon
-  // strip (a width-driven default); an explicit toggle always wins over that
-  // default in either direction, so the user can pin it open on a narrow
-  // window or collapse it on a wide one. null = "use the width default".
-  const bp = useBreakpoint();
-  const [collapsedOverride, setCollapsedOverride] = useState<boolean | null>(null);
-  const collapsed = collapsedOverride ?? bp.sidebarCollapsed;
   // Branch folders (feature/, fix/, …): collapsed by default so big lists stay
   // short; the folder holding the CURRENT branch starts open, and the user's
   // explicit toggles win for the rest of the session.
@@ -145,53 +139,6 @@ export function Sidebar() {
     .map((n) => localBranches.find((b) => b.name === n))
     .filter((b): b is BranchInfo => !!b);
 
-  // Collapsed: a slim icon-only strip that keeps the sidebar's width
-  // footprint tiny at narrow windows while never losing access to nav or
-  // branches — the expand button is the way back, always keyboard-reachable.
-  if (collapsed) {
-    return (
-      <div
-        style={{
-          width: 44,
-          flexShrink: 0,
-          borderRight: "1px solid var(--border)",
-          background: "var(--panel)",
-          padding: "14px 6px",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          boxSizing: "border-box",
-        }}
-      >
-        <button
-          type="button"
-          onClick={() => setCollapsedOverride(false)}
-          onKeyDown={activateOnKeyDown}
-          title={t("shell.sidebar.expand")}
-          aria-label={t("shell.sidebar.expand")}
-          aria-expanded={false}
-          className="gs-lift"
-          style={{
-            width: 32,
-            height: 32,
-            borderRadius: 8,
-            display: "grid",
-            placeItems: "center",
-            background: "var(--btn)",
-            border: "1px solid var(--btnB)",
-            color: "var(--btnT)",
-            cursor: "pointer",
-            padding: 0,
-            fontSize: 13,
-            fontFamily: "inherit",
-          }}
-        >
-          »
-        </button>
-      </div>
-    );
-  }
-
   return (
     <div
       style={{
@@ -199,46 +146,19 @@ export function Sidebar() {
         flexShrink: 0,
         borderRight: "1px solid var(--border)",
         background: "var(--panel)",
-        padding: "14px 10px",
+        padding: "var(--sp-6) var(--sp-4)",
         overflowY: "auto",
         // Long branch names ellipsize — a horizontal scrollbar at the bottom
         // of the panel was pure noise (R5.1).
         overflowX: "hidden",
         display: "flex",
         flexDirection: "column",
-        gap: 20,
+        gap: "var(--sp-8)",
         boxSizing: "border-box",
         position: "relative",
       }}
     >
       <PanelHandle edge="right" handleProps={sidebarW.handleProps} />
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end" }}>
-        <button
-          type="button"
-          onClick={() => setCollapsedOverride(true)}
-          onKeyDown={activateOnKeyDown}
-          title={t("shell.sidebar.collapse")}
-          aria-label={t("shell.sidebar.collapse")}
-          aria-expanded={true}
-          className="gs-lift"
-          style={{
-            width: 32,
-            height: 32,
-            borderRadius: 8,
-            display: "grid",
-            placeItems: "center",
-            background: "transparent",
-            border: "1px solid transparent",
-            color: "var(--muted)",
-            cursor: "pointer",
-            padding: 0,
-            fontSize: 13,
-            fontFamily: "inherit",
-          }}
-        >
-          «
-        </button>
-      </div>
       <NavSection view={view} setView={setView} wcCount={wcCount} stashCount={stashCount} />
 
       <BranchList
@@ -259,6 +179,7 @@ export function Sidebar() {
         onCreateBranch={() => setModal("branch")}
         onFocusBranch={focusBranch}
         onRequestSwitch={setConfirmSwitch}
+        onMergeClick={setConfirmMerge}
         onContextMenu={setMenu}
         onDeleteRequest={(name) => setConfirmDelete({ name, force: false })}
         onRenameCommit={commitRename}
@@ -287,6 +208,36 @@ export function Sidebar() {
       />
 
       <div style={{ flex: 1 }} />
+
+      {/* V2 bottom account row: cloud sync entry point — opens Settings,
+          the app's only Accounts surface today. */}
+      <button
+        type="button"
+        onClick={() => { setSettingsSection("set-contas"); setView("settings"); }}
+        onKeyDown={activateOnKeyDown}
+        title={t("shell.sidebar.account")}
+        aria-label={t("shell.sidebar.account")}
+        className="gs-row"
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 9,
+          padding: "7px 10px",
+          borderRadius: "var(--r-btn)",
+          fontSize: 13.5,
+          color: "var(--text2)",
+          background: "transparent",
+          border: "none",
+          width: "100%",
+          cursor: "pointer",
+          fontFamily: "inherit",
+        }}
+      >
+        <svg width="14" height="11" viewBox="0 0 16 12" fill="none" stroke="var(--muted)" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+          <path d="M4.5 10.5 A3.3 3.3 0 0 1 4.9 4 A4.2 4.2 0 0 1 13 5.3 A2.9 2.9 0 0 1 12.3 10.5 Z" />
+        </svg>
+        <span style={{ flex: 1, textAlign: "left" }}>{t("shell.sidebar.account")}</span>
+      </button>
 
       {menu &&
         (() => {

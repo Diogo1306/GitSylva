@@ -6,7 +6,7 @@ import { useT } from "../../i18n";
 import { SectionLabel } from "./SectionLabel";
 import { RemoteRow } from "./RemoteRow";
 
-const mono = "'JetBrains Mono', monospace";
+const mono = "var(--font-mono)";
 
 type ContextMenuRequest = { x: number; y: number; name: string; remote?: { full: string; short: string; tip: string } };
 
@@ -66,9 +66,9 @@ export function RemoteSection({
     <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
       <SectionLabel>{t("shell.sidebar.remotes")}</SectionLabel>
       {remotes.length === 0 ? (
-        <div style={{ padding: "6px 10px", fontSize: 12, color: "var(--muted)" }}>{t("shell.remote.none")}</div>
+        <div style={{ padding: "6px 10px", fontSize: "var(--fs-xs)", color: "var(--muted)" }}>{t("shell.remote.none")}</div>
       ) : visibleRemotes.length === 0 ? (
-        <div style={{ padding: "6px 10px", fontSize: 12, color: "var(--muted)" }}>{t("shell.remote.noMatches")}</div>
+        <div style={{ padding: "6px 10px", fontSize: "var(--fs-xs)", color: "var(--muted)" }}>{t("shell.remote.noMatches")}</div>
       ) : (
         visibleRemotes.map((remote) => {
           const isOpen = remoteOpen(remote);
@@ -92,7 +92,7 @@ export function RemoteSection({
                   title={t("shell.folder.toggleTitle", { action: isOpen ? t("shell.collapse") : t("shell.expand"), name: remote })}
                   aria-label={t("shell.folder.toggleTitle", { action: isOpen ? t("shell.collapse") : t("shell.expand"), name: remote })}
                   aria-expanded={isOpen}
-                  style={{ display: "flex", alignItems: "center", gap: 9, flex: 1, minWidth: 0, minHeight: 32, padding: "6px 4px 6px 10px", borderRadius: 8, fontSize: 13, fontFamily: mono, color: "var(--text2)", background: "transparent", border: "none", textAlign: "left", cursor: "pointer", boxSizing: "border-box" }}
+                  style={{ display: "flex", alignItems: "center", gap: 9, flex: 1, minWidth: 0, minHeight: 32, padding: "6px 4px 6px 10px", borderRadius: "var(--r-btn)", fontSize: "var(--fs-sm)", fontFamily: mono, color: "var(--text2)", background: "transparent", border: "none", textAlign: "left", cursor: "pointer", boxSizing: "border-box" }}
                 >
                   <span style={{ fontSize: 9, color: "var(--muted)", transform: `rotate(${isOpen ? 90 : 0}deg)`, transition: "transform 0.15s", display: "inline-block", width: 6, flexShrink: 0 }}>▶</span>
                   <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{remote}</span>
@@ -111,7 +111,7 @@ export function RemoteSection({
                   className="gs-row"
                   title={`${remote} · fetch/pull/push`}
                   aria-label={t("shell.remote.optionsAria", { remote })}
-                  style={{ width: 28, height: 28, borderRadius: 8, display: "grid", placeItems: "center", color: "var(--muted)", fontSize: 12, background: "transparent", border: "none", padding: 0, cursor: "pointer", fontFamily: "inherit", flexShrink: 0, marginRight: 2 }}
+                  style={{ width: 28, height: 28, borderRadius: "var(--r-btn)", display: "grid", placeItems: "center", color: "var(--muted)", fontSize: "var(--fs-xs)", background: "transparent", border: "none", padding: 0, cursor: "pointer", fontFamily: "inherit", flexShrink: 0, marginRight: 2 }}
                 >
                   ⋯
                 </button>
@@ -136,7 +136,7 @@ export function RemoteSection({
                         className="gs-row"
                         title={t("shell.folder.toggleTitle", { action: filtering || (openFolders[`${remote}:${g.name}`] ?? false) ? t("shell.collapse") : t("shell.expand"), name: g.name })}
                         aria-expanded={filtering || (openFolders[`${remote}:${g.name}`] ?? false)}
-                        style={{ display: "flex", alignItems: "center", gap: 9, padding: "5px 10px 5px 20px", borderRadius: 8, fontSize: 12.5, fontFamily: mono, color: "var(--muted)", cursor: "pointer", background: "transparent", border: "none", width: "100%", textAlign: "left" }}
+                        style={{ display: "flex", alignItems: "center", gap: 9, padding: "5px 10px 5px 20px", borderRadius: "var(--r-btn)", fontSize: "var(--fs-btn)", fontFamily: mono, color: "var(--muted)", cursor: "pointer", background: "transparent", border: "none", width: "100%", textAlign: "left" }}
                       >
                         <span style={{ fontSize: 8, transform: `rotate(${filtering || (openFolders[`${remote}:${g.name}`] ?? false) ? 90 : 0}deg)`, transition: "transform 0.15s", display: "inline-block", width: 5, flexShrink: 0 }}>▶</span>
                         <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{g.name}</span>

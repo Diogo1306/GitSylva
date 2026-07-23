@@ -1,0 +1,984 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400..700&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    html { scroll-behavior: smooth; }
+    html, body { margin: 0; padding: 0; background: #FFFFFF; }
+    a { color: #3B7A57; text-decoration: none; }
+    a:hover { color: #2F6B4F; }
+    [data-rv] { opacity: 0; transform: translateY(28px); transition: opacity 0.75s ease, transform 0.75s cubic-bezier(0.2, 0.9, 0.3, 1); }
+    [data-rv="in"] { opacity: 1; transform: none; }
+    @media (prefers-reduced-motion: reduce) { [data-rv] { opacity: 1; transform: none; transition: none; } }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+    @keyframes popIn { from { opacity: 0; transform: scale(0.94) translateY(8px); } to { opacity: 1; transform: none; } }
+    @keyframes toastIn { from { opacity: 0; transform: translateX(-50%) translateY(10px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+    @keyframes notifIn { from { opacity: 0; transform: translateX(28px) scale(0.97); } to { opacity: 1; transform: none; } }
+    @keyframes nodePop { from { transform: scale(0); } to { transform: scale(1); } }
+    @keyframes leafPop { 0% { transform: scale(0) rotate(-50deg); } 70% { transform: scale(1.15) rotate(3deg); } 100% { transform: scale(1) rotate(0deg); } }
+    @keyframes treeGrow { from { opacity: 0; transform: scale(0.55); } to { opacity: 1; transform: scale(1); } }
+    @keyframes themeSwapA { 0% { opacity: 0.45; } 100% { opacity: 1; } }
+    @keyframes themeSwapB { 0% { opacity: 0.45; } 100% { opacity: 1; } }
+    @keyframes fxFall { 0% { transform: translateY(0) rotate(0deg); opacity: 0; } 12% { opacity: 0.9; } 100% { transform: translateY(340px) translateX(-18px) rotate(230deg); opacity: 0; } }
+    @keyframes leafFall { 0% { transform: translate(0, -4vh) rotate(0deg); opacity: 0; } 10% { opacity: 0.7; } 55% { transform: translate(26px, 40vh) rotate(160deg); } 88% { opacity: 0.55; } 100% { transform: translate(-14px, 92vh) rotate(330deg); opacity: 0; } }
+    @keyframes bobY { from { transform: translateY(0); } to { transform: translateY(7px); } }
+    @keyframes swingV { from { transform: rotate(-0.4deg); } to { transform: rotate(0.45deg); } }
+    @keyframes vineSway { from { transform: rotate(-1.3deg); } to { transform: rotate(1.5deg); } }
+  </style>
+</helmet>
+
+<div data-screen-label="Story GitSylva" style="background: #FFFFFF; color: #191C1A; font-family: 'Instrument Sans', sans-serif;">
+
+  <!-- Header (aparece depois da intro) -->
+  <div data-hdr="" style="position: fixed; top: 0; left: 0; right: 0; z-index: 30; background: rgba(255,255,255,0.88); backdrop-filter: blur(12px); border-bottom: 1px solid #E7E7E0; opacity: 0; pointer-events: none; transform: translateY(-10px); transition: opacity 0.35s ease, transform 0.35s cubic-bezier(0.2, 0.9, 0.3, 1);">
+    <div style="max-width: 1060px; margin: 0 auto; padding: 0 28px; height: 56px; display: flex; align-items: center; gap: 20px;">
+      <div style="display: flex; align-items: baseline; font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 16px; letter-spacing: 0.3px;">
+        <span>git</span>
+        <span style="display: inline-block; margin: 0 1px;">{{ logoWord }}</span>
+        <span>ylva</span>
+      </div>
+      <div style="flex: 1;"></div>
+      <a href="{{ repoUrl }}" target="_blank" title="view the repository" style="display: grid; place-items: center; width: 32px; height: 32px; border: 1.5px solid #C9CFC6; border-radius: 9px; color: #191C1A; transition: border-color 0.15s ease, color 0.15s ease;" style-hover="border-color: #3B7A57; color: #3B7A57">
+        <svg viewBox="0 0 16 16" width="17" height="17" fill="currentColor">
+          <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"></path>
+        </svg>
+      </a>
+      <a href="#download" style="background: #191C1A; color: #FFFFFF; border-radius: 9px; padding: 8px 16px; font-weight: 600; font-size: 13px; transition: transform 0.15s ease;" style-hover="transform: translateY(-1px); color: #FFFFFF">Download</a>
+    </div>
+  </div>
+
+  <!-- CAP 1 · Intro presa: o logo cresce com o scroll -->
+  <div data-pin="" data-screen-label="Cap 1 Intro" style="height: 230vh; background: radial-gradient(120% 90% at 50% 0%, #F7F7F3 0%, #FFFFFF 70%);">
+    <div style="position: sticky; top: 0; height: 100vh; overflow: hidden; display: grid; place-items: center;">
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 30px;">
+        <div style="display: flex; align-items: center;">
+          <span data-pop="0.60" data-from="translateX(26px)" style="opacity: 0; transform: translateX(26px); transition: opacity 0.35s ease, transform 0.45s cubic-bezier(0.2, 0.9, 0.3, 1); font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: clamp(56px, 12.5vw, 108px); letter-spacing: 0.5px;">g</span>
+          <span data-pop="0.64" data-from="translateX(20px)" style="opacity: 0; transform: translateX(20px); transition: opacity 0.35s ease, transform 0.45s cubic-bezier(0.2, 0.9, 0.3, 1); font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: clamp(56px, 12.5vw, 108px);">i</span>
+          <span data-pop="0.68" data-from="translateX(14px)" style="opacity: 0; transform: translateX(14px); transition: opacity 0.35s ease, transform 0.45s cubic-bezier(0.2, 0.9, 0.3, 1); font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: clamp(56px, 12.5vw, 108px); margin-right: 10px;">t</span>
+          <span style="position: relative; display: inline-block;">
+            <span data-hide="0.08" style="position: absolute; inset: 0; display: grid; place-items: center; font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: clamp(66px, 15vw, 126px); color: #3B7A57; transition: opacity 0.3s ease;">S</span>
+            {{ introTree }}
+          </span>
+          <span data-pop="0.68" data-from="translateX(-14px)" style="opacity: 0; transform: translateX(-14px); transition: opacity 0.35s ease, transform 0.45s cubic-bezier(0.2, 0.9, 0.3, 1); font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: clamp(56px, 12.5vw, 108px); margin-left: 10px;">y</span>
+          <span data-pop="0.72" data-from="translateX(-18px)" style="opacity: 0; transform: translateX(-18px); transition: opacity 0.35s ease, transform 0.45s cubic-bezier(0.2, 0.9, 0.3, 1); font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: clamp(56px, 12.5vw, 108px);">l</span>
+          <span data-pop="0.76" data-from="translateX(-22px)" style="opacity: 0; transform: translateX(-22px); transition: opacity 0.35s ease, transform 0.45s cubic-bezier(0.2, 0.9, 0.3, 1); font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: clamp(56px, 12.5vw, 108px);">v</span>
+          <span data-pop="0.80" data-from="translateX(-26px)" style="opacity: 0; transform: translateX(-26px); transition: opacity 0.35s ease, transform 0.45s cubic-bezier(0.2, 0.9, 0.3, 1); font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: clamp(56px, 12.5vw, 108px);">a</span>
+        </div>
+        <div data-pop="0.86" data-from="translateY(12px)" style="opacity: 0; transform: translateY(12px); transition: opacity 0.4s ease, transform 0.5s cubic-bezier(0.2, 0.9, 0.3, 1); font-size: 19px; color: #59605A;">the Git client that grows with you</div>
+      </div>
+      <div data-hide="0.08" style="position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 6px; transition: opacity 0.3s ease; color: #90968F;">
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 11.5px; letter-spacing: 1px;">scroll to plant</div>
+        <div style="animation: bobY 0.9s ease-in-out infinite alternate; font-size: 15px;">↓</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="background: #FFFFFF; line-height: 0;">
+    <svg viewBox="0 0 1440 64" preserveAspectRatio="none" style="width: 100%; height: 52px; display: block;">
+      <path d="M0,22 C240,54 480,-6 720,26 C960,56 1200,-2 1440,24 L1440,64 L0,64 Z" fill="#C9CFC6"></path>
+      <path d="M0,38 C240,66 480,12 720,40 C960,64 1200,14 1440,38 L1440,64 L0,64 Z" fill="#191C1A"></path>
+    </svg>
+  </div>
+
+  <!-- CAP 2 · Árvore de commits presa: desenha-se com o scroll -->
+  <div data-pin="" data-screen-label="Cap 2 Commits" style="height: 240vh; background: #191C1A;">
+    <div style="position: sticky; top: 0; height: 100vh; overflow: hidden; display: grid; place-items: center;">
+      <div data-fit="640" style="width: 1000px; max-width: calc(100% - 56px); display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: clamp(24px, 4vw, 56px); align-items: center; transform-origin: center center;">
+        <div>{{ commitSvg }}</div>
+        <div style="display: flex; flex-direction: column; gap: 18px;">
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <div style="font-size: 11px; font-weight: 700; letter-spacing: 2px; color: #61686E;">THE HISTORY IS THE TREE</div>
+            <div style="font-size: clamp(27px, 4.6vw, 38px); font-weight: 700; letter-spacing: -0.8px; color: #EAECEE; line-height: 1.1; text-wrap: pretty;">Every branch is a bough.<br>Every commit, a leaf.</div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <sc-for list="{{ commitRows }}" as="r" hint-placeholder-count="6">
+              <div data-pop="{{ r.t }}" data-from="translateX(18px)" style="opacity: 0; transform: translateX(18px); transition: opacity 0.35s ease, transform 0.45s cubic-bezier(0.2, 0.9, 0.3, 1); display: flex; align-items: center; gap: 12px; background: #101214; border: 1px solid #272B2E; border-radius: 11px; padding: 11px 14px;">
+                <span style="width: 9px; height: 9px; border-radius: 50%; background: {{ r.dot }}; flex-shrink: 0;"></span>
+                <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #61686E;">{{ r.hash }}</span>
+                <span style="font-size: 13.5px; color: #EAECEE; font-weight: 500; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ r.msg }}</span>
+                <span style="font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: {{ r.dot }}; border: 1px solid {{ r.chipBd }}; background: {{ r.chipBg }}; border-radius: 999px; padding: 2px 9px; white-space: nowrap;">{{ r.chip }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Vídeo pendurado no ramo -->
+  <div data-screen-label="Video" style="background: #191C1A; position: relative; overflow: hidden;">
+    <div style="position: absolute; left: -12px; bottom: -14px; pointer-events: none;">{{ forestBL }}</div>
+    <div style="position: absolute; right: -12px; top: -14px; transform: scale(-1, -1); pointer-events: none;">{{ forestTR }}</div>
+    <div data-rv="" style="max-width: 1060px; margin: 0 auto; padding: 0 28px 72px; display: flex; flex-direction: column; gap: 18px; position: relative; z-index: 1;">
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <div style="font-size: 11px; font-weight: 700; letter-spacing: 2px; color: #61686E;">SEE IT MOVE</div>
+        <div style="font-size: 30px; font-weight: 700; letter-spacing: -0.5px; color: #EAECEE;">Watch the forest at work</div>
+      </div>
+      <div data-plx="" style="position: relative; padding-top: 52px; will-change: transform; width: min(1240px, calc(100vw - 72px)); margin-left: calc((100% - min(1240px, 100vw - 72px)) / 2);">
+        <div style="position: absolute; top: 2px; left: calc(50% - 50vw); right: -30px; pointer-events: none;">{{ videoBough }}</div>
+        <div style="animation: swingV 5.5s ease-in-out infinite alternate; transform-origin: 50% -60px;">
+          <div style="position: absolute; top: -32px; left: 14%; width: 2px; height: 34px; background: #8A6A33;"></div>
+          <div style="position: absolute; top: -36px; left: 58%; width: 2px; height: 38px; background: #8A6A33;"></div>
+          <div style="border: 1px solid #2D332F; border-radius: 16px; overflow: hidden; background: #101214; box-shadow: 0 0 0 1px rgba(123,200,150,0.10), 0 34px 90px rgba(0,0,0,0.55); position: relative;">
+            <div style="position: absolute; inset: 0; display: grid; place-items: center; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: #61686E;">growing the film…</div>
+            <div style="position: relative; width: 100%; aspect-ratio: 16 / 9; overflow: hidden;">
+              <iframe src="{{ videoSrc }}" title="GitSylva promo video" style="display: block; width: 200%; aspect-ratio: 16 / 9; border: 0; position: absolute; top: 0; left: 0; transform: scale(0.5); transform-origin: top left; opacity: {{ videoOp }}; transition: opacity 0.45s ease; pointer-events: none;"></iframe>
+            </div>
+            <div onClick="{{ vidToggle }}" style="position: absolute; inset: 0; cursor: pointer; display: grid; place-items: center;">
+              <sc-if value="{{ vidPaused }}" hint-placeholder-val="{{ false }}">
+                <div style="width: 84px; height: 84px; border-radius: 50%; background: rgba(16,18,20,0.72); border: 1.5px solid rgba(123,200,150,0.45); backdrop-filter: blur(6px); display: grid; place-items: center; animation: popIn 0.25s cubic-bezier(0.2, 0.9, 0.3, 1) both; transition: transform 0.15s ease;" style-hover="transform: scale(1.07)">
+                  <svg viewBox="0 0 24 24" width="30" height="30"><path d="M8 5.5 L19 12 L8 18.5 Z" fill="#7BC896"></path></svg>
+                </div>
+              </sc-if>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="background: #191C1A; line-height: 0;">
+    <svg viewBox="0 0 1440 64" preserveAspectRatio="none" style="width: 100%; height: 52px; display: block;">
+      <path d="M0,26 C240,-4 480,58 720,24 C960,-4 1200,56 1440,26 L1440,64 L0,64 Z" fill="#3A403C"></path>
+      <path d="M0,42 C240,14 480,66 720,40 C960,14 1200,64 1440,42 L1440,64 L0,64 Z" fill="#F1F1EC"></path>
+    </svg>
+  </div>
+
+  <!-- CAP 3 · Personalização (clica para trocar) -->
+  <div data-screen-label="Cap 3 Personalizar" style="background: #F1F1EC;">
+    <div data-rv="" style="max-width: 1060px; margin: 0 auto; padding: 84px 28px 88px; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: clamp(28px, 4vw, 52px); align-items: center;">
+      <div style="display: flex; flex-direction: column; gap: 22px;">
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div style="font-size: 11px; font-weight: 700; letter-spacing: 2px; color: #90968F;">YOUR FOREST, YOUR COLORS</div>
+          <div style="font-size: clamp(25px, 4.4vw, 34px); font-weight: 700; letter-spacing: -0.7px; line-height: 1.12; text-wrap: pretty;">Switch the theme, the accent and the branch colors. Try it.</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div style="font-size: 10.5px; font-weight: 700; letter-spacing: 1.2px; color: #90968F;">THEME</div>
+          <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
+            <sc-for list="{{ themeCards }}" as="tc" hint-placeholder-count="4">
+              <div onClick="{{ tc.pick }}" style="border: 2px solid {{ tc.ring }}; border-radius: 12px; background: #FFFFFF; padding: 11px 13px; display: flex; align-items: center; gap: 10px; cursor: pointer; transition: transform 0.15s ease, border-color 0.15s ease;" style-hover="transform: translateY(-1px)">
+                <span style="display: flex; gap: 4px;">
+                  <span style="width: 13px; height: 13px; border-radius: 50%; background: {{ tc.c1 }}; border: 1px solid rgba(0,0,0,0.08);"></span>
+                  <span style="width: 13px; height: 13px; border-radius: 50%; background: {{ tc.c2 }}; border: 1px solid rgba(0,0,0,0.08);"></span>
+                  <span style="width: 13px; height: 13px; border-radius: 50%; background: {{ tc.c3 }}; border: 1px solid rgba(0,0,0,0.08);"></span>
+                </span>
+                <span style="font-size: 13px; font-weight: 600;">{{ tc.name }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div style="font-size: 10.5px; font-weight: 700; letter-spacing: 1.2px; color: #90968F;">ACCENT</div>
+          <div style="display: flex; gap: 10px;">
+            <sc-for list="{{ accentDots }}" as="ac" hint-placeholder-count="4">
+              <span onClick="{{ ac.pick }}" title="{{ ac.name }}" style="width: 28px; height: 28px; border-radius: 50%; background: {{ ac.c }}; border: 2.5px solid {{ ac.ring }}; box-sizing: border-box; cursor: pointer; transition: transform 0.15s ease;" style-hover="transform: scale(1.12)"></span>
+            </sc-for>
+          </div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div style="font-size: 10.5px; font-weight: 700; letter-spacing: 1.2px; color: #90968F;">BRANCH COLORS</div>
+          <div style="display: flex; gap: 8px;">
+            <div onClick="{{ pickAuto }}" style="border: 2px solid {{ autoRing }}; border-radius: 9px; background: #FFFFFF; padding: 7px 14px; font-size: 12.5px; font-weight: 600; cursor: pointer;">from theme</div>
+            <div onClick="{{ pickVivid }}" style="border: 2px solid {{ vividRing }}; border-radius: 9px; background: #FFFFFF; padding: 7px 14px; font-size: 12.5px; font-weight: 600; cursor: pointer;">vivid</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- preview mini-janela -->
+      <div style="animation: {{ swapAnim }};">
+        <div style="border: 1px solid {{ th.border }}; border-radius: 14px; background: {{ th.win }}; box-shadow: 0 24px 60px rgba(25,28,26,0.18); overflow: hidden;">
+          <div style="height: 42px; display: flex; align-items: center; gap: 8px; padding: 0 14px; background: {{ th.panel }}; border-bottom: 1px solid {{ th.border }};">
+            <span style="font-size: 12.5px; font-weight: 600; color: {{ th.text }};">gitsylva</span>
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: {{ th.muted }};">main</span>
+            <span style="flex: 1;"></span>
+            <span style="color: {{ th.muted }}; font-size: 13px; padding: 0 8px;">─</span>
+            <span style="color: {{ th.muted }}; font-size: 11px; padding: 0 8px;">□</span>
+            <span style="color: {{ th.muted }}; font-size: 12px; padding: 0 8px;">✕</span>
+          </div>
+          <div style="padding: 18px; display: flex; gap: 16px;">
+            <div style="flex-shrink: 0;">{{ previewGraph }}</div>
+            <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 9px; padding-top: 4px;">
+              <sc-for list="{{ previewRows }}" as="pr" hint-placeholder-count="5">
+                <div style="display: flex; align-items: center; gap: 9px;">
+                  <span style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: {{ th.muted }};">{{ pr.hash }}</span>
+                  <span style="font-size: 12px; color: {{ th.text }}; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ pr.msg }}</span>
+                </div>
+              </sc-for>
+              <div style="margin-top: 6px; display: flex; gap: 8px; align-items: center;">
+                <div style="flex: 1; border: 1px solid {{ th.btnB }}; background: {{ th.input }}; border-radius: 8px; padding: 7px 10px; font-size: 11.5px; color: {{ th.muted }};">commit message…</div>
+                <div style="background: {{ th.accent }}; color: {{ th.accentT }}; border-radius: 8px; padding: 7px 14px; font-size: 12px; font-weight: 600; cursor: pointer;">Commit</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top: 12px; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #90968F; text-align: center;">theme {{ th.nome }}</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="background: #F1F1EC; line-height: 0;">
+    <svg viewBox="0 0 1440 64" preserveAspectRatio="none" style="width: 100%; height: 52px; display: block;">
+      <path d="M0,24 C240,56 480,-4 720,28 C960,58 1200,0 1440,22 L1440,64 L0,64 Z" fill="#C9CFC6"></path>
+      <path d="M0,40 C240,66 480,14 720,42 C960,66 1200,16 1440,36 L1440,64 L0,64 Z" fill="#191C1A"></path>
+    </svg>
+  </div>
+
+  <!-- CAP 4 · A natureza reage (clica nas ações) -->
+  <div data-screen-label="Cap 4 Folhas" style="background: #191C1A; position: relative; overflow: hidden;">
+    <div style="position: absolute; inset: 0; pointer-events: none;">{{ ambientLeaves }}</div>
+    <div data-rv="" style="max-width: 1060px; margin: 0 auto; padding: 88px 28px 96px; display: flex; flex-direction: column; align-items: center; gap: 22px; position: relative; z-index: 1;">
+      <div style="font-size: 11px; font-weight: 700; letter-spacing: 2px; color: #61686E;">NATURE REACTS</div>
+      <div style="font-size: clamp(26px, 4.6vw, 36px); font-weight: 700; letter-spacing: -0.8px; color: #EAECEE; text-align: center; line-height: 1.12; max-width: 640px; text-wrap: pretty;">Every Git action drops a leaf. Try it here.</div>
+      <div style="display: flex; gap: 12px; margin-top: 8px; flex-wrap: wrap; justify-content: center;">
+        <div onClick="{{ doCommit }}" style="background: #3B7A57; color: #FFFFFF; border-radius: 10px; padding: 12px 22px; font-size: 14px; font-weight: 600; cursor: pointer; transition: transform 0.15s ease;" style-hover="transform: translateY(-1px)">Commit</div>
+        <div onClick="{{ doFetch }}" style="border: 1.5px solid #2D332F; background: #101214; color: #C8CDD2; border-radius: 10px; padding: 11px 22px; font-size: 14px; font-weight: 600; cursor: pointer; transition: transform 0.15s ease, border-color 0.15s ease;" style-hover="transform: translateY(-1px); border-color: #3E4A42">Fetch</div>
+        <div onClick="{{ doPush }}" style="border: 1.5px solid #2D332F; background: #101214; color: #C8CDD2; border-radius: 10px; padding: 11px 22px; font-size: 14px; font-weight: 600; cursor: pointer; transition: transform 0.15s ease, border-color 0.15s ease;" style-hover="transform: translateY(-1px); border-color: #3E4A42">Push</div>
+      </div>
+      <div style="font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: #61686E;">in the app this happens on every commit, fetch, pull and push</div>
+    </div>
+    <div style="position: absolute; inset: 0; pointer-events: none; z-index: 2;">{{ fxLeaves }}</div>
+    <sc-if value="{{ hasNotif }}" hint-placeholder-val="{{ false }}">
+      <div style="position: absolute; top: 22px; right: 22px; z-index: 3; background: #101214; border: 1px solid #272B2E; border-left: 3px solid #3B7A57; border-radius: 11px; padding: 12px 16px; animation: notifIn 0.35s cubic-bezier(0.2, 0.9, 0.3, 1) both; max-width: 260px;">
+        <div style="font-size: 13px; font-weight: 700; color: #EAECEE;">{{ notifTitle }}</div>
+        <div style="font-size: 12px; color: #A5ACB2; margin-top: 2px;">{{ notifBody }}</div>
+      </div>
+    </sc-if>
+  </div>
+
+  <div style="background: #191C1A; line-height: 0;">
+    <svg viewBox="0 0 1440 64" preserveAspectRatio="none" style="width: 100%; height: 52px; display: block;">
+      <path d="M0,26 C240,-4 480,58 720,24 C960,-4 1200,56 1440,26 L1440,64 L0,64 Z" fill="#3A403C"></path>
+      <path d="M0,42 C240,14 480,66 720,40 C960,14 1200,64 1440,42 L1440,64 L0,64 Z" fill="#FFFFFF"></path>
+    </svg>
+  </div>
+
+  <!-- CAP 5 · A janela do app (segue o tema escolhido) -->
+  <div data-screen-label="Cap 5 Janela" style="background: #FFFFFF;">
+    <div data-rv="" style="max-width: 1060px; margin: 0 auto; padding: 84px 28px 92px; display: flex; flex-direction: column; align-items: center; gap: 26px;">
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
+        <div style="font-size: 11px; font-weight: 700; letter-spacing: 2px; color: #90968F;">ALL IN ONE WINDOW</div>
+        <div style="font-size: clamp(25px, 4.4vw, 34px); font-weight: 700; letter-spacing: -0.7px; text-align: center; line-height: 1.12; max-width: 620px; text-wrap: pretty;">History, staging, branches and stashes. All in one place.</div>
+        <div style="font-size: 14px; color: #59605A;">the window follows the theme you picked above</div>
+      </div>
+
+      <div style="width: 100%; max-width: 920px; animation: {{ swapAnim }}; overflow-x: auto;">
+        <div style="min-width: 660px; border: 1px solid {{ th.border }}; border-radius: 14px; background: {{ th.win }}; box-shadow: 0 30px 80px rgba(25,28,26,0.22); overflow: hidden;">
+          <div style="height: 44px; display: flex; align-items: center; gap: 8px; padding: 0 14px; background: {{ th.panel }}; border-bottom: 1px solid {{ th.border }};">
+            <span style="display: flex; align-items: center; gap: 7px; background: {{ th.win }}; border: 1px solid {{ th.border }}; border-radius: 8px; padding: 5px 12px;">
+              <span style="width: 7px; height: 7px; border-radius: 50%; background: {{ th.l0v }};"></span>
+              <span style="font-size: 12px; font-weight: 600; color: {{ th.text }};">gitsylva</span>
+              <span style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: {{ th.muted }};">main</span>
+            </span>
+            <span style="flex: 1;"></span>
+            <span style="font-size: 11.5px; color: {{ th.text2 }}; border: 1px solid {{ th.btnB }}; background: {{ th.btn }}; border-radius: 7px; padding: 4px 10px;">↓ Pull</span>
+            <span style="display: flex; align-items: center; gap: 5px; font-size: 11.5px; color: {{ th.text2 }}; border: 1px solid {{ th.btnB }}; background: {{ th.btn }}; border-radius: 7px; padding: 4px 10px;">↑ Push <span style="background: {{ th.badge }}; color: {{ th.badgeT }}; border-radius: 999px; font-size: 9px; font-weight: 700; padding: 0 6px;">2</span></span>
+            <span style="font-size: 11.5px; color: {{ th.text2 }}; border: 1px solid {{ th.btnB }}; background: {{ th.btn }}; border-radius: 7px; padding: 4px 10px;">⟳ Fetch</span>
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: {{ th.muted }}; border: 1px solid {{ th.btnB }}; border-radius: 7px; padding: 4px 8px;">Ctrl+K</span>
+            <span style="color: {{ th.muted }}; font-size: 13px; padding: 0 6px;">─</span>
+            <span style="color: {{ th.muted }}; font-size: 11px; padding: 0 6px;">□</span>
+            <span style="color: {{ th.muted }}; font-size: 12px; padding: 0 6px;">✕</span>
+          </div>
+          <div style="display: flex; min-height: 350px;">
+            <div style="width: 190px; flex-shrink: 0; background: {{ th.panel2 }}; border-right: 1px solid {{ th.border }}; padding: 14px 12px; display: flex; flex-direction: column; gap: 14px;">
+              <div style="display: flex; flex-direction: column; gap: 6px;">
+                <div style="font-size: 9.5px; font-weight: 700; letter-spacing: 1px; color: {{ th.muted }};">BRANCHES</div>
+                <div style="display: flex; align-items: center; gap: 7px; background: {{ th.sel }}; border-radius: 7px; padding: 5px 8px;">
+                  <span style="width: 7px; height: 7px; border-radius: 50%; background: {{ th.l0v }};"></span>
+                  <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: {{ th.text }};">main</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 7px; padding: 5px 8px;">
+                  <span style="width: 7px; height: 7px; border-radius: 50%; background: {{ th.l1v }};"></span>
+                  <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: {{ th.text2 }};">feature/leaves</span>
+                  <span style="margin-left: auto; font-size: 9.5px; color: {{ th.badgeT }}; background: {{ th.badge }}; border-radius: 999px; padding: 1px 7px;">↑2</span>
+                </div>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 6px;">
+                <div style="font-size: 9.5px; font-weight: 700; letter-spacing: 1px; color: {{ th.muted }};">TAGS</div>
+                <div style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: {{ th.text2 }}; padding: 2px 8px;">v{{ versao }}</div>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 6px;">
+                <div style="font-size: 9.5px; font-weight: 700; letter-spacing: 1px; color: {{ th.muted }};">STASHES</div>
+                <div style="font-size: 11px; color: {{ th.text2 }}; padding: 2px 8px;">roots experiment</div>
+              </div>
+            </div>
+            <div style="flex: 1; min-width: 0; display: flex; flex-direction: column;">
+              <div style="display: flex; align-items: center; gap: 10px; padding: 11px 16px; border-bottom: 1px solid {{ th.border }}; background: {{ th.panel }};">
+                <span style="width: 9px; height: 9px; border-radius: 50%; border: 2px dashed {{ th.l2v }}; box-sizing: border-box;"></span>
+                <span style="font-size: 12.5px; font-weight: 600; color: {{ th.text }};">Uncommitted changes</span>
+                <span style="font-size: 10px; color: {{ th.badgeT }}; background: {{ th.badge }}; border-radius: 999px; padding: 1px 8px;">2 files</span>
+              </div>
+              <sc-for list="{{ winRows }}" as="w" hint-placeholder-count="5">
+                <div style="display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-bottom: 1px solid {{ th.bsoft }};">
+                  <span style="width: 9px; height: 9px; border-radius: 50%; background: {{ w.dot }}; flex-shrink: 0;"></span>
+                  <span style="font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: {{ th.muted }};">{{ w.hash }}</span>
+                  <span style="font-size: 12.5px; color: {{ th.text }}; font-weight: 500; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ w.msg }}</span>
+                  <span style="font-size: 11px; color: {{ th.muted }};">{{ w.when }}</span>
+                </div>
+              </sc-for>
+              <div style="margin-top: auto; display: flex; align-items: center; gap: 8px; padding: 11px 14px; border-top: 1px solid {{ th.border }}; background: {{ th.panel }};">
+                <div style="flex: 1; border: 1px solid {{ th.btnB }}; background: {{ th.input }}; border-radius: 8px; padding: 8px 11px; font-size: 12px; color: {{ th.muted }};">commit message…</div>
+                <div style="background: {{ th.accent }}; color: {{ th.accentT }}; border-radius: 8px; padding: 8px 16px; font-size: 12.5px; font-weight: 600; cursor: pointer;">Commit</div>
+
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="background: #FFFFFF; line-height: 0;">
+    <svg viewBox="0 0 1440 64" preserveAspectRatio="none" style="width: 100%; height: 52px; display: block;">
+      <path d="M0,22 C240,54 480,-6 720,26 C960,56 1200,-2 1440,24 L1440,64 L0,64 Z" fill="#C9CFC6"></path>
+      <path d="M0,38 C240,66 480,12 720,40 C960,64 1200,14 1440,38 L1440,64 L0,64 Z" fill="#191C1A"></path>
+    </svg>
+  </div>
+
+  <!-- CAP 6 · Download -->
+  <div id="download" data-screen-label="Cap 6 Download" style="scroll-margin-top: 70px; background: #191C1A;">
+    <div data-rv="" style="max-width: 720px; margin: 0 auto; padding: 88px 28px 72px; display: flex; flex-direction: column; align-items: center; gap: 26px;">
+      <div onClick="{{ replayEnd }}" title="click to grow it again" style="cursor: pointer;">{{ endTree }}</div>
+      <div style="font-size: clamp(26px, 4.6vw, 36px); font-weight: 700; letter-spacing: -0.8px; color: #EAECEE; text-align: center; line-height: 1.12; text-wrap: pretty;">Plant GitSylva on your computer</div>
+      <div style="width: 100%; display: flex; flex-direction: column; gap: 12px;">
+        <sc-for list="{{ pkgs }}" as="p" hint-placeholder-count="3">
+          <div style="border: 1px solid #2D332F; border-radius: 14px; background: #101214; padding: 16px 18px; display: flex; align-items: center; gap: 16px; opacity: {{ p.cardOp }}; transition: border-color 0.15s ease;" style-hover="border-color: #3E4A42">
+            <div style="width: 46px; height: 46px; border-radius: 12px; background: #191C1A; border: 1px solid #2D332F; display: grid; place-items: center; flex-shrink: 0;">{{ p.icon }}</div>
+            <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;">
+              <div style="font-size: 15px; font-weight: 700; color: #EAECEE;">{{ p.label }}</div>
+              <div style="font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: #61686E; white-space: nowrap;">{{ p.file }}</div>
+            </div>
+            <div onClick="{{ p.download }}" style="background: {{ p.btnBg }}; color: {{ p.btnFg }}; border: 1.5px solid {{ p.btnBd }}; border-radius: 10px; padding: 9px 17px; font-size: 13px; font-weight: 600; cursor: {{ p.btnCur }}; white-space: nowrap; flex-shrink: 0; transition: transform 0.15s ease;" style-hover="transform: translateY(-1px)">{{ p.btnLabel }}</div>
+          </div>
+        </sc-for>
+      </div>
+      <span style="display: flex; align-items: center; gap: 8px; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #61686E;">
+        <span>open source at</span>
+        <a href="{{ repoUrl }}" target="_blank" style="color: #7BC896;" style-hover="color: #A9DDBC">{{ repoLabel }}</a>
+      </span>
+    </div>
+  </div>
+
+  <sc-if value="{{ hasToast }}" hint-placeholder-val="{{ false }}">
+    <div style="position: fixed; left: 50%; bottom: 28px; z-index: 50; transform: translateX(-50%); background: #EAECEE; color: #191C1A; border-radius: 10px; padding: 11px 18px; font-size: 13px; font-weight: 500; box-shadow: 0 12px 32px rgba(0,0,0,0.35); animation: toastIn 0.3s cubic-bezier(0.2, 0.9, 0.3, 1) both; white-space: nowrap;">{{ toastMsg }}</div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;versao&quot;: {&quot;editor&quot;: &quot;text&quot;, &quot;default&quot;: &quot;1.0.0&quot;, &quot;tsType&quot;: &quot;string&quot;, &quot;section&quot;: &quot;Conteúdo&quot;}, &quot;repoUrl&quot;: {&quot;editor&quot;: &quot;text&quot;, &quot;default&quot;: &quot;https://github.com/Diogo1306/GitSylva&quot;, &quot;tsType&quot;: &quot;string&quot;, &quot;section&quot;: &quot;Conteúdo&quot;}}">
+class Component extends DCLogic {
+  state = { ticks: {}, tema: 'classic', accIdx: 1, branchMode: 'auto', themeTick: 0, fx: [], notif: null, toast: null, videoOn: false };
+
+  THEMES = {
+    classic: {
+      nome: 'Classic', win: '#FFFFFF', panel: '#FAFAF7', panel2: '#F5F5F1', border: '#E7E7E0', bsoft: 'rgba(0,0,0,0.05)',
+      text: '#191C1A', text2: '#59605A', muted: '#90968F', sel: 'rgba(25,28,26,0.07)',
+      btn: '#FFFFFF', btnB: '#DDDDD5', btnT: '#363C37', badge: '#EDEDE7', badgeT: '#59605A', input: '#FFFFFF',
+      l0: '#3B7A57', l1: '#4E76A8', l2: '#B08540', leaf: '#7BA083',
+      vivid: ['#1F78E0', '#E06A2B'],
+      accents: [['Preto', '#191C1A', '#FFFFFF'], ['Verde', '#3B7A57', '#FFFFFF'], ['Azul', '#4E76A8', '#FFFFFF'], ['Âmbar', '#8A6A33', '#FFFFFF']],
+      c: ['#C6CFC1', '#D3DCCE', '#DEE6D9'],
+    },
+    batman: {
+      nome: 'Batman', win: '#141618', panel: '#101214', panel2: '#0C0E10', border: '#272B2E', bsoft: 'rgba(255,255,255,0.05)',
+      text: '#EAECEE', text2: '#A5ACB2', muted: '#61686E', sel: 'rgba(234,236,238,0.08)',
+      btn: '#1B1E21', btnB: '#2D3134', btnT: '#C8CDD2', badge: '#262A2E', badgeT: '#AEB5BB', input: '#181B1D',
+      l0: '#82C99B', l1: '#7FA6D9', l2: '#D9A96B', leaf: '#82C99B',
+      vivid: ['#4EA8FF', '#FFA13F'],
+      accents: [['Branco', '#EAECEE', '#111315'], ['Amarelo', '#E8C55A', '#111315'], ['Azul', '#7FA6D9', '#111315'], ['Roxo', '#B79AE0', '#111315']],
+      c: ['#1E211F', '#252927', '#2D332F'],
+    },
+    gitclassic: {
+      nome: 'Git Classic', win: '#0D1117', panel: '#090C10', panel2: '#06080B', border: '#21262D', bsoft: 'rgba(255,255,255,0.045)',
+      text: '#E6EDF3', text2: '#9DA7B1', muted: '#6E7681', sel: 'rgba(63,185,80,0.12)',
+      btn: '#161B22', btnB: '#30363D', btnT: '#C9D1D9', badge: '#21262D', badgeT: '#9DA7B1', input: '#0D1117',
+      l0: '#3FB950', l1: '#58A6FF', l2: '#F0883E', leaf: '#3FB950',
+      vivid: ['#58A6FF', '#F0883E'],
+      accents: [['Verde', '#3FB950', '#04160A'], ['Azul', '#58A6FF', '#051020'], ['Laranja', '#F0883E', '#1A0D02'], ['Branco', '#E6EDF3', '#0D1117']],
+      c: ['#12241A', '#16301F', '#1C3E26'],
+    },
+    nipon: {
+      nome: 'Nipon', win: '#FFFFFF', panel: '#FBF7F6', panel2: '#F6EFEE', border: '#EDE1E1', bsoft: 'rgba(90,50,65,0.05)',
+      text: '#241D1E', text2: '#6B5D5F', muted: '#A08F92', sel: 'rgba(201,108,147,0.10)',
+      btn: '#FFFFFF', btnB: '#E4D4D6', btnT: '#4A3C3F', badge: '#F2E6E8', badgeT: '#6B5D5F', input: '#FFFFFF',
+      l0: '#C96C93', l1: '#7E96C4', l2: '#C0A05E', leaf: '#D983A8',
+      vivid: ['#E0468F', '#8A63D9'],
+      accents: [['Rosa', '#C96C93', '#FFFFFF'], ['Carvão', '#241D1E', '#FFFFFF'], ['Índigo', '#7E96C4', '#FFFFFF'], ['Dourado', '#B98A3E', '#FFFFFF']],
+      c: ['#E9D3DA', '#F0DEE4', '#F5E7EB'],
+    },
+  };
+
+  GREEN = '#3B7A57';
+
+  // ── geometria da árvore-S (do DC de logos) ───────────────────────────
+  bezPoint(s, t) {
+    const u = 1 - t;
+    return [
+      u * u * u * s[0][0] + 3 * u * u * t * s[1][0] + 3 * u * t * t * s[2][0] + t * t * t * s[3][0],
+      u * u * u * s[0][1] + 3 * u * u * t * s[1][1] + 3 * u * t * t * s[2][1] + t * t * t * s[3][1],
+    ];
+  }
+
+  taperEl(segs, w0, w1, color, key) {
+    const pts = [];
+    const N = 16;
+    segs.forEach((s, si) => {
+      for (let i = si === 0 ? 0 : 1; i <= N; i++) pts.push(this.bezPoint(s, i / N));
+    });
+    const left = [], right = [];
+    for (let i = 0; i < pts.length; i++) {
+      const a = pts[Math.max(0, i - 1)], b = pts[Math.min(pts.length - 1, i + 1)];
+      const dx = b[0] - a[0], dy = b[1] - a[1];
+      const len = Math.hypot(dx, dy) || 1;
+      const nx = -dy / len, ny = dx / len;
+      const w = (w0 + (w1 - w0) * (i / (pts.length - 1))) / 2;
+      left.push([pts[i][0] + nx * w, pts[i][1] + ny * w]);
+      right.push([pts[i][0] - nx * w, pts[i][1] - ny * w]);
+    }
+    const fmt = (p) => p[0].toFixed(1) + ',' + p[1].toFixed(1);
+    const d = 'M' + left.map(fmt).join(' L') + ' L' + right.reverse().map(fmt).join(' L') + ' Z';
+    return React.createElement('path', { key, d, style: { fill: color } });
+  }
+
+  mkTree(opts, h, animated, keyBase) {
+    const { trunk, leaf, bg } = opts;
+    const anim = (a) => (animated ? a : 'none');
+    const kids = [
+      this.taperEl([[[12, 47.5], [8.5, 51], [5.5, 53.5], [2, 56.5]]], 6, 1, trunk, keyBase + 'r1'),
+      this.taperEl([[[12, 47.5], [14.5, 51.5], [17, 54], [20, 57]]], 6, 1, trunk, keyBase + 'r2'),
+      this.taperEl([[[34, 12], [31, 4], [14, 4], [13, 14]], [[13, 14], [12, 24], [33, 32], [33, 44]], [[33, 44], [34, 56], [13, 58], [12, 48]]], 2.6, 9, trunk, keyBase + 't'),
+      this.taperEl([[[13.5, 13.5], [10, 10.5], [7.5, 7.5], [5, 4.5]]], 3, 1.2, trunk, keyBase + 'c1'),
+      this.taperEl([[[24, 4.8], [21.5, 3.2], [19.5, 2.2], [17, 1]]], 2.6, 1.1, trunk, keyBase + 'c2'),
+      this.taperEl([[[30, 6.5], [32, 4.5], [33.5, 3], [35.5, 1.5]]], 2.4, 1, trunk, keyBase + 'c3'),
+    ];
+    const node = (cx, cy, r, delay, filled) => React.createElement('circle', {
+      key: `${keyBase}n${cx}-${cy}`, cx, cy, r,
+      style: {
+        fill: filled ? trunk : bg, stroke: trunk, strokeWidth: 3.4,
+        transformBox: 'fill-box', transformOrigin: 'center',
+        animation: anim(`nodePop 0.3s cubic-bezier(0.2, 0.9, 0.3, 1) ${delay}s both`),
+      },
+    });
+    const tuft = (x, y, rot, s, delay) => React.createElement('g', {
+      key: `${keyBase}tf${x}-${y}`, transform: `translate(${x}, ${y}) rotate(${rot}) scale(${s})`,
+    }, [[-44, 0.8, 0.08], [0, 1, 0], [42, 0.78, 0.14]].map(([dr, ds, dd], k) =>
+      React.createElement('g', { key: k, transform: `rotate(${dr}) scale(${ds})` },
+        React.createElement('path', {
+          d: 'M0,0 Q5,-4.5 10.5,-1 Q5.5,3.5 0,0 Z',
+          style: { fill: leaf, opacity: 0.95, transformBox: 'fill-box', transformOrigin: 'left center', animation: anim(`leafPop 0.45s cubic-bezier(0.2, 0.9, 0.3, 1) ${delay + dd}s both`) },
+        }))));
+    const leafEl = (x, y, rot, s, delay) => React.createElement('g', {
+      key: `${keyBase}l${x}-${y}`, transform: `translate(${x}, ${y}) rotate(${rot}) scale(${s})`,
+    }, React.createElement('path', {
+      d: 'M0,0 Q5,-4.5 10.5,-1 Q5.5,3.5 0,0 Z',
+      style: { fill: leaf, opacity: 0.95, transformBox: 'fill-box', transformOrigin: 'left center', animation: anim(`leafPop 0.45s cubic-bezier(0.2, 0.9, 0.3, 1) ${delay}s both`) },
+    }));
+    kids.push(
+      node(34, 12, 3.8, 0.42),
+      tuft(17, 1, -105, 0.9, 0.5),
+      tuft(35.5, 1.5, -55, 0.62, 0.6),
+      node(5, 4.5, 2.8, 0.7, true),
+      leafEl(9, 9, -55, 0.55, 0.78),
+      leafEl(12.5, 20, 170, 0.5, 0.85),
+    );
+    const vbH = opts.crop ? 52 : 62;
+    return React.createElement('svg', {
+      key: keyBase,
+      viewBox: `0 0 46 ${vbH}`, width: Math.round(h * 46 / vbH * (opts.xScale || 1)), height: h,
+      preserveAspectRatio: opts.xScale ? 'none' : 'xMidYMid meet',
+      style: { display: 'block', overflow: 'visible' },
+    }, React.createElement('g', {
+      key: keyBase + 'g',
+      style: { animation: anim('treeGrow 0.5s cubic-bezier(0.2, 0.9, 0.3, 1) both'), transformBox: 'view-box', transformOrigin: '50% 85%' },
+    }, kids));
+  }
+
+  // ── intro: árvore-S em traço, desenhada pelo scroll ──────────────────
+  mkIntroTree(h) {
+    const g = this.GREEN;
+    const stroke = (d, range, w) => React.createElement('path', {
+      key: 'p' + d, d, fill: 'none', pathLength: 1,
+      'data-draw': range,
+      style: { stroke: g, strokeWidth: w, strokeLinecap: 'round', strokeDasharray: 1, strokeDashoffset: 1, opacity: 0 },
+    });
+    const node = (cx, cy, r, t, filled) => React.createElement('circle', {
+      key: `n${cx}-${cy}`, cx, cy, r,
+      'data-pop': t, 'data-from': 'scale(0)',
+      style: {
+        fill: filled ? g : '#FFFFFF', stroke: g, strokeWidth: 4, opacity: 0,
+        transform: 'scale(0)', transformBox: 'fill-box', transformOrigin: 'center',
+        transition: 'opacity 0.2s ease, transform 0.4s cubic-bezier(0.2, 0.9, 0.3, 1)',
+      },
+    });
+    const leaf = (x, y, rot, s, t) => React.createElement('g', {
+      key: `l${x}-${y}`, transform: `translate(${x}, ${y}) rotate(${rot}) scale(${s})`,
+    }, React.createElement('path', {
+      d: 'M0,0 Q5,-4.5 10.5,-1 Q5.5,3.5 0,0 Z',
+      'data-pop': t, 'data-from': 'scale(0) rotate(-50deg)',
+      style: { fill: g, opacity: 0, transform: 'scale(0) rotate(-50deg)', transformBox: 'fill-box', transformOrigin: 'left center', transition: 'opacity 0.2s ease, transform 0.45s cubic-bezier(0.2, 0.9, 0.3, 1)' },
+    }));
+    return React.createElement('svg', {
+      viewBox: '0 0 46 62', width: Math.round(h * 46 / 62), height: h,
+      style: { display: 'block', overflow: 'visible' },
+    }, [
+      stroke('M34,12 C31,4 14,4 13,14 C12,24 33,32 33,44 C34,56 13,58 12,48', '0.04,0.40', 7),
+      stroke('M26,32 C31,34 35,37 38,41', '0.32,0.44', 4.5),
+      stroke('M13.5,13.5 C10,10.5 7.5,7.5 5,4.5', '0.38,0.50', 4),
+      stroke('M28,51 C31.5,53.5 34,55.5 36.5,58', '0.44,0.56', 4),
+      node(34, 12, 4, 0.46), node(12, 48, 4, 0.50), node(38, 41, 3.2, 0.54, true), node(5, 4.5, 3, 0.58, true),
+      leaf(36, 57, -25, 0.85, 0.56), leaf(9, 9, -60, 0.7, 0.60), leaf(30, 6, -110, 0.6, 0.62),
+    ]);
+  }
+
+  // ── cap 2: grafo de commits desenhado pelo scroll ────────────────────
+  mkCommitSvg() {
+    const L0 = '#82C99B', L1 = '#7FA6D9';
+    const stroke = (d, range, color, w) => React.createElement('path', {
+      key: 'p' + d, d, fill: 'none', pathLength: 1,
+      'data-draw': range,
+      style: { stroke: color, strokeWidth: w || 3, strokeLinecap: 'round', strokeDasharray: 1, strokeDashoffset: 1, opacity: 0 },
+    });
+    const node = (cx, cy, t, color, filled, r) => React.createElement('circle', {
+      key: `n${cx}-${cy}`, cx, cy, r: r || 6,
+      'data-pop': t, 'data-from': 'scale(0)',
+      style: {
+        fill: filled ? color : '#191C1A', stroke: color, strokeWidth: 3, opacity: 0,
+        transform: 'scale(0)', transformBox: 'fill-box', transformOrigin: 'center',
+        transition: 'opacity 0.2s ease, transform 0.4s cubic-bezier(0.2, 0.9, 0.3, 1)',
+      },
+    });
+    const leaf = (x, y, rot, s, t, color) => React.createElement('g', {
+      key: `l${x}-${y}`, transform: `translate(${x}, ${y}) rotate(${rot}) scale(${s})`,
+    }, React.createElement('path', {
+      d: 'M0,0 Q5,-4.5 10.5,-1 Q5.5,3.5 0,0 Z',
+      'data-pop': t, 'data-from': 'scale(0) rotate(-50deg)',
+      style: { fill: color, opacity: 0, transform: 'scale(0) rotate(-50deg)', transformBox: 'fill-box', transformOrigin: 'left center', transition: 'opacity 0.2s ease, transform 0.45s cubic-bezier(0.2, 0.9, 0.3, 1)' },
+    }));
+    return React.createElement('svg', {
+      viewBox: '0 0 320 470', width: 320, height: 470,
+      style: { display: 'block', overflow: 'visible' },
+    }, [
+      stroke('M80,18 C74,78 86,120 80,180 C73,240 87,300 80,352 C76,396 83,428 80,452', '0.05,0.62', L0, 4),
+      stroke('M80,110 C118,118 168,126 168,168 C168,224 168,252 168,296', '0.20,0.48', L1, 3.4),
+      stroke('M168,296 C168,336 122,346 84,354', '0.52,0.66', L1, 3.4),
+      node(80, 60, 0.16, L0), node(80, 110, 0.24, L0),
+      node(168, 168, 0.38, L1), node(80, 190, 0.34, L0),
+      node(168, 238, 0.46, L1), node(80, 268, 0.44, L0),
+      node(168, 296, 0.52, L1),
+      node(80, 354, 0.68, L0, true, 4.6),
+      node(80, 420, 0.82, L0),
+      leaf(88, 52, -45, 1.4, 0.20, L0), leaf(176, 160, -30, 1.3, 0.42, L1),
+      leaf(72, 262, 165, 1.2, 0.48, L0), leaf(88, 414, -25, 1.5, 0.86, L0),
+    ]);
+  }
+
+  mkBough(keyBase) {
+    const trunk = '#3E4A42', leaf = '#7BC896';
+    const kids = [
+      this.taperEl([[[-10, 42], [300, -2], [700, 46], [1150, 16]]], 38, 3, trunk, keyBase + 'b'),
+      this.taperEl([[[50, 34], [130, 8], [200, -8], [270, -22]]], 14, 2, trunk, keyBase + 'limb'),
+      this.taperEl([[[430, 24], [470, 32], [498, 38], [526, 46]]], 5, 1.5, trunk, keyBase + 's1'),
+      this.taperEl([[[220, 14], [250, 6], [274, 0], [300, -8]]], 6, 1.8, trunk, keyBase + 's2'),
+      this.taperEl([[[790, 32], [822, 38], [846, 43], [870, 48]]], 4, 1.4, trunk, keyBase + 's3'),
+    ];
+    const leafEl = (x, y, rot, s, k) => React.createElement('g', {
+      key: keyBase + 'l' + k, transform: `translate(${x}, ${y}) rotate(${rot}) scale(${s})`,
+    }, React.createElement('path', { d: 'M0,0 Q5,-4.5 10.5,-1 Q5.5,3.5 0,0 Z', style: { fill: leaf, opacity: 0.9 } }));
+    kids.push(
+      leafEl(1140, 16, -20, 1.4, 1), leafEl(1060, 20, 165, 1.2, 2), leafEl(880, 32, 20, 1.4, 3),
+      leafEl(526, 46, 150, 1.3, 4), leafEl(640, 40, -30, 1.3, 5), leafEl(300, -8, -120, 1.5, 6),
+      leafEl(294, -4, -70, 1.2, 7), leafEl(190, 8, 15, 1.3, 8), leafEl(870, 48, 168, 1.1, 9),
+      leafEl(270, -22, -60, 1.5, 10), leafEl(262, -16, -115, 1.3, 11), leafEl(150, -2, -150, 1.2, 12),
+    );
+    return React.createElement('svg', {
+      key: keyBase, viewBox: '0 0 1040 50', width: '100%', height: 50,
+      preserveAspectRatio: 'none', style: { display: 'block', overflow: 'visible' },
+    }, kids);
+  }
+
+  mkForestCorner(keyBase) {
+    const trunk = '#2E3B33';
+    const kids = [
+      this.taperEl([[[-10, 275], [45, 195], [30, 130], [82, 68]]], 22, 2.5, trunk, keyBase + 'b1'),
+      this.taperEl([[[-10, 275], [95, 235], [160, 205], [225, 182]]], 15, 2, trunk, keyBase + 'b2'),
+      this.taperEl([[[35, 165], [70, 145], [95, 132], [122, 118]]], 6, 1.5, trunk, keyBase + 'b3'),
+    ];
+    const leafEl = (x, y, rot, s, color, op, k) => React.createElement('g', {
+      key: keyBase + 'l' + k, transform: `translate(${x}, ${y}) rotate(${rot}) scale(${s})`,
+    }, React.createElement('path', { d: 'M0,0 Q5,-4.5 10.5,-1 Q5.5,3.5 0,0 Z', style: { fill: color, opacity: op } }));
+    const C1 = '#3E5C49', C2 = '#4A6B56', G = '#7BC896';
+    kids.push(
+      leafEl(82, 68, -60, 2.2, C1, 1, 1), leafEl(74, 84, -130, 1.8, C2, 1, 2), leafEl(96, 82, -20, 1.9, C1, 1, 3),
+      leafEl(60, 110, -170, 1.6, C2, 1, 4), leafEl(122, 118, -30, 1.9, C1, 1, 5), leafEl(112, 130, -110, 1.5, C2, 1, 6),
+      leafEl(225, 182, -10, 2.1, C1, 1, 7), leafEl(208, 194, 25, 1.7, C2, 1, 8), leafEl(180, 200, -45, 1.6, C1, 1, 9),
+      leafEl(140, 216, 10, 1.5, C2, 1, 10), leafEl(88, 76, -85, 1.2, G, 0.55, 11), leafEl(214, 176, -55, 1.1, G, 0.55, 12),
+      leafEl(40, 150, -150, 1.3, C1, 1, 13),
+    );
+    return React.createElement('svg', {
+      key: keyBase, viewBox: '0 0 300 280', width: 300, height: 280, style: { display: 'block', overflow: 'visible' },
+    }, React.createElement('g', {
+      style: { animation: 'vineSway 9s ease-in-out infinite alternate', transformBox: 'view-box', transformOrigin: '0% 100%' },
+    }, kids));
+  }
+
+  _ctlDoc() {
+    const f = document.querySelector('[data-plx] iframe');
+    try { return f && f.contentDocument; } catch (e) { return null; }
+  }
+
+  _injectCtlCss(d) {
+    if (!d || !d.head || d.getElementById('gs-ctl-css')) return !!(d && d.head && d.getElementById('gs-ctl-css'));
+    const st = d.createElement('style');
+    st.id = 'gs-ctl-css';
+    st.textContent = '[data-omelette-chrome] { display: none !important; }';
+    d.head.appendChild(st);
+    return true;
+  }
+
+  _startCtlInject() {
+    clearInterval(this._ctlT);
+    let tries = 0;
+    const ready = (d) => d && d.head && d.URL && d.URL !== 'about:blank';
+    this._ctlT = setInterval(() => {
+      tries++;
+      const d = this._ctlDoc();
+      if (ready(d)) {
+        this._injectCtlCss(d);
+        if (!this.state.videoReady) setTimeout(() => this.setState({ videoReady: true }), 350);
+        clearInterval(this._ctlT);
+      } else if (tries > 60) {
+        clearInterval(this._ctlT);
+      }
+    }, 250);
+    const f = document.querySelector('[data-plx] iframe');
+    if (f && !f._gsLoadHook) {
+      f._gsLoadHook = true;
+      f.addEventListener('load', () => {
+        const d = this._ctlDoc();
+        if (ready(d)) {
+          this._injectCtlCss(d);
+          setTimeout(() => this.setState({ videoReady: true }), 350);
+        }
+      });
+    }
+  }
+
+  _setCtl(on) {
+    const d = this._ctlDoc();
+    if (!d || !d.documentElement) return;
+    this._injectCtlCss(d);
+    d.documentElement.classList.toggle('gs-show-ctl', on);
+  }
+
+  mkOsIcon(id) {
+    const ink = '#EAECEE';
+    if (id === 'win') {
+      return React.createElement('svg', { key: 'iw', viewBox: '0 0 24 24', width: 23, height: 23 },
+        [[2.5, 2.5], [13, 2.5], [2.5, 13], [13, 13]].map(([x, y], i) =>
+          React.createElement('rect', { key: i, x, y, width: 8.5, height: 8.5, rx: 1.5, style: { fill: ink } })));
+    }
+    if (id === 'mac') {
+      return React.createElement('svg', { key: 'im', viewBox: '0 0 24 24', width: 23, height: 23 }, [
+        React.createElement('circle', { key: 'c', cx: 12, cy: 14, r: 7.5, style: { fill: ink } }),
+        React.createElement('g', { key: 'lf', transform: 'translate(11.5, 5.5) rotate(-35) scale(0.55)' },
+          React.createElement('path', { d: 'M0,0 Q5,-4.5 10.5,-1 Q5.5,3.5 0,0 Z', style: { fill: '#7BC896' } })),
+      ]);
+    }
+    return React.createElement('svg', { key: 'il', viewBox: '0 0 24 24', width: 23, height: 23 }, [
+      React.createElement('rect', { key: 'r', x: 2.5, y: 4, width: 19, height: 16, rx: 3, style: { fill: 'none', stroke: ink, strokeWidth: 1.8 } }),
+      React.createElement('text', { key: 't', x: 6, y: 15.5, style: { fill: '#7BC896', fontFamily: "'JetBrains Mono', monospace", fontSize: 8, fontWeight: 700 } }, '>_'),
+    ]);
+  }
+
+  mkLeafSvg(w, color, op) {
+    return React.createElement('svg', { viewBox: '0 0 12 8', width: w, height: Math.round(w * 0.66) },
+      React.createElement('path', { d: 'M0,4 Q5,-0.5 10.5,3 Q5.5,7.5 0,4 Z', style: { fill: color, opacity: op } }));
+  }
+
+  // ── grafo do preview de personalização (cores do tema) ───────────────
+  mkPreviewGraph(th, lanes) {
+    const stroke = (d, color, w) => React.createElement('path', {
+      key: 'g' + d, d, fill: 'none',
+      style: { stroke: color, strokeWidth: w || 3, strokeLinecap: 'round' },
+    });
+    const node = (cx, cy, color, filled) => React.createElement('circle', {
+      key: `gn${cx}-${cy}`, cx, cy, r: 5, style: { fill: filled ? color : th.win, stroke: color, strokeWidth: 2.6 },
+    });
+    return React.createElement('svg', { viewBox: '0 0 130 220', width: 130, height: 220, style: { display: 'block' } }, [
+      stroke('M36,10 C32,45 40,70 36,105 C32,140 40,170 36,210', lanes[0], 3.4),
+      stroke('M36,58 C62,64 92,70 92,98 C92,130 92,140 92,152', lanes[1], 3),
+      stroke('M92,152 C92,178 60,184 40,188', lanes[1], 3),
+      stroke('M36,105 C60,112 104,116 104,140', lanes[2], 2.6),
+      node(36, 30, lanes[0]), node(36, 58, lanes[0]), node(92, 98, lanes[1]),
+      node(36, 105, lanes[0]), node(92, 152, lanes[1]), node(104, 140, lanes[2], true),
+      node(36, 188, lanes[0], true), node(36, 210, lanes[0]),
+    ]);
+  }
+
+  // ── scroll: pins, draws, pops, header ─────────────────────────────────
+  componentDidMount() {
+    this._io = new IntersectionObserver((entries) => {
+      entries.forEach((e) => {
+        if (e.isIntersecting) {
+          e.target.setAttribute('data-rv', 'in');
+          this._io.unobserve(e.target);
+        }
+      });
+    }, { threshold: 0.12 });
+    const scan = () => document.querySelectorAll('[data-rv=""]').forEach((el) => this._io.observe(el));
+    scan();
+    setTimeout(scan, 500);
+
+    this._drive = () => {
+      if (this._raf) return;
+      this._raf = requestAnimationFrame(() => {
+        this._raf = null;
+        const vh = window.innerHeight || 800;
+        const hdr = document.querySelector('[data-hdr]');
+        if (hdr) {
+          const on = window.scrollY > vh * 1.35;
+          hdr.style.opacity = on ? '1' : '0';
+          hdr.style.pointerEvents = on ? 'auto' : 'none';
+          hdr.style.transform = on ? 'none' : 'translateY(-10px)';
+        }
+        document.querySelectorAll('[data-pin]').forEach((outer) => {
+          const r = outer.getBoundingClientRect();
+          const total = Math.max(1, r.height - vh);
+          const p = Math.min(1, Math.max(0, -r.top / total));
+          outer.querySelectorAll('[data-draw]').forEach((el) => {
+            const [a, b] = el.getAttribute('data-draw').split(',').map(Number);
+            const v = Math.min(1, Math.max(0, (p - a) / (b - a)));
+            el.style.strokeDashoffset = String(1 - v);
+            el.style.opacity = v > 0 ? '1' : '0';
+          });
+          const fit = outer.querySelector('[data-fit]');
+          if (fit) {
+            const need = Math.max(Number(fit.getAttribute('data-fit')) || 620, fit.scrollHeight);
+            fit.style.transform = `scale(${Math.min(1, (vh - 40) / need)})`;
+          }
+          outer.querySelectorAll('[data-pop]').forEach((el) => {
+            const on = p >= Number(el.getAttribute('data-pop'));
+            el.style.opacity = on ? '1' : '0';
+            el.style.transform = on ? 'none' : (el.getAttribute('data-from') || 'scale(0.6)');
+          });
+          outer.querySelectorAll('[data-hide]').forEach((el) => {
+            el.style.opacity = p >= Number(el.getAttribute('data-hide')) ? '0' : '1';
+          });
+        });
+        const plx = document.querySelector('[data-plx]');
+        if (plx) {
+          const pr = plx.getBoundingClientRect();
+          const pp = Math.min(1, Math.max(0, 1 - pr.top / vh));
+          plx.style.transform = `translateX(${Math.round(-64 + pp * 96)}px)`;
+        }
+      });
+    };
+    window.addEventListener('scroll', this._drive, { passive: true });
+    window.addEventListener('resize', this._drive);
+    window.addEventListener('resize', this._rz = () => { clearTimeout(this._rzT); this._rzT = setTimeout(() => this.forceUpdate(), 160); });
+    this._drive();
+
+    this._ioVid = new IntersectionObserver((entries) => {
+      entries.forEach((e) => {
+        if (e.isIntersecting && !this.state.videoOn) {
+          this.setState({ videoOn: true });
+          this._startCtlInject();
+          this._ioVid.disconnect();
+        }
+      });
+    }, { threshold: 0, rootMargin: '150% 0px 150% 0px' });
+    const vidEl = document.querySelector('[data-plx]');
+    if (vidEl) this._ioVid.observe(vidEl);
+  }
+
+  componentDidUpdate() {
+    if (this._drive) this._drive();
+  }
+
+  componentWillUnmount() {
+    if (this._io) this._io.disconnect();
+    if (this._ioVid) this._ioVid.disconnect();
+    clearInterval(this._ctlT);
+    window.removeEventListener('scroll', this._drive);
+    window.removeEventListener('resize', this._drive);
+    if (this._rz) window.removeEventListener('resize', this._rz);
+    clearTimeout(this._rzT);
+    if (this._raf) cancelAnimationFrame(this._raf);
+    clearTimeout(this._toastT);
+    clearTimeout(this._notifT);
+  }
+
+  showToast(msg) {
+    clearTimeout(this._toastT);
+    this.setState({ toast: msg });
+    this._toastT = setTimeout(() => this.setState({ toast: null }), 2800);
+  }
+
+  gitAction(title, body) {
+    const id = Date.now() + Math.random();
+    const leaves = [0, 1, 2].map((i) => ({
+      id: id + i,
+      left: 12 + Math.random() * 76,
+      delay: i * 0.12,
+      size: 14 + Math.random() * 8,
+    }));
+    clearTimeout(this._notifT);
+    this.setState((s) => ({ fx: [...s.fx, ...leaves].slice(-12), notif: { title, body } }));
+    this._notifT = setTimeout(() => this.setState({ notif: null }), 3200);
+    setTimeout(() => this.setState((s) => ({ fx: s.fx.filter((f) => !leaves.some((l) => l.id === f.id)) })), 2700);
+  }
+
+  setTema(patch) {
+    this.setState((s) => ({ ...patch, themeTick: s.themeTick + 1 }));
+  }
+
+  renderVals() {
+    const v = this.props.versao ?? '1.0.0';
+    const repoUrl = this.props.repoUrl ?? 'https://github.com/Diogo1306/GitSylva';
+    const t = this.state.ticks;
+    const th0 = this.THEMES[this.state.tema];
+    const acc = th0.accents[Math.min(this.state.accIdx, 3)];
+    const lanes = this.state.branchMode === 'vivid'
+      ? [th0.l0, th0.vivid[0], th0.vivid[1]]
+      : [th0.l0, th0.l1, th0.l2];
+    const th = {
+      ...th0,
+      accent: acc[1], accentT: acc[2],
+      l0v: lanes[0], l1v: lanes[1], l2v: lanes[2],
+    };
+
+    const chip = (color) => ({
+      chipBd: color + '4D', chipBg: color + '1F',
+    });
+    const L0 = '#82C99B', L1 = '#7FA6D9';
+    const commitRows = [
+      { t: 0.18, hash: 'a1f2c3', msg: 'first leaf', chip: 'main', dot: L0, ...chip(L0) },
+      { t: 0.26, hash: '4d9e21', msg: 'project roots', chip: 'main', dot: L0, ...chip(L0) },
+      { t: 0.40, hash: 'b7c9d4', msg: 'open the leaves branch', chip: 'feature/leaves', dot: L1, ...chip(L1) },
+      { t: 0.48, hash: 'e3a8f1', msg: 'leaves falling on fetch', chip: 'feature/leaves', dot: L1, ...chip(L1) },
+      { t: 0.70, hash: '9c4b2e', msg: 'merge: feature/leaves → main', chip: 'merge', dot: L0, ...chip(L0) },
+      { t: 0.84, hash: 'f1d7a3', msg: 'the canopy grows', chip: 'main', dot: L0, ...chip(L0) },
+    ];
+
+    const themeCards = Object.keys(this.THEMES).map((key) => {
+      const d = this.THEMES[key];
+      return {
+        name: d.nome, c1: d.c[0], c2: d.c[1], c3: d.c[2],
+        ring: key === this.state.tema ? '#3B7A57' : '#E2E2DA',
+        pick: () => this.setTema({ tema: key, accIdx: Math.min(this.state.accIdx, 3) }),
+      };
+    });
+
+    const accentDots = th0.accents.map(([name, c], i) => ({
+      name, c,
+      ring: i === this.state.accIdx ? '#191C1A' : 'rgba(0,0,0,0.10)',
+      pick: () => this.setTema({ accIdx: i }),
+    }));
+
+    const previewRows = [
+      { hash: 'a1f2c3', msg: 'first leaf' },
+      { hash: 'b7c9d4', msg: 'open the leaves branch' },
+      { hash: '9c4b2e', msg: 'merge into main' },
+      { hash: 'f1d7a3', msg: 'the canopy grows' },
+    ];
+
+    const winRows = [
+      { hash: 'f1d7a3', msg: 'the canopy grows', when: '2 min ago', dot: lanes[0] },
+      { hash: '9c4b2e', msg: 'merge: feature/leaves → main', when: '1 h ago', dot: lanes[0] },
+      { hash: 'e3a8f1', msg: 'leaves falling on fetch', when: 'yesterday', dot: lanes[1] },
+      { hash: 'b7c9d4', msg: 'open the leaves branch', when: 'yesterday', dot: lanes[1] },
+      { hash: 'a1f2c3', msg: 'first leaf', when: '3 days ago', dot: lanes[0] },
+    ];
+
+    const pkgs = [
+      { id: 'win', label: 'Windows', ext: '.exe', soon: false },
+      { id: 'mac', label: 'macOS', ext: '.dmg', soon: true },
+      { id: 'linux', label: 'Linux', ext: '.AppImage', soon: true },
+    ].map((d) => ({
+      ...d,
+      file: d.soon ? 'still growing on the branch…' : `GitSylva-${v}-${d.id}${d.ext}`,
+      icon: this.mkOsIcon(d.id),
+      cardOp: d.soon ? 0.6 : 1,
+      btnBg: d.soon ? 'transparent' : '#3B7A57',
+      btnFg: d.soon ? '#61686E' : '#FFFFFF',
+      btnBd: d.soon ? '#2D332F' : '#3B7A57',
+      btnCur: d.soon ? 'default' : 'pointer',
+      btnLabel: d.soon ? 'Coming soon' : '↓ Download',
+      download: () => this.showToast(d.soon
+        ? `${d.label} is still growing. Coming soon.`
+        : `GitSylva-${v}-win.exe downloading (demo)`),
+    }));
+
+    const fxLeaves = this.state.fx.map((f) => React.createElement('div', {
+      key: f.id,
+      style: { position: 'absolute', top: '58px', left: f.left + '%', animation: `fxFall 2.4s ease-in ${f.delay}s both` },
+    }, this.mkLeafSvg(f.size, '#7BC896', 0.9)));
+
+    const ambientLeaves = [16, 44, 70, 88].map((left, i) =>
+      React.createElement('div', {
+        key: 'al' + i,
+        style: { position: 'absolute', top: 0, left: left + '%', animation: `leafFall ${14 + i * 3}s linear ${i * 3.4}s infinite` },
+      }, this.mkLeafSvg(14, '#3E5C49', 0.8)));
+
+    return {
+      versao: v,
+      repoUrl,
+      repoLabel: repoUrl.replace(/^https?:\/\//, ''),
+      logoWord: this.mkTree({ trunk: '#191C1A', leaf: this.GREEN, bg: '#FFFFFF', xScale: 1.22, crop: true }, 13, false, 'lw'),
+      introTree: this.mkIntroTree(typeof window !== 'undefined' ? Math.min(200, Math.round(window.innerWidth * 0.24)) : 200),
+      commitSvg: this.mkCommitSvg(),
+      videoBough: this.mkBough('vb'),
+      forestBL: this.mkForestCorner('fbl'),
+      forestTR: this.mkForestCorner('ftr'),
+      videoSrc: this.state.videoOn ? 'GitSylva Promo.dc.html' : 'about:blank',
+      videoOp: this.state.videoReady ? 1 : 0,
+      vidPaused: !!this.state.vidPaused,
+      vidToggle: () => {
+        const d = this._ctlDoc();
+        const next = !this.state.vidPaused;
+        if (d) {
+          try {
+            d.dispatchEvent(new d.defaultView.KeyboardEvent('keydown', { code: 'Space', bubbles: true }));
+          } catch (e) {}
+        }
+        this.setState({ vidPaused: next });
+      },
+      commitRows,
+      th,
+      swapAnim: `themeSwap${this.state.themeTick % 2 === 0 ? 'A' : 'B'} 0.4s ease both`,
+      themeCards,
+      accentDots,
+      pickAuto: () => this.setTema({ branchMode: 'auto' }),
+      pickVivid: () => this.setTema({ branchMode: 'vivid' }),
+      autoRing: this.state.branchMode === 'auto' ? '#3B7A57' : '#E2E2DA',
+      vividRing: this.state.branchMode === 'vivid' ? '#3B7A57' : '#E2E2DA',
+      previewGraph: this.mkPreviewGraph(th, lanes),
+      previewRows,
+      winRows,
+      doCommit: () => this.gitAction('Commit created', 'main grew a new leaf'),
+      doFetch: () => this.gitAction('Fetch complete', '2 new commits on origin/main'),
+      doPush: () => this.gitAction('Push complete', 'feature/leaves sent to origin'),
+      fxLeaves,
+      ambientLeaves,
+      hasNotif: !!this.state.notif,
+      notifTitle: this.state.notif ? this.state.notif.title : '',
+      notifBody: this.state.notif ? this.state.notif.body : '',
+      pkgs,
+      endTree: this.mkTree({ trunk: '#7BC896', leaf: '#7BC896', bg: '#191C1A' }, 120, true, 'end-' + (t.end || 0)),
+      replayEnd: () => this.setState((s) => ({ ticks: { ...s.ticks, end: (s.ticks.end || 0) + 1 } })),
+      hasToast: !!this.state.toast,
+      toastMsg: this.state.toast || '',
+    };
+  }
+}
+</script>
+</body>
+</html>

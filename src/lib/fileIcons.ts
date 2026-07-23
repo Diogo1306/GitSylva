@@ -1,7 +1,4 @@
-// File-type icon table: maps a path to a small colored tile so lists read by
-// language at a glance (the VS Code habit). Pure data here — the tile itself
-// is rendered by components/FileIcon. Colors are fixed mid-tones that hold up
-// on every theme (the tile background is the color at low alpha).
+// File-type icon table: maps a path to a colored tile (pure data; the tile is rendered by components/FileIcon). Colors are fixed mid-tones that hold on every theme.
 
 export type FileGlyph = "image" | "lock" | "git" | "doc";
 

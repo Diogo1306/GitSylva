@@ -1,9 +1,7 @@
 import { create } from "zustand";
 import { useThemeStore } from "./themeStore";
 
-// Top-right notification stack (handoff: notifIn 300ms pop, auto-dismiss ~4s,
-// hover pauses the timer, manual ✕, notifOut 340ms exit before removal).
-// Toasts stay for quick confirmations; notifications carry async git results.
+// Notification stack timing (notifIn 300ms pop, auto-dismiss ~4s, hover pauses timer, notifOut 340ms exit before removal). Toasts = quick confirmations; notifications carry async git results.
 
 export type NotifKind = "success" | "info" | "warning" | "error";
 /** Category gates emission via the Settings → Notificações toggles. */

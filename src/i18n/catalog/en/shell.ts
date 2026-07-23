@@ -51,11 +51,6 @@ export const enShell: Record<ShellKey, MessageValue> = {
   "shell.error.mergeConflictWC": "merge conflict — see the Working copy",
   "shell.error.rebaseConflictWC": "rebase conflict — see the Working copy",
 
-  // ── ActionBar ──────────────────────────────────────────────────────────────
-  "shell.actionBar.aria": "Actions",
-  "shell.actionBar.commitsToPush": "commits to push",
-  "shell.actionBar.commitsToPull": "commits to pull",
-
   // ── AppShell ───────────────────────────────────────────────────────────────
   "shell.fetch.doneTitle": "Fetch complete",
   "shell.repoGone": "Repository {path} no longer exists on disk — tab closed",
@@ -122,6 +117,8 @@ export const enShell: Record<ShellKey, MessageValue> = {
   "shell.branch.behindTitle": { one: "{count} commit to pull", other: "{count} commits to pull" },
   "shell.branch.deleteAria": "Delete {name}",
   "shell.branch.noMatches": "No matching branches",
+  "shell.branch.checkout": "Checkout",
+  "shell.branch.searchToggle": "Filter branches",
   "shell.branch.checkoutLocal": "Local checkout of {name}…",
   "shell.branch.mergeInto": "Merge {name} into the current branch…",
   "shell.branch.rebaseOnto": "Rebase the current branch onto {name}…",
@@ -202,6 +199,7 @@ export const enShell: Record<ShellKey, MessageValue> = {
   },
   "shell.push.nothingToSend": "Nothing to send — {branch} is up to date with {upstream}.",
   "shell.push.nothingEmpty": "Nothing to send.",
+  "shell.push.branchesHeading": "Branches to push",
   "shell.push.doneTitle": "Push complete",
   "shell.push.doneSub": { one: "origin · {count} commit · {branch}", other: "origin · {count} commits · {branch}" },
   "shell.push.pushing": "Pushing…",
@@ -217,9 +215,10 @@ export const enShell: Record<ShellKey, MessageValue> = {
   // ── Sidebar ────────────────────────────────────────────────────────────────
   "shell.sidebar.workspace": "WORKSPACE",
   "shell.sidebar.recents": "RECENT",
+  "shell.sidebar.branches": "BRANCHES · {count}",
   "shell.sidebar.remotes": "REMOTES",
-  "shell.sidebar.expand": "Expand sidebar",
-  "shell.sidebar.collapse": "Collapse sidebar",
+  "shell.sidebar.tags": "TAGS",
+  "shell.sidebar.account": "Account & sync",
 
   // ── Folders (sidebar branch/remote folders) ────────────────────────────────
   "shell.folder.toggleTitle": "{action} {name}",
@@ -247,6 +246,21 @@ export const enShell: Record<ShellKey, MessageValue> = {
   "shell.tab.rightClickGroups": "{path} · right-click for groups",
   "shell.tab.close": "Close {name}",
   "shell.tabs.aria": "Open repositories",
+  "shell.repoSel.tooltip": "Current repository — click to switch (open · pinned · recent)",
+  "shell.repoSel.open": "OPEN",
+  "shell.repoSel.pinned": "PINNED",
+  "shell.repoSel.recents": "RECENT",
+  "shell.repoSel.optionsAria": "Repository options",
+  "shell.repoSel.addRepo": "Add repository (Local · Clone · Create)",
+  "shell.repoSel.pin": "Pin",
+  "shell.repoSel.unpin": "Remove from pinned",
+  "shell.repoSel.pinnedTitle": "Pinned",
+  "shell.repoSel.reveal": "Show in file explorer",
+  "shell.repoSel.revealError": "could not open the file explorer",
+  "shell.repoSel.copyPath": "Copy path",
+  "shell.repoSel.pathCopied": "Path copied",
+  "shell.repoSel.close": "Close repository",
+  "shell.sync.menu": "Fetch · Pull · Push",
   "shell.fetch.tooltip": "Fetch from origin",
   "shell.fetch.fetching": "Fetching…",
   "shell.discard.button": "↩ Discard",

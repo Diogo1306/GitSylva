@@ -1,14 +1,4 @@
-// Task 11: History filters, composed over the existing free-text filter.
-//
-// `matchesFilters` is a pure predicate so it stays unit-testable without any
-// React/query machinery. Branch and path filters need data the loaded log
-// window doesn't carry (branch reachability, per-commit changed files), so
-// their membership is resolved ASYNC by the caller (backend hash sets — see
-// `useBranchCommits`/`usePathCommits` in state/queries.ts) and passed in
-// already-resolved. When a membership set isn't available yet (`undefined`),
-// the predicate does NOT exclude the commit — it's the component's job to
-// avoid showing the (still unfiltered-for-that-dimension) list while the
-// membership is resolving, so the user never sees silently-wrong results.
+// Pure, unit-testable history-filter predicate. branch/path membership is resolved async by the caller (backend hash sets); an undefined membership set never excludes a commit, so the caller gates the list while it resolves.
 
 import { fold } from "./fold";
 import type { Commit } from "./types";

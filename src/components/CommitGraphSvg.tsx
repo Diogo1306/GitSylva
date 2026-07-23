@@ -3,30 +3,20 @@ import { useThemeStore } from "../state/themeStore";
 import type { GraphCommit } from "../graph/layout";
 import type { TreeStyleKey } from "../theme/themes";
 
-// The living history graph, ported from the design's buildGraph. Lanes are
-// drawn as gently waving "vines"; branches and merges curl in with cubic
-// beziers; commit nodes are buttons on the vine; and leaves (or blossoms, or
-// palm fronds, or bare nodes) sprout at branch tips according to the tree style.
-//
-// Performance: elements are keyed by COMMIT HASH, so React keeps the DOM nodes
-// of commits that were already on screen, and the entrance animation is only
-// attached to hashes that were absent from the previous render — a new commit
-// grows in alone; everything else stays still (R3 §8). Selecting, scrolling or
-// hovering never rebuilds the SVG (memo on rows/rowH/style).
+// Living history graph: waving vine lanes, bezier merge/branch curves, leaf
+// tips per tree style. Elements are keyed by commit hash so React keeps
+// existing DOM nodes and only newly-seen commits replay their entrance (R3
+// §8); memoized so select/scroll/hover never rebuilds the SVG.
 
 const LANE_W = 18;
-// Deep parallel histories clamp at lane 12 — beyond that the far lines share
-// the last column instead of running under the commit text.
+// Deep histories clamp at lane 12: far lanes share the last column instead of
+// running under the commit text.
 const laneX = (l: number) => 10 + Math.min(l, 12) * LANE_W;
-// Only --l0/--l1/--l2 exist as theme vars; higher lanes cycle the two branch
-// colors (never the trunk's) — before this, lane ≥3 strokes referenced an
-// undefined var and the lines simply didn't render.
+// Only --l0/--l1/--l2 exist as theme vars; higher lanes cycle l1/l2 (never
+// the trunk color).
 const laneColor = (l: number) => (l === 0 ? "var(--l0)" : `var(--l${((l - 1) % 2) + 1})`);
 
-// Entrance animation budget, PER ROW: the first screenfuls grow in; rows
-// beyond this render static. The old all-or-nothing cap (skip when
-// rows.length > 120) silenced the signature entrance on every real repo —
-// a 200-commit log never animated at all.
+// Entrance budget per row: the first screenfuls animate in, the rest render static.
 const ANIM_ROWS = 120;
 
 function buildGraph(
@@ -38,13 +28,30 @@ function buildGraph(
   range?: { start: number; end: number },
 ): ReactElement[] {
   const els: ReactElement[] = [];
-  // Only commits that weren't on screen last render play their entrance, and
-  // only within the first ANIM_ROWS rows (the rest is below the fold).
+  // Shared fade mask for continuation stubs below; objectBoundingBox units
+  // fade top->bottom over each masked element's own box, no per-stub math.
+  els.push(
+    h(
+      "defs",
+      { key: "gs-fade-defs" },
+      h(
+        "linearGradient",
+        { id: "gsFadeGrad", x1: 0, y1: 0, x2: 0, y2: 1 },
+        h("stop", { key: "s0", offset: "0%", stopColor: "#fff", stopOpacity: 1 }),
+        h("stop", { key: "s1", offset: "100%", stopColor: "#fff", stopOpacity: 0 }),
+      ),
+      h(
+        "mask",
+        { id: "gsFadeDown", maskContentUnits: "objectBoundingBox" },
+        h("rect", { x: 0, y: 0, width: 1, height: 1, fill: "url(#gsFadeGrad)" }),
+      ),
+    ),
+  );
+  // Only commits absent from the last render, within the first ANIM_ROWS, play their entrance.
   const fresh = (hash: string, i: number) => anims && i < ANIM_ROWS && !seenHashes.has(hash);
   const anim = (on: boolean, s: string) => (on ? s : "none");
-  // Windowed mode (huge histories): only emit elements whose row span
-  // intersects the visible range. Geometry is index-based, so skipping rows
-  // never changes where anything is drawn.
+  // Windowed mode: only emit elements whose row span intersects the visible
+  // range — geometry is index-based, so skipping rows never shifts anything.
   const inRange = (a: number, b = a) => !range || (Math.min(a, b) <= range.end && Math.max(a, b) >= range.start);
 
   const vine = (x: number, y1: number, y2: number, seed: number) => {
@@ -59,11 +66,20 @@ function buildGraph(
     return d;
   };
 
-  const pathEl = (key: string, d: string, lane: number, delay: number, on: boolean, w?: number) =>
+  const pathEl = (
+    key: string,
+    d: string,
+    lane: number,
+    delay: number,
+    on: boolean,
+    w?: number,
+    extra?: Record<string, unknown>,
+  ) =>
     h("path", {
       key,
       d,
       fill: "none",
+      ...extra,
       ...(on ? { pathLength: 1 } : {}),
       style: {
         stroke:
@@ -107,9 +123,13 @@ function buildGraph(
       const x2 = laneX(pc.lane);
       const y2 = p * rowH + rowH / 2;
       const lane = x1 === x2 ? c.lane : Math.max(c.lane, pc.lane);
+      const edgeAttr = { "data-edge": `${hash}>${pHash}` };
       if (x1 === x2) {
-        els.push(pathEl(`e-${hash}-${pHash}`, vine(x1, y1, y2, i), lane, delay, on));
+        els.push(pathEl(`e-${hash}-${pHash}`, vine(x1, y1, y2, i), lane, delay, on, undefined, edgeAttr));
       } else if (c.merge) {
+        // Guard: topo-ordered data has the parent row below the child (p > i);
+        // if not, the edge is malformed — skip rather than draw a broken segment.
+        if (p <= i) return;
         els.push(
           pathEl(
             `e-${hash}-${pHash}-a`,
@@ -117,11 +137,15 @@ function buildGraph(
             lane,
             delay,
             on,
+            undefined,
+            edgeAttr,
           ),
         );
-        if (y2 > y1 + rowH) els.push(pathEl(`e-${hash}-${pHash}-b`, vine(x2, y1 + rowH, y2, i + 1), lane, delay + 0.1, on));
+        if (y2 > y1 + rowH)
+          els.push(pathEl(`e-${hash}-${pHash}-b`, vine(x2, y1 + rowH, y2, i + 1), lane, delay + 0.1, on, undefined, edgeAttr));
       } else {
-        if (y2 - rowH > y1) els.push(pathEl(`e-${hash}-${pHash}-a`, vine(x1, y1, y2 - rowH, i), lane, delay, on));
+        if (p <= i) return;
+        if (y2 - rowH > y1) els.push(pathEl(`e-${hash}-${pHash}-a`, vine(x1, y1, y2 - rowH, i), lane, delay, on, undefined, edgeAttr));
         els.push(
           pathEl(
             `e-${hash}-${pHash}-b`,
@@ -129,8 +153,39 @@ function buildGraph(
             lane,
             delay + 0.1,
             on,
+            undefined,
+            edgeAttr,
           ),
         );
+      }
+    });
+  });
+
+  // Continuation stubs: a commit whose parent is outside the loaded window
+  // (contLanes, graph/layout.ts) gets a fading vine reading "continues below,
+  // not loaded" instead of the line just stopping.
+  rows.forEach((c, i) => {
+    if (!inRange(i)) return;
+    if (c.contLanes.length === 0) return;
+    const hash = c.commit.hash;
+    const on = fresh(hash, i);
+    const x1 = laneX(c.lane);
+    const y1 = i * rowH + rowH / 2;
+    const delay = Math.min(i * 0.045, 0.6);
+    c.contLanes.forEach((contLane) => {
+      const key = `cont-${hash}-${contLane}`;
+      const extra = { "data-cont": hash, mask: "url(#gsFadeDown)" };
+      if (contLane === c.lane) {
+        // Common case (first-parent truncation): a straight stub in the commit's own lane.
+        const y2 = y1 + rowH * 0.9;
+        els.push(pathEl(key, vine(x1, y1, y2, i), contLane, delay, on, undefined, extra));
+      } else {
+        // Out-of-window merge parent in a claimed lane: curve toward it, then a short stub.
+        const x2 = laneX(contLane);
+        const yMid = y1 + rowH * 0.6;
+        const yEnd = y1 + rowH * 0.9;
+        const d = `M${x1},${y1} C${x1 + 4},${y1 + rowH * 0.3} ${x2 - 5},${yMid - rowH * 0.25} ${x2},${yMid} L${x2},${yEnd}`;
+        els.push(pathEl(key, d, Math.max(c.lane, contLane), delay, on, undefined, extra));
       }
     });
   });
@@ -168,8 +223,8 @@ function buildGraph(
     if (styleKey === "grafo") return;
     const hash = c.commit.hash;
     const on = fresh(hash, i);
-    // Tip bookkeeping must run for EVERY row (it accumulates), so the range
-    // check happens after it — skipping only the element creation.
+    // Tip bookkeeping runs for every row (it accumulates); the range check
+    // below only skips element creation.
     const isTip = (c.lane > 0 && !tipLanes.has(c.lane)) || i === 0;
     tipLanes.add(c.lane);
     if (!inRange(i)) return;
@@ -354,12 +409,9 @@ export const CommitGraphSvg = memo(function CommitGraphSvg({
 }) {
   const styleKey = useThemeStore((s) => s.treeStyle);
   const anims = useThemeStore((s) => s.anims);
-  // The per-row budget (ANIM_ROWS in buildGraph) bounds the entrance cost:
-  // any history size animates its first screenfuls, the rest is static.
 
-  // Incremental entrance: hashes from the PREVIOUS render become "seen" and
-  // never replay; only genuinely new commits animate. Render-phase state
-  // adjustment is the sanctioned derive-on-change pattern.
+  // Incremental entrance: hashes from the previous render become "seen" and
+  // never replay (render-phase derive-on-change).
   const hashesKey = useMemo(() => rows.map((r) => r.commit.hash).join("|"), [rows]);
   const [prevKey, setPrevKey] = useState<string | null>(null);
   const [seenHashes, setSeenHashes] = useState<ReadonlySet<string>>(() => new Set());
@@ -368,10 +420,9 @@ export const CommitGraphSvg = memo(function CommitGraphSvg({
     if (prevKey !== null) setSeenHashes(new Set(prevKey.split("|")));
   }
 
-  // Once the entrance finishes (longest chain ≈ 0.6s stagger + 0.8s draw),
-  // everything becomes "seen": in windowed mode, scrolling away and back
-  // remounts elements, and without this they would replay their entrance.
-  // The rebuild is invisible — every keyframe ends at the static pose.
+  // Once the entrance finishes (~1.6s), mark everything "seen" so scrolling
+  // away and back in windowed mode doesn't replay it (invisible: keyframes
+  // already end at the static pose).
   useEffect(() => {
     if (!anims || rows.length === 0) return;
     if (rows.every((r) => seenHashes.has(r.commit.hash))) return;

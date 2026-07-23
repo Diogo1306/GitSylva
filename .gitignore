@@ -26,14 +26,17 @@ dist-ssr
 # Rust / Tauri build
 src-tauri/target/
 
-# Local plans, not tracked
+# Local plans, specs and workflow scratch, not tracked
 plans/
+docs/superpowers/
+.superpowers/
 
 # AI tooling
 .claude/
 .cursor/
 .aider*
 CLAUDE.md
+CLAUDE.local.md
 
 # Signing keys must never enter the repo (updater private key lives in ~/.tauri/)
 *.key

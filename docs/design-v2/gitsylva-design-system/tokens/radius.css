@@ -1,0 +1,11 @@
+/* GitSylva radii */
+:root {
+  --r-xs: 5px;   /* small chips */
+  --r-sm: 6px;
+  --r-md: 7px;
+  --r-btn: 8px;  /* buttons / inputs */
+  --r-lg: 9px;
+  --r-card: 12px;
+  --r-win: 14px; /* window */
+  --r-pill: 999px;
+}
