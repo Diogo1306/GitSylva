@@ -19,12 +19,13 @@ function SectionHead({ children }: { children: React.ReactNode }) {
 // Delicate text-link action (Stage all / Discard): a real Button would read too
 // heavy in this dense header row, so it stays a token-styled span with the
 // same keyboard activation every other migrated control here uses.
-function LinkAction({ children, color, disabled, onClick }: { children: React.ReactNode; color: string; disabled?: boolean; onClick: () => void }) {
+function LinkAction({ children, color, disabled, onClick, title }: { children: React.ReactNode; color: string; disabled?: boolean; onClick: () => void; title?: string }) {
   return (
     <span
       role="button"
       tabIndex={disabled ? -1 : 0}
       aria-disabled={disabled || undefined}
+      title={title}
       onClick={disabled ? undefined : onClick}
       onKeyDown={disabled ? undefined : activateOnKeyDown}
       className="gs-row"
@@ -51,6 +52,7 @@ export function FileList({
   stageAllPending,
   onStageAll,
   onDiscardAllClick,
+  onStash,
   onToggle,
   onSelect,
   onContext,
@@ -64,6 +66,7 @@ export function FileList({
   stageAllPending: boolean;
   onStageAll: () => void;
   onDiscardAllClick: () => void;
+  onStash: () => void;
   onToggle: (f: FileChange, listKey: "u" | "s") => void;
   onSelect: (path: string, staged: boolean) => void;
   onContext: (x: number, y: number, file: FileChange) => void;
@@ -140,6 +143,14 @@ export function FileList({
           <SectionHead>{t("workingCopy.unstagedSection")} · {unstaged.length}</SectionHead>
           <LinkAction color="var(--l0)" disabled={stageAllPending} onClick={onStageAll}>
             {stageAllPending ? t("workingCopy.staging") : t("workingCopy.stageAll")}
+          </LinkAction>
+          <LinkAction
+            color="var(--text2)"
+            disabled={unstaged.length === 0 && staged.length === 0}
+            onClick={onStash}
+            title={t("stashes.emptyAction")}
+          >
+            {t("workingCopy.saveStash")}
           </LinkAction>
           <LinkAction color="var(--ddT)" disabled={unstaged.length === 0} onClick={onDiscardAllClick}>
             {t("workingCopy.discard")}

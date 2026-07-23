@@ -40,6 +40,7 @@ export const ptWorkspace = {
   "workingCopy.stagedSection": "PREPARADAS",
   "workingCopy.staging": "A preparar…",
   "workingCopy.stageAll": "Preparar tudo",
+  "workingCopy.saveStash": "Guardar stash…",
   "workingCopy.discard": "Descartar",
   "workingCopy.dragLists": "Arrastar para ajustar o tamanho das listas",
   "workingCopy.commitPlaceholder": "Mensagem do commit…",

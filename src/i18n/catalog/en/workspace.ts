@@ -38,6 +38,7 @@ export const enWorkspace: Record<WorkspaceKey, MessageValue> = {
   "workingCopy.stagedSection": "STAGED",
   "workingCopy.staging": "Staging…",
   "workingCopy.stageAll": "Stage all",
+  "workingCopy.saveStash": "Save stash…",
   "workingCopy.discard": "Discard",
   "workingCopy.dragLists": "Drag to adjust the list sizes",
   "workingCopy.commitPlaceholder": "Commit message…",

@@ -94,6 +94,7 @@ export function DiffPane({
             stageLabel={effSel.staged ? t("workingCopy.unstage") : t("workingCopy.stage")}
             onStageHunk={selStatus === "?" ? undefined : onStageHunk}
             onLoadFull={onLoadFull}
+            clean
           />
         ) : (
           <div style={{ padding: "var(--sp-8)", color: "var(--muted)" }}>{t("workingCopy.noTextChanges")}</div>
