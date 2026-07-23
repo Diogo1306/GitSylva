@@ -1,4 +1,4 @@
-import type { Dispatch, KeyboardEvent, SetStateAction } from "react";
+import { useState, type Dispatch, type KeyboardEvent, type SetStateAction } from "react";
 import { activateOnKeyDown } from "../../components/ui/keys";
 import { Badge } from "../../components/ui/misc";
 import type { BranchGroup } from "../../lib/branchFolders";
@@ -44,6 +44,7 @@ export function BranchList({
   onCreateBranch,
   onFocusBranch,
   onRequestSwitch,
+  onMergeClick,
   onContextMenu,
   onDeleteRequest,
   onRenameCommit,
@@ -66,12 +67,17 @@ export function BranchList({
   onCreateBranch: () => void;
   onFocusBranch: (name: string, tip: string) => void;
   onRequestSwitch: (name: string) => void;
+  onMergeClick: (name: string) => void;
   onContextMenu: (menu: ContextMenuRequest) => void;
   onDeleteRequest: (name: string) => void;
   onRenameCommit: (oldName: string, newName: string) => void;
   onRenameCancel: () => void;
 }) {
   const t = useT();
+  // V2: the branch filter input starts hidden behind a magnifier toggle in
+  // the header (master lines 230-241) — except when a query already exists,
+  // so the input never disappears out from under active text.
+  const [searchOpen, setSearchOpen] = useState(() => branchQuery.trim().length > 0);
   // Branch folders (feature/, fix/, …): collapsed by default so big lists stay
   // short; the folder holding the CURRENT branch starts open, and the user's
   // explicit toggles win for the rest of the session.
@@ -93,6 +99,7 @@ export function BranchList({
       checkoutPending={checkoutPending}
       onSelect={() => onFocusBranch(b.name, b.tip)}
       onRequestSwitch={() => onRequestSwitch(b.name)}
+      onMergeClick={() => onMergeClick(b.name)}
       onContextMenuOpen={(x, y) => onContextMenu({ x, y, name: b.name })}
       onDeleteClick={() => onDeleteRequest(b.name)}
     />
@@ -102,22 +109,40 @@ export function BranchList({
     <div style={{ display: "flex", flexDirection: "column", gap: 2 }} onKeyDown={onBranchListKeyDown}>
       <SectionLabel
         action={
-          <button
-            type="button"
-            onClick={onCreateBranch}
-            onKeyDown={activateOnKeyDown}
-            title={t("shell.branch.title")}
-            aria-label={t("shell.branch.title")}
-            className="gs-row"
-            style={{ width: 32, height: 32, borderRadius: "var(--r-btn)", display: "grid", placeItems: "center", color: "var(--muted)", fontSize: 14, background: "transparent", border: "none", padding: 0, cursor: "pointer", fontFamily: "inherit" }}
-          >
-            +
-          </button>
+          <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
+            <button
+              type="button"
+              onClick={onCreateBranch}
+              onKeyDown={activateOnKeyDown}
+              title={t("shell.branch.title")}
+              aria-label={t("shell.branch.title")}
+              className="gs-row"
+              style={{ width: 32, height: 32, borderRadius: "var(--r-btn)", display: "grid", placeItems: "center", color: "var(--muted)", fontSize: 14, background: "transparent", border: "none", padding: 0, cursor: "pointer", fontFamily: "inherit" }}
+            >
+              +
+            </button>
+            {/* V2: magnifier toggles the filter input below (master line 234). */}
+            <button
+              type="button"
+              onClick={() => setSearchOpen((v) => !v)}
+              onKeyDown={activateOnKeyDown}
+              title={t("shell.branch.searchToggle")}
+              aria-label={t("shell.branch.searchToggle")}
+              aria-expanded={searchOpen}
+              className="gs-row"
+              style={{ width: 24, height: 24, borderRadius: "var(--r-xs)", display: "grid", placeItems: "center", color: searchOpen ? "var(--text)" : "var(--muted)", background: "transparent", border: "none", padding: 0, cursor: "pointer", fontFamily: "inherit" }}
+            >
+              <svg width="11" height="11" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+                <circle cx="6" cy="6" r="4.2" />
+                <path d="M9.4 9.4 L12.6 12.6" />
+              </svg>
+            </button>
+          </div>
         }
       >
-        {t("shell.sidebar.branches")}
+        {t("shell.sidebar.branches", { count: localBranches.length })}
       </SectionLabel>
-      <BranchSearchBox value={branchQuery} onChange={setBranchQuery} />
+      {searchOpen && <BranchSearchBox value={branchQuery} onChange={setBranchQuery} />}
       {/* Task 10: recently checked-out branches, most-recent first — a
           quick-access shortcut on top of the folder grouping below.
           Hidden while filtering, since the filtered list already surfaces

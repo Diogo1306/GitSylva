@@ -117,6 +117,8 @@ export const enShell: Record<ShellKey, MessageValue> = {
   "shell.branch.behindTitle": { one: "{count} commit to pull", other: "{count} commits to pull" },
   "shell.branch.deleteAria": "Delete {name}",
   "shell.branch.noMatches": "No matching branches",
+  "shell.branch.checkout": "Checkout",
+  "shell.branch.searchToggle": "Filter branches",
   "shell.branch.checkoutLocal": "Local checkout of {name}…",
   "shell.branch.mergeInto": "Merge {name} into the current branch…",
   "shell.branch.rebaseOnto": "Rebase the current branch onto {name}…",
@@ -212,11 +214,10 @@ export const enShell: Record<ShellKey, MessageValue> = {
   // ── Sidebar ────────────────────────────────────────────────────────────────
   "shell.sidebar.workspace": "WORKSPACE",
   "shell.sidebar.recents": "RECENT",
-  "shell.sidebar.branches": "BRANCHES",
+  "shell.sidebar.branches": "BRANCHES · {count}",
   "shell.sidebar.remotes": "REMOTES",
   "shell.sidebar.tags": "TAGS",
-  "shell.sidebar.expand": "Expand sidebar",
-  "shell.sidebar.collapse": "Collapse sidebar",
+  "shell.sidebar.account": "Account & sync",
 
   // ── Folders (sidebar branch/remote folders) ────────────────────────────────
   "shell.folder.toggleTitle": "{action} {name}",

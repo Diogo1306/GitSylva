@@ -64,6 +64,13 @@ function expandRemote(remote: string) {
   fireEvent.click(screen.getByRole("button", { name: `Expandir ${remote}` }));
 }
 
+// V2: the branch filter input starts hidden behind a magnifier toggle in the
+// BRANCHES header — tests that need the searchbox must open it first, same
+// as a real user clicking the toggle.
+async function openBranchSearch() {
+  fireEvent.click(await screen.findByRole("button", { name: "Filtrar branches" }));
+}
+
 describe("Sidebar: Definições dedup", () => {
   it("no longer renders a Definições nav entry", () => {
     renderWithProviders(<Sidebar />);
@@ -268,69 +275,40 @@ describe("Sidebar: branch selection persists (Task 8)", () => {
   });
 });
 
-// Task 6 ("Layout na janela mínima"): below ~1024px wide the sidebar
-// defaults to a collapsed icon rail (a width-driven default), but a real,
-// keyboard-operable toggle always lets the user get nav/branches back — the
-// sidebar is never permanently unreachable.
-describe("Sidebar: responsive collapse (Task 6)", () => {
+// V2: the sidebar has no collapse toggle — it is always visible, at least at
+// its resizable minimum width (the resize handle, not a hide/show button, is
+// the only way its width changes).
+describe("Sidebar: always visible (V2)", () => {
   afterEach(() => {
     Object.defineProperty(window, "innerWidth", { writable: true, configurable: true, value: 1024 });
     Object.defineProperty(window, "innerHeight", { writable: true, configurable: true, value: 768 });
   });
 
-  it("collapses by default at the window minimum width, keeping an expand affordance", async () => {
+  it("stays visible with nav/branches at a narrow window, with no collapse/expand affordance", async () => {
     Object.defineProperty(window, "innerWidth", { writable: true, configurable: true, value: 900 });
     Object.defineProperty(window, "innerHeight", { writable: true, configurable: true, value: 560 });
-    renderWithProviders(<Sidebar />);
-    const expand = await screen.findByRole("button", { name: "Expandir barra lateral" });
-    expect(expand.tagName).toBe("BUTTON");
-    expect(screen.queryByRole("button", { name: /Cópia de trabalho/ })).toBeNull();
-  });
-
-  it("the expand button clears at least a 32px hit target", async () => {
-    Object.defineProperty(window, "innerWidth", { writable: true, configurable: true, value: 900 });
-    Object.defineProperty(window, "innerHeight", { writable: true, configurable: true, value: 560 });
-    renderWithProviders(<Sidebar />);
-    const expand = await screen.findByRole("button", { name: "Expandir barra lateral" });
-    expect(expand.style.width).toBe("32px");
-    expect(expand.style.height).toBe("32px");
-  });
-
-  it("stays expanded by default at a comfortable width", async () => {
-    Object.defineProperty(window, "innerWidth", { writable: true, configurable: true, value: 1440 });
-    Object.defineProperty(window, "innerHeight", { writable: true, configurable: true, value: 900 });
     renderWithProviders(<Sidebar />);
     await screen.findByRole("button", { name: /Cópia de trabalho/ });
-    expect(screen.queryByRole("button", { name: "Expandir barra lateral" })).toBeNull();
+    expect(screen.queryByRole("button", { name: /Colapsar/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /Expandir barra lateral/ })).toBeNull();
   });
 
-  it("a real, keyboard-operable collapse toggle hides nav/branches and an expand affordance brings them back", async () => {
-    renderWithProviders(<Sidebar />);
-    const collapse = await screen.findByRole("button", { name: "Colapsar barra lateral" });
-    expect(collapse.tagName).toBe("BUTTON");
-
-    fireEvent.click(collapse);
-    expect(screen.queryByRole("button", { name: /Cópia de trabalho/ })).toBeNull();
-    const expand = screen.getByRole("button", { name: "Expandir barra lateral" });
-
-    fireEvent.click(expand);
-    expect(await screen.findByRole("button", { name: /Cópia de trabalho/ })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Colapsar barra lateral" })).toBeTruthy();
-  });
-
-  it("the 'Nova branch' and 'Nova tag' header buttons clear a 32px hit target", async () => {
+  it("the 'Nova branch' header button clears a 32px hit target", async () => {
     renderWithProviders(<Sidebar />);
     const novaBranch = await screen.findByRole("button", { name: "Nova branch" });
     expect(novaBranch.style.width).toBe("32px");
     expect(novaBranch.style.height).toBe("32px");
   });
+});
 
-  it("the collapse toggle activates on Enter (keyboard, not just click)", async () => {
+// V2: a "Conta & sync" row anchored at the bottom of the sidebar opens
+// Settings — the app's only Accounts surface today.
+describe("Sidebar: account row (V2)", () => {
+  it("renders a 'Conta & sync' button that opens Settings", async () => {
     renderWithProviders(<Sidebar />);
-    const collapse = await screen.findByRole("button", { name: "Colapsar barra lateral" });
-    fireEvent.keyDown(collapse, { key: "Enter" });
-    expect(screen.queryByRole("button", { name: /Cópia de trabalho/ })).toBeNull();
-    expect(screen.getByRole("button", { name: "Expandir barra lateral" })).toBeTruthy();
+    const account = await screen.findByRole("button", { name: "Conta & sync" });
+    fireEvent.click(account);
+    expect(useAppStore.getState().view).toBe("settings");
   });
 });
 
@@ -352,9 +330,11 @@ describe("Sidebar: branch search filter (Task 10)", () => {
     { name: "origin/época", is_current: false, is_remote: true, upstream: null, tip: "ddd4444", ahead: 0, behind: 0 },
   ];
 
-  it("has an accessible, labeled search box in the branches area", async () => {
+  it("has an accessible, labeled search box in the branches area, once the magnifier toggle opens it", async () => {
     vi.mocked(listBranches).mockResolvedValueOnce(filterBranches);
     renderWithProviders(<Sidebar />);
+    expect(screen.queryByRole("searchbox", { name: "Procurar branches" })).toBeNull();
+    await openBranchSearch();
     expect(await screen.findByRole("searchbox", { name: "Procurar branches" })).toBeTruthy();
   });
 
@@ -365,6 +345,7 @@ describe("Sidebar: branch search filter (Task 10)", () => {
     // "feature" doesn't hold the current branch, so it starts collapsed.
     expect(screen.queryByRole("button", { name: "época" })).toBeNull();
 
+    await openBranchSearch();
     const search = screen.getByRole("searchbox", { name: "Procurar branches" });
     fireEvent.change(search, { target: { value: "epoca" } });
 
@@ -382,6 +363,7 @@ describe("Sidebar: branch search filter (Task 10)", () => {
     await screen.findByRole("button", { name: "main" });
     expect(screen.queryByRole("button", { name: "época" })).toBeNull();
 
+    await openBranchSearch();
     const search = screen.getByRole("searchbox", { name: "Procurar branches" });
     // Uppercase, accented query: still matches the lowercase-accented name.
     fireEvent.change(search, { target: { value: "ÉPOCA" } });
@@ -395,6 +377,7 @@ describe("Sidebar: branch search filter (Task 10)", () => {
     vi.mocked(listBranches).mockResolvedValueOnce(filterBranches);
     renderWithProviders(<Sidebar />);
     await screen.findByRole("button", { name: "main" });
+    await openBranchSearch();
     const search = screen.getByRole("searchbox", { name: "Procurar branches" });
     fireEvent.change(search, { target: { value: "epoca" } });
     await screen.findAllByRole("button", { name: "época" });
@@ -421,6 +404,7 @@ describe("Sidebar: branch search filter (Task 10)", () => {
     // Default state: folder open, so the current-branch member is visible.
     expect(await screen.findByRole("button", { name: "atual" })).toBeTruthy();
 
+    await openBranchSearch();
     const search = screen.getByRole("searchbox", { name: "Procurar branches" });
     fireEvent.change(search, { target: { value: "login" } });
     // While filtering the folder is force-open (its title reads "Colapsar").
