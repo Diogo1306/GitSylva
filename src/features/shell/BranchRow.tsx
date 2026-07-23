@@ -104,10 +104,7 @@ export function BranchRow({
         fontFamily: mono,
         color: b.is_current ? "var(--text)" : "var(--text2)",
         fontWeight: b.is_current ? "var(--fw-semibold)" : "var(--fw-regular)",
-        // Selection accent (Task 8): a lateral bar distinct from the
-        // is_current dot/halo below — a branch can be selected without
-        // being the checked-out branch, and vice versa.
-        boxShadow: selected ? "inset 3px 0 0 var(--accent)" : undefined,
+        // Selection = the plain --sel gray fill (from SelectableRow); no extra accent bar.
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: 9, padding: indent ? "6px 10px 6px 25px" : "6px 10px" }}>
