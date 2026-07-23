@@ -6,6 +6,25 @@
   <link rel="icon" type="image/png" href="/favicon.png" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>GitSylva</title>
+  <!-- Pre-paint background so there is no stark-white flash before the app CSS
+       loads; dark by default, soft tint for the light themes. -->
+  <style>
+    html { background: #12141a; }
+    html[data-theme="claro"], html[data-theme="gitclassic"], html[data-theme="nipon"] { background: #eef0ea; }
+    body { margin: 0; }
+  </style>
+  <!-- Restore the persisted theme onto <html> before first paint so a returning
+       dark-theme user never flashes the light default. -->
+  <script>
+    try {
+      var raw = localStorage.getItem("gitsylva-prefs");
+      if (raw) {
+        var parsed = JSON.parse(raw);
+        var t = parsed && parsed.state && parsed.state.theme;
+        if (t) document.documentElement.setAttribute("data-theme", t);
+      }
+    } catch (e) {}
+  </script>
 </head>
 
 <body>

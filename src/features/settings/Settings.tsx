@@ -63,6 +63,8 @@ export function Settings() {
   const t = useT();
   const setView = useAppStore((s) => s.setView);
   const prevView = useAppStore((s) => s.prevView);
+  const settingsSection = useAppStore((s) => s.settingsSection);
+  const setSettingsSection = useAppStore((s) => s.setSettingsSection);
   const replayOnboard = useOnboardStore((s) => s.replay);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [active, setActive] = useState("set-aparencia");
@@ -87,6 +89,15 @@ export function Settings() {
     });
     return () => obs.disconnect();
   }, []);
+
+  // Deep-link: opened targeting a section (e.g. the sidebar "Conta & sync" row) — scroll to it once,
+  // then clear (deferred so it isn't a synchronous store write inside the effect). The scroll-spy updates `active`.
+  useEffect(() => {
+    if (!settingsSection) return;
+    scrollRef.current?.querySelector(`#${settingsSection}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    const id = setTimeout(() => setSettingsSection(null), 0);
+    return () => clearTimeout(id);
+  }, [settingsSection, setSettingsSection]);
 
   return (
     <div style={{ flex: 1, display: "flex", minHeight: 0, background: "var(--win)", animation: "fadeUp 0.25s ease both" }}>

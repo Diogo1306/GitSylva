@@ -31,6 +31,7 @@ export function Sidebar() {
   const t = useT();
   const view = useAppStore((s) => s.view);
   const setView = useAppStore((s) => s.setView);
+  const setSettingsSection = useAppStore((s) => s.setSettingsSection);
   const setModal = useAppStore((s) => s.setModal);
   const setFocusCommit = useAppStore((s) => s.setFocusCommit);
   const repo = useAppStore((s) => s.repo)!;
@@ -212,7 +213,7 @@ export function Sidebar() {
           the app's only Accounts surface today. */}
       <button
         type="button"
-        onClick={() => setView("settings")}
+        onClick={() => { setSettingsSection("set-contas"); setView("settings"); }}
         onKeyDown={activateOnKeyDown}
         title={t("shell.sidebar.account")}
         aria-label={t("shell.sidebar.account")}

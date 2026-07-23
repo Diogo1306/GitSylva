@@ -26,6 +26,8 @@ type AppState = {
   selectedFile: string | null;
   // Commit selected from the palette; History reads and clears it.
   focusCommit: string | null;
+  // Settings section to scroll to when Settings opens (deep-link, e.g. sidebar account row); cleared after.
+  settingsSection: string | null;
   paletteOpen: boolean;
   modal: Modal;
   // Open a repo (adds it if new, updates it if already open) and make it active.
@@ -48,6 +50,7 @@ type AppState = {
   toggleGroupCollapsed: (id: string) => void;
   setRepoGroup: (path: string, groupId: string | undefined) => void;
   setView: (view: View) => void;
+  setSettingsSection: (section: string | null) => void;
   setSelectedFile: (file: string | null) => void;
   setFocusCommit: (hash: string | null) => void;
   setPaletteOpen: (open: boolean) => void;
@@ -67,6 +70,7 @@ export const useAppStore = create<AppState>()(
   prevView: "history",
   selectedFile: null,
   focusCommit: null,
+  settingsSection: null,
   paletteOpen: false,
   modal: null,
   setRepo: (repo) =>
@@ -144,6 +148,7 @@ export const useAppStore = create<AppState>()(
     })),
   setSelectedFile: (selectedFile) => set({ selectedFile }),
   setFocusCommit: (focusCommit) => set({ focusCommit }),
+  setSettingsSection: (settingsSection) => set({ settingsSection }),
   setPaletteOpen: (paletteOpen) => set({ paletteOpen }),
   setModal: (modal) => set({ modal }),
     }),
