@@ -49,6 +49,8 @@ export function WinControls() {
   useEffect(() => {
     void winIsMaximized().then(setMaxed);
   }, []);
+  // Full-height 46px cells with clean SVG glyphs (currentColor adapts per theme),
+  // matching the V2 titlebar; close hover goes red via .gs-winclose.
   const btn = (glyph: React.ReactNode, onClick: () => void, title: string, close = false) => (
     <button
       type="button"
@@ -57,22 +59,26 @@ export function WinControls() {
       title={title}
       aria-label={title}
       className={close ? "gs-winclose" : "gs-winbtn"}
-      style={{ width: 40, height: 30, display: "grid", placeItems: "center", cursor: "pointer", fontSize: 11, color: "var(--text2)", borderRadius: "var(--r-sm)", border: "none", background: "transparent", padding: 0, fontFamily: "inherit" }}
+      style={{ width: 46, alignSelf: "stretch", display: "grid", placeItems: "center", cursor: "pointer", color: "var(--text2)", border: "none", background: "transparent", padding: 0, fontFamily: "inherit" }}
     >
       {glyph}
     </button>
   );
   return (
-    <div style={{ display: "flex", flexShrink: 0, marginLeft: 2 }}>
-      {btn("—", () => void winMinimize(), t("shell.win.minimize"))}
+    <div style={{ display: "flex", alignSelf: "stretch", flexShrink: 0 }}>
+      {btn(<svg width={11} height={11} viewBox="0 0 11 11" aria-hidden><path d="M1 5.5 H10" stroke="currentColor" strokeWidth={1} /></svg>, () => void winMinimize(), t("shell.win.minimize"))}
       {btn(
-        maxed ? "❐" : "▢",
+        maxed ? (
+          <svg width={12} height={12} viewBox="0 0 12 12" aria-hidden><rect x={2.5} y={0.5} width={8.5} height={8.5} rx={0.7} fill="none" stroke="currentColor" strokeWidth={1} /><rect x={0.5} y={2.5} width={8.5} height={8.5} rx={0.7} fill="var(--panel)" stroke="currentColor" strokeWidth={1} /></svg>
+        ) : (
+          <svg width={11} height={11} viewBox="0 0 11 11" aria-hidden><rect x={1} y={1} width={9} height={9} rx={0.7} fill="none" stroke="currentColor" strokeWidth={1} /></svg>
+        ),
         () => {
           void winToggleMaximize().then(() => winIsMaximized().then(setMaxed));
         },
         maxed ? t("shell.win.restore") : t("shell.win.maximize"),
       )}
-      {btn("✕", () => void winClose(), t("common.close"), true)}
+      {btn(<svg width={11} height={11} viewBox="0 0 11 11" aria-hidden><path d="M1 1 L10 10 M10 1 L1 10" stroke="currentColor" strokeWidth={1.1} /></svg>, () => void winClose(), t("common.close"), true)}
     </div>
   );
 }
