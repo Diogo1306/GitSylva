@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useAppStore } from "../../state/appStore";
 import { useOnboardStore } from "../../state/onboardStore";
 import { Appearance } from "./sections/Appearance";
+import { Accounts } from "./sections/Accounts";
 import { GitIdentity } from "./sections/GitIdentity";
 import { Commits } from "./sections/Commits";
 import { PushPull } from "./sections/PushPull";
@@ -134,9 +135,7 @@ export function Settings() {
 
           <Appearance />
 
-          <StubSection id="set-contas" title={t("settings.accounts.title")}>
-            {t("settings.accounts.body")}
-          </StubSection>
+          <Accounts />
 
           <GitIdentity />
           <StubSection id="set-git-extra" title={t("settings.gitEditor.title")}>
