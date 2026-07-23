@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { toast } from "../../state/toastStore";
 import { Tooltip } from "../../components/ui/Tooltip";
 import { Badge } from "../../components/ui/misc";
@@ -64,8 +65,103 @@ const iconBtn: React.CSSProperties = {
   fontFamily: "inherit",
 };
 
+const syncMenuItem: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: "var(--sp-2)",
+  height: 34,
+  padding: "0 10px",
+  borderRadius: "var(--r-sm)",
+  fontSize: "var(--fs-btn)",
+  fontWeight: "var(--fw-medium)",
+  color: "var(--text)",
+  cursor: "pointer",
+  boxSizing: "border-box",
+};
+
+// < 1100px collapses Pull/Push/Fetch into this single ⇅ Sync button + menu
+// (badges move onto the Pull/Push items). A real menu: role, Esc, click-outside.
+function SyncMenu({
+  fetchPending,
+  onFetch,
+  fetchHint,
+  ahead,
+  behind,
+  onPull,
+  onPush,
+}: {
+  fetchPending: boolean;
+  onFetch: () => void;
+  fetchHint: string;
+  ahead: number;
+  behind: number;
+  onPull: () => void;
+  onPush: () => void;
+}) {
+  const t = useT();
+  const [open, setOpen] = useState(false);
+  const syncCount = ahead + behind;
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open]);
+
+  return (
+    <div style={{ position: "relative" }}>
+      <Tooltip content={t("shell.sync.menu")} shortcut={fetchHint}>
+        <Tool onClick={() => setOpen((v) => !v)} title={t("shell.sync.menu")} bareLabel aria-haspopup="menu" aria-expanded={open}>
+          ⇅ Sync
+          {syncCount > 0 && <Badge>{syncCount}</Badge>}
+          <span style={{ color: "var(--muted)", fontSize: 8 }}>▾</span>
+        </Tool>
+      </Tooltip>
+      {open && (
+        <>
+          <div onClick={() => setOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 59 }} />
+          <div
+            role="menu"
+            aria-label={t("shell.sync.menu")}
+            style={{
+              position: "absolute",
+              top: 40,
+              right: 0,
+              zIndex: 60,
+              width: 170,
+              background: "var(--win)",
+              border: "1px solid var(--border)",
+              borderRadius: "var(--r-card)",
+              boxShadow: "var(--shadow-2)",
+              padding: 5,
+              display: "flex",
+              flexDirection: "column",
+              animation: "fadeUp 0.18s ease both",
+            }}
+          >
+            <div role="menuitem" tabIndex={0} className="gs-row" onClick={() => { onFetch(); setOpen(false); }} onKeyDown={activateOnKeyDown} style={syncMenuItem}>
+              <span style={{ fontSize: 14, lineHeight: 1, display: "inline-block", animation: fetchPending ? "spin 0.8s linear infinite" : "none" }}>⟳</span>
+              {fetchPending ? t("shell.fetch.fetching") : "Fetch"}
+            </div>
+            <div role="menuitem" tabIndex={0} className="gs-row" onClick={() => { onPull(); setOpen(false); }} onKeyDown={activateOnKeyDown} style={syncMenuItem}>
+              ↓ Pull {behind > 0 && <Badge>{behind}</Badge>}
+            </div>
+            <div role="menuitem" tabIndex={0} className="gs-row" onClick={() => { onPush(); setOpen(false); }} onKeyDown={activateOnKeyDown} style={syncMenuItem}>
+              ↑ Push {ahead > 0 && <Badge accent>{ahead}</Badge>}
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 // V2 titlebar tools: sync (pull/push/fetch), search, terminal (stub), settings.
-// `compact` drops the button labels so the row still fits narrow windows.
+// `compact` (< 1100px, computed by Titlebar) collapses Pull/Push/Fetch into the
+// ⇅ Sync menu and turns Search into a bare magnifier icon.
 export function TitlebarTools({
   fetchPending,
   onFetch,
@@ -94,24 +190,30 @@ export function TitlebarTools({
   const t = useT();
   return (
     <div style={{ display: "flex", gap: "var(--sp-2)", alignItems: "center", flexShrink: 0 }}>
-      <Tooltip content={t("shell.pull.title")}>
-        <Tool onClick={onPull} title={t("shell.pull.title")} bareLabel>
-          ↓{compact ? "" : " Pull"}
-          {behind > 0 && <Badge>{behind}</Badge>}
-        </Tool>
-      </Tooltip>
-      <Tooltip content={t("shell.push.title")}>
-        <Tool onClick={onPush} title={t("shell.push.title")} bareLabel>
-          ↑{compact ? "" : " Push"}
-          {ahead > 0 && <Badge accent>{ahead}</Badge>}
-        </Tool>
-      </Tooltip>
-      <Tooltip content={t("shell.fetch.tooltip")} shortcut={fetchHint}>
-        <Tool onClick={onFetch} title={t("shell.fetch.tooltip")} bareLabel>
-          <span style={{ fontSize: 14, lineHeight: 1, display: "inline-block", animation: fetchPending ? "spin 0.8s linear infinite" : "none" }}>⟳</span>
-          {compact ? "" : fetchPending ? t("shell.fetch.fetching") : "Fetch"}
-        </Tool>
-      </Tooltip>
+      {compact ? (
+        <SyncMenu fetchPending={fetchPending} onFetch={onFetch} fetchHint={fetchHint} ahead={ahead} behind={behind} onPull={onPull} onPush={onPush} />
+      ) : (
+        <>
+          <Tooltip content={t("shell.pull.title")}>
+            <Tool onClick={onPull} title={t("shell.pull.title")} bareLabel>
+              ↓ Pull
+              {behind > 0 && <Badge>{behind}</Badge>}
+            </Tool>
+          </Tooltip>
+          <Tooltip content={t("shell.push.title")}>
+            <Tool onClick={onPush} title={t("shell.push.title")} bareLabel>
+              ↑ Push
+              {ahead > 0 && <Badge accent>{ahead}</Badge>}
+            </Tool>
+          </Tooltip>
+          <Tooltip content={t("shell.fetch.tooltip")} shortcut={fetchHint}>
+            <Tool onClick={onFetch} title={t("shell.fetch.tooltip")} bareLabel>
+              <span style={{ fontSize: 14, lineHeight: 1, display: "inline-block", animation: fetchPending ? "spin 0.8s linear infinite" : "none" }}>⟳</span>
+              {fetchPending ? t("shell.fetch.fetching") : "Fetch"}
+            </Tool>
+          </Tooltip>
+        </>
+      )}
       <Tooltip content={t("shell.search.label")} shortcut={paletteHint}>
         {compact ? (
           <button type="button" onClick={onOpenPalette} onKeyDown={activateOnKeyDown} aria-label={t("shell.search.aria", { hint: paletteHint })} className="gs-lift gs-press-97" style={{ ...iconBtn, background: "var(--input)", color: "var(--muted)" }}>

@@ -93,7 +93,8 @@ export function Titlebar() {
         paletteHint={paletteHint}
         onOpenPalette={() => setPaletteOpen(true)}
         onOpenSettings={() => setView("settings")}
-        compact={bp.hideSecondary}
+        // < 1100px: Pull/Push/Fetch collapse into one ⇅ Sync menu, search becomes an icon.
+        compact={bp.width < 1100}
       />
 
       {!isMac && <WinControls />}
