@@ -38,6 +38,7 @@ import {
   syncStatus,
   pull,
   push,
+  pushBranches,
   outgoing,
   incoming,
   getIdentity,
@@ -330,8 +331,10 @@ export function useSyncActions(path: string) {
         clearRepoBusy(ctx);
       },
     }),
+    // No branches (or omitted) -> push the current branch, as before.
     push: useMutation({
-      mutationFn: () => push(path),
+      mutationFn: (branches?: string[]) =>
+        branches && branches.length > 0 ? pushBranches(path, branches) : push(path),
       onMutate: () => markRepoBusy(path),
       onSuccess: refresh,
       onSettled: (_d, _e, _v, ctx) => clearRepoBusy(ctx),

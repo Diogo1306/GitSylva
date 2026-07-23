@@ -103,6 +103,7 @@ pub fn run() {
       git::sync::sync_status_cmd,
       git::sync::pull_cmd,
       git::sync::push_cmd,
+      git::sync::push_branches_cmd,
       git::sync::outgoing_cmd,
       git::sync::incoming_cmd,
       git::config::get_identity_cmd,
