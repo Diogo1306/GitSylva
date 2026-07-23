@@ -2,7 +2,7 @@
 // error trail) instead of the raw one.
 import { invoke } from "./telemetry";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
-import type { RepoInfo, FileChange, Commit, CommitDetail, BranchInfo, StashInfo, TagInfo, SyncStatus, GitIdentity, BlameLine, ConflictState, ConflictKind } from "./types";
+import type { RepoInfo, LocalRepoEntry, FileChange, Commit, CommitDetail, BranchInfo, StashInfo, TagInfo, SyncStatus, GitIdentity, BlameLine, ConflictState, ConflictKind } from "./types";
 
 export async function pickFolder(): Promise<string | null> {
   const picked = await openDialog({ directory: true, multiple: false });
@@ -19,6 +19,11 @@ export function initRepo(parent: string, name: string): Promise<RepoInfo> {
 
 export function cloneRepo(parent: string, url: string, name: string): Promise<RepoInfo> {
   return invoke<RepoInfo>("clone_repo", { parent, url, name });
+}
+
+/** Scans one level under `base` (default: `~/dev`) for folders, each marked as an existing repo or a plain folder. */
+export function scanLocalRepos(base?: string): Promise<LocalRepoEntry[]> {
+  return invoke<LocalRepoEntry[]>("scan_local_repos", { base: base ?? null });
 }
 
 export function getStatus(path: string): Promise<FileChange[]> {
