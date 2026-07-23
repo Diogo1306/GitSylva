@@ -31,8 +31,8 @@ const NAV: [MessageKey, string][] = [
   ["settings.nav.notifications", "set-notificacoes"],
   ["settings.nav.language", "set-idioma"],
   ["settings.nav.advanced", "set-avancado"],
-  ["settings.nav.cleanup", "set-limpeza"],
   ["settings.nav.about", "set-sobre"],
+  ["settings.nav.cleanup", "set-limpeza"],
 ];
 
 // Live language picker replacing the old "Em breve" stub. Switching updates the
@@ -158,9 +158,9 @@ export function Settings() {
             {t("settings.advanced.body")}
           </StubSection>
 
-          <Cleanup />
-
           <About />
+
+          <Cleanup />
         </div>
       </div>
     </div>
