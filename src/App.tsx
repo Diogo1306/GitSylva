@@ -4,7 +4,6 @@ import { useOnboardStore } from "./state/onboardStore";
 import { useApplyTheme } from "./theme/useApplyTheme";
 import { detectLocale, useLocaleStore } from "./i18n";
 import { AppShell } from "./features/shell/AppShell";
-import { ForestBackdrop } from "./components/ForestBackdrop";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { Notifications } from "./components/Notifications";
 import { UpdatePrompt } from "./components/UpdatePrompt";
@@ -23,13 +22,13 @@ function Root() {
 
   if (!onboarded)
     return (
-      <Suspense fallback={<div style={{ height: "100%", background: "var(--desk)" }} />}>
+      <Suspense fallback={<div style={{ height: "100%", background: "var(--win)" }} />}>
         <Onboarding />
       </Suspense>
     );
   if (!repo)
     return (
-      <Suspense fallback={<div style={{ height: "100%", background: "var(--desk)" }} />}>
+      <Suspense fallback={<div style={{ height: "100%", background: "var(--win)" }} />}>
         {/* No repo yet: the picker still lives inside a NORMAL window frame —
             wordmark, drag strip and real window controls (R5.15; the bare
             full-screen version hid everything and couldn't even be closed). */}
@@ -48,16 +47,7 @@ function Root() {
         </div>
       </Suspense>
     );
-  return (
-    // AppShell itself is opaque (frameless Tauri window, no OS chrome around
-    // it), so this only reads as a visible backdrop wherever the shell
-    // doesn't fully cover it — but it's the correct place for "behind the
-    // window" ambient art, on the same --desk the rest of the app uses there.
-    <div style={{ position: "relative", height: "100%", background: "var(--desk)" }}>
-      <ForestBackdrop />
-      <AppShell />
-    </div>
-  );
+  return <AppShell />;
 }
 
 export default function App() {
