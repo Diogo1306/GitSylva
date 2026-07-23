@@ -4,6 +4,7 @@ import { enCommon } from "./en/common";
 import { enConfig } from "./en/config";
 import { enSettings } from "./en/settings";
 import { enShell } from "./en/shell";
+import { enHistory } from "./en/history";
 import { enWorkspace } from "./en/workspace";
 import { enEntry } from "./en/entry";
 
@@ -15,6 +16,7 @@ export const en: Record<MessageKey, MessageValue> = {
   ...enConfig,
   ...enSettings,
   ...enShell,
+  ...enHistory,
   ...enWorkspace,
   ...enEntry,
 };

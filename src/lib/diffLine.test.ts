@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { classifyDiffLine, parseHunkHeader, gutterDigits } from "./diffLine";
+import { classifyDiffLine, parseHunkHeader, gutterDigits, splitDiffByFile, patchForFile } from "./diffLine";
 
 describe("classifyDiffLine", () => {
   it("classifies git file headers as meta", () => {
@@ -44,5 +44,41 @@ describe("gutterDigits", () => {
   it("sizes the gutter for the largest line number", () => {
     expect(gutterDigits(["@@ -998,5 +1200,7 @@"])).toBe(4);
     expect(gutterDigits([" ctx only"])).toBe(2);
+  });
+});
+
+describe("splitDiffByFile / patchForFile", () => {
+  const combined =
+    "diff --git a/src/a.ts b/src/a.ts\n" +
+    "index 111..222 100644\n" +
+    "--- a/src/a.ts\n" +
+    "+++ b/src/a.ts\n" +
+    "@@ -1 +1 @@\n" +
+    "-a\n" +
+    "+A\n" +
+    "diff --git a/src/b.rs b/src/b.rs\n" +
+    "new file mode 100644\n" +
+    "index 0000000..333\n" +
+    "--- /dev/null\n" +
+    "+++ b/src/b.rs\n" +
+    "@@ -0,0 +1 @@\n" +
+    "+fn main() {}\n";
+
+  it("splits a combined commit diff into one patch per file, keyed by the new path", () => {
+    const files = splitDiffByFile(combined);
+    expect(files.map((f) => f.path)).toEqual(["src/a.ts", "src/b.rs"]);
+    expect(files[0].patch).toContain("+A");
+    expect(files[0].patch).not.toContain("b.rs");
+    expect(files[1].patch).toContain("fn main() {}");
+  });
+
+  it("returns a single file's patch by path (creation via /dev/null too)", () => {
+    expect(patchForFile(combined, "src/a.ts")).toContain("+A");
+    expect(patchForFile(combined, "src/b.rs")).toContain("fn main() {}");
+    expect(patchForFile(combined, "does/not/exist")).toBe("");
+  });
+
+  it("returns [] for an empty diff", () => {
+    expect(splitDiffByFile("")).toEqual([]);
   });
 });

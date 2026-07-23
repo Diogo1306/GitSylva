@@ -74,9 +74,8 @@ export const CommitRow = memo(function CommitRow({
   onContext: (hash: string, x: number, y: number) => void;
 }) {
   const t = useT();
-  // Where HEAD is (the commit you're standing on) gets a left accent bar so
-  // it's findable at a glance even with the chips scrolled out of view.
-  const isHead = commit.refs.includes("HEAD");
+  // HEAD is shown by the graph node + the HEAD chip — no per-row side bar (it
+  // read like a second, competing selection next to var(--sel)).
   return (
     <SelectableRow
       role="option"
@@ -94,7 +93,6 @@ export const CommitRow = memo(function CommitRow({
         padding: filtering ? "0 16px" : `0 16px 0 ${gutter}px`,
         borderRadius: 0,
         boxSizing: "border-box",
-        boxShadow: isHead ? "inset 3px 0 0 var(--l0)" : undefined,
         borderBottom: "1px solid var(--bsoft)",
         // Skip painting rows scrolled out of view; the box keeps its height so
         // the graph overlay stays aligned.
