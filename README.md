@@ -1,11 +1,19 @@
 # GitSylva website
 
-The public landing page for GitSylva — a single, self-contained `index.html`
-(inline CSS/JS, Google Fonts via CDN) plus the images in `assets/`.
+The public landing page for GitSylva. Exported from the design tool as two
+self-contained pages:
+
+- **`index.html`** — the landing page (self-contained: inline CSS/JS/assets).
+- **`promo.html`** — the animated promo ("video"), embedded by `index.html`
+  in an `<iframe>`. It loads React and web fonts from public CDNs (unpkg,
+  Google Fonts) at runtime, so it needs an internet connection to animate.
+
+Both files must live in the **same folder** — `index.html` references
+`promo.html` by a relative path.
 
 ## Preview locally
 
-Just open `index.html` in a browser, or serve the folder:
+Serve the folder (opening `index.html` via `file://` blocks the iframe):
 
 ```bash
 npx serve site
@@ -13,15 +21,9 @@ npx serve site
 
 ## Deploy (GitHub Pages)
 
-The page uses only relative paths, so it can be served from any subpath.
-Two common options:
+Published to **https://diogo1306.github.io/GitSylva/** from the `gh-pages`
+branch (the contents of `site/` pushed to the branch root):
 
-- **Project subfolder:** in *Settings → Pages*, deploy from a branch and set
-  the folder to `/site` (or copy `site/` to `/docs`).
-- **`gh-pages` branch:** push the contents of `site/` to the root of a
-  `gh-pages` branch.
-
-Assets:
-
-- `assets/screenshot.png` — app screenshot shown in the hero.
-- `assets/icon.png` — the clean **S** app icon (256×256), for social/favicon.
+```bash
+git subtree push --prefix=site origin gh-pages
+```
