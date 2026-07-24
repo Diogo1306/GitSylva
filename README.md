@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/gitsylva-s.svg" height="140" alt="GitSylva" />
+  <img src="docs/gitsylva-s.svg" height="120" alt="GitSylva" />
 </p>
 
 <h1 align="center">GitSylva</h1>
@@ -7,14 +7,16 @@
 <p align="center"><strong>A git client where your history grows like a tree.</strong></p>
 
 <p align="center">
-  <a href="https://github.com/Diogo1306/GitSylva/releases/latest">Download</a> ·
-  <a href="#features">Features</a> ·
-  <a href="https://diogo1306.github.io/GitSylva/">Website</a>
+  <img src="docs/gitsylva-promo.gif" width="640" alt="GitSylva in motion" />
 </p>
 
-GitSylva is a fast, animated desktop git client for Windows. The commit graph is drawn as a living tree — with oak leaves, cherry blossoms, palm trees, or plain classic nodes if that's your thing — on top of a full-featured, keyboard-friendly git workflow.
+<p align="center">
+  <a href="https://github.com/Diogo1306/GitSylva/releases/latest"><strong>Download for Windows</strong></a>
+  &nbsp;·&nbsp;
+  <a href="https://diogo1306.github.io/GitSylva/"><strong>Website</strong></a>
+</p>
 
-![GitSylva](docs/screenshot.png)
+GitSylva is a fast, animated desktop git client for Windows. The commit graph is drawn as a living tree, with oak leaves, cherry blossoms, palm trees, or plain classic nodes, on top of a full-featured, keyboard-friendly git workflow.
 
 ## Download
 
@@ -29,7 +31,7 @@ Grab the installer from the [latest release](https://github.com/Diogo1306/GitSyl
 - **Working copy**: stage and unstage per file or per hunk, unified or side-by-side diffs, blame view, per-file-type icons, huge diffs paginated and capped so nothing ever freezes.
 - **Branches, stashes, tags**: slashed branch names (`feature/x`) group into collapsible folders, stashes preview their files, merge/rebase/cherry-pick with a persistent conflict banner.
 - **Multi-repository**: tabs across the top or a VS Code-style rail, with color-coded, renamable repo groups.
-- **Themes**: four full themes — Classic (light), Batman (graphite dark), Git Classic (vivid) and Nipon (sakura). Tree styles, branch palettes, accent colors and fonts, all exportable to a JSON file.
+- **Themes**: four full themes, Classic (light), Batman (graphite dark), Git Classic (vivid) and Nipon (sakura). Tree styles, branch palettes, accent colors and fonts, all exportable to a JSON file.
 - **Command palette**: `Ctrl+K` searches commits, branches, files, repositories and git actions in one place. Every shortcut is rebindable.
 - **Stability first**: all git operations run off the UI thread with per-repo write locking, crash/panic capture to a local log, and release-build telemetry (`window.__gsPerf()`).
 
@@ -37,7 +39,7 @@ Available in **English and Portuguese**, auto-detected from your OS locale and s
 
 ## Website
 
-Live at **[diogo1306.github.io/GitSylva](https://diogo1306.github.io/GitSylva/)** — a self-contained landing page whose source lives in [`site/`](site/) (published to GitHub Pages from the `gh-pages` branch). See [`site/README.md`](site/README.md) for deployment notes.
+Live at **[diogo1306.github.io/GitSylva](https://diogo1306.github.io/GitSylva/)**. The source lives in [`site/`](site/) and is published to GitHub Pages from the `gh-pages` branch. See [`site/README.md`](site/README.md) for deployment notes.
 
 ## Development
 
@@ -63,16 +65,10 @@ Release build (the updater signs every bundle, so the private key must be loaded
 powershell -File scripts/build-installer.ps1
 ```
 
-For a quick local binary without the installer/signing step:
+For a quick local binary without the installer or signing step:
 
 ```bash
 npx tauri build --no-bundle   # exe at src-tauri/target/release/app.exe
-```
-
-Performance harness (mocked 2,000-commit repo, dev only):
-
-```bash
-VITE_PERF_MOCK=1 npm run build && npm run preview
 ```
 
 ## Tech stack
